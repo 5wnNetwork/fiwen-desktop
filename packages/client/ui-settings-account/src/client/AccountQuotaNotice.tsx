@@ -27,7 +27,12 @@ type AccountQuotaNoticeProps = PropsRuntime<'shell.quota-notice'>
  * @returns the balance Modal, nothing while awaiting account state or a Platform page's return, or the fallback Toast.
  */
 export function AccountQuotaNotice({ matched, openPlatformPage, useAccount, usePlatformPage, t }: AccountQuotaNoticeProps) {
-  const { dismiss, keepOpen, message } = matched
+  const { dismiss, keepOpen, message, code, plan } = matched
+  const planRequired = code === 'ACCOUNT_PLAN_REQUIRED'
+  const title = planRequired ? t('planRequiredTitle') : t('quotaTitle')
+  const description = planRequired ? t('planRequiredDescription', { plan: plan ?? '' }) : t('quotaDescription')
+  const action = planRequired ? t('planRequiredAction') : t('quotaTopUp')
+  const destination = planRequired ? 'usage' as const : 'top-up' as const
   const accountStatus = useAccount(snapshot => snapshot.view?.status)
   const accountFailed = useAccount(snapshot => snapshot.failed)
   const signedIn = accountStatus === 'credential-stored'
@@ -66,16 +71,16 @@ export function AccountQuotaNotice({ matched, openPlatformPage, useAccount, useP
   // Defer the Modal until the native page closes; do not mount hidden focus or
   // Escape handlers under the opaque view.
   if (opened || platformPage !== null) return null
-  return <Modal open title={t('quotaTitle')} closeLabel={t('close')} onClose={dismiss}
-    description={t('quotaDescription')}
+  return <Modal open title={title} closeLabel={t('close')} onClose={dismiss}
+    description={description}
     footer={<>
       <Button variant="outline" onClick={dismiss}>{t('cancel')}</Button>
       <Button variant="primary" onClick={() => {
         // Retain the notice before its page mounts; a later failure would
         // otherwise republish it and remount this entry.
         releaseHold.current = keepOpen()
-        releasePage.current = openPlatformPage('top-up', () => { releasePage.current = undefined; dismiss() })
+        releasePage.current = openPlatformPage(destination, () => { releasePage.current = undefined; dismiss() })
         setOpened(true)
-      }}>{t('quotaTopUp')}</Button>
+      }}>{action}</Button>
     </>} />
 }

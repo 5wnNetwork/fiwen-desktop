@@ -151,6 +151,39 @@ it('keeps successful authorization, account, bonus and logout requests silent', 
   }
 })
 
+it('passes the optional plan snapshot through on the balance read and omits it when absent', async () => {
+  const fetcher = vi.spyOn(globalThis, 'fetch')
+  try {
+    fetcher.mockResolvedValueOnce(new Response(JSON.stringify({
+      code: 0, data: { biz_code: 0, biz_data: {
+        normal_wallets: [], bonus_wallets: [],
+        plan: {
+          id: 'pro', name: 'Pro', expires_at: null,
+          daily_quota: '50000', quota_used: '1234', quota_remaining: '48766',
+          resets_at: '2030-01-02T22:00:00Z', max_context: 1_000_000,
+        },
+      } },
+    })))
+    expect(await readAccountDetail('balance', 'https://platform.deepseek.com', 'private-token',
+      new AbortController().signal, {})).toEqual({
+      status: 'ready', value: [], bonusWallets: [],
+      plan: {
+        id: 'pro', name: 'Pro', expiresAt: null,
+        dailyQuota: '50000', quotaUsed: '1234', quotaRemaining: '48766',
+        resetsAt: '2030-01-02T22:00:00Z', maxContext: 1_000_000,
+      },
+    })
+    fetcher.mockResolvedValueOnce(new Response(JSON.stringify({
+      code: 0, data: { biz_code: 0, biz_data: { normal_wallets: [], bonus_wallets: [] } },
+    })))
+    const bare = await readAccountDetail('balance', 'https://platform.deepseek.com', 'private-token',
+      new AbortController().signal, {})
+    expect(bare).toEqual({ status: 'ready', value: [], bonusWallets: [] })
+  } finally {
+    fetcher.mockRestore()
+  }
+})
+
 it.each([
   { name: 'HTTP rejection', status: 401, payload: 'private-body' },
   { name: 'authorization code rejection', status: 200, payload: JSON.stringify({ code: 40003 }) },

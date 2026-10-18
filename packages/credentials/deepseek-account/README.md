@@ -52,7 +52,7 @@ The service defines account operations without maintaining a second credential i
 
 The [credentials subsystem](../../../docs/subsystems/credentials.md) owns storage APIs; the [architecture](../../../docs/architecture.md) explains application composition.
 
-A ready AccountDetails.balance keeps recharge wallets in value and bonus wallets in bonusWallets; both arrays preserve decimal strings and currency. Query failure supplies neither amount.
+A ready AccountDetails.balance keeps recharge wallets in value and bonus wallets in bonusWallets; both arrays preserve decimal strings and currency. Platforms that offer subscription plans may add an optional plan snapshot carrying the plan name, expiry, daily quota, used and remaining points, and reset instant; consumers render nothing when it is absent. Query failure supplies neither amount.
 
 <a id="model-experience"></a>
 ## Model Experience

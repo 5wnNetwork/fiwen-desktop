@@ -1,0 +1,30 @@
+/** Vietnamese dictionary for `settings.theme`, key-checked against upstream `en`. */
+import type { en } from '@deepseek-ai/dsh-client-ui-theme/src/client/locales.ts'
+
+export const vi = {
+  'appearance.title': 'Giao diện',
+  'appearance.light': 'Sáng',
+  'appearance.dark': 'Tối',
+  'appearance.system': 'Hệ thống',
+  'fontSize.text.title': 'Cỡ chữ',
+  'fontSize.text.description': 'Chỉ ảnh hưởng nội dung hội thoại',
+  'fontSize.text.increase': 'Tăng cỡ chữ',
+  'fontSize.text.decrease': 'Giảm cỡ chữ',
+  'fontSize.code.title': 'Cỡ chữ mã',
+  'fontSize.code.description': 'Dùng cho khối mã, mã nội dòng và đầu ra công cụ',
+  'fontSize.code.increase': 'Tăng cỡ chữ mã',
+  'fontSize.code.decrease': 'Giảm cỡ chữ mã',
+  'fontSize.terminal.title': 'Cỡ chữ terminal',
+  'fontSize.terminal.description': 'Dùng cho terminal trong thanh bên',
+  'fontSize.terminal.increase': 'Tăng cỡ chữ terminal',
+  'fontSize.terminal.decrease': 'Giảm cỡ chữ terminal',
+  'fontSize.unit': 'px',
+  'fontFamily.text.title': 'Phông văn bản',
+  'fontFamily.text.description': 'Dùng cho giao diện và văn bản hội thoại. Phân tách các phông bằng dấu phẩy; để trống để dùng mặc định',
+  'fontFamily.code.title': 'Phông mã',
+  'fontFamily.code.description': 'Dùng cho khối mã, mã nội dòng và đầu ra công cụ. Phân tách các phông bằng dấu phẩy; để trống để dùng mặc định',
+  'fontFamily.terminal.title': 'Phông terminal',
+  'fontFamily.terminal.description': 'Dùng cho terminal trong thanh bên. Phân tách các phông bằng dấu phẩy; để trống để dùng mặc định',
+  'fontFamily.placeholder': 'Mặc định',
+  'fontSize.more': 'Thêm cài đặt phông chữ',
+} satisfies Partial<Record<keyof typeof en, string>>

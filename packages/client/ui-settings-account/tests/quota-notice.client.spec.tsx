@@ -52,7 +52,7 @@ function callOrder(fn: { mock: { invocationCallOrder: readonly number[] } }, nth
  * Page changes re-render through the channel's own subscription, standing in
  * for the renderer's framework hook.
  */
-function mount(options: { account?: 'unloaded' | 'signed-out' | 'credential-stored'; pages?: PlatformPages; copy?: typeof en | typeof zh } = {}) {
+function mount(options: { account?: 'unloaded' | 'signed-out' | 'credential-stored'; pages?: PlatformPages; copy?: typeof en | typeof zh; owner?: Pick<QuotaNoticeOwnerProps, 'code'> & Partial<QuotaNoticeOwnerProps> } = {}) {
   const copy = options.copy ?? en
   const pages = options.pages
   const initial = options.account ?? 'credential-stored'
@@ -64,13 +64,14 @@ function mount(options: { account?: 'unloaded' | 'signed-out' | 'credential-stor
   const keepOpen = vi.fn(() => releaseHold)
   // The chain renderer passes the owner share and the selector's match, which
   // here is that same owner, so the entry receives both.
-  const owner: QuotaNoticeOwnerProps = { code: 'ACCOUNT_QUOTA', message: noticeMessage, dismiss, keepOpen }
+  const owner: QuotaNoticeOwnerProps = { code: 'ACCOUNT_QUOTA', message: noticeMessage, dismiss, keepOpen, ...options.owner }
   const element = () => live
     ? <AccountQuotaNotice {...({} as GlobalStandardProps)} {...owner} matched={owner}
       {...pages === undefined ? {} : { openPlatformPage: pages.open }}
       useAccount={selector => selector(account)}
       usePlatformPage={selector => selector(pages?.getSnapshot() ?? null)}
-      t={key => copy[key as AccountKey]} />
+      t={(key, params) => Object.entries(params ?? {})
+        .reduce((text, [name, value]) => text.replaceAll(`{${name}}`, String(value)), copy[key as AccountKey])} />
     : null
   const rendered = render(element())
   rerender = () => { rendered.rerender(element()) }
@@ -106,6 +107,18 @@ it.each([en, zh])('requests the shared top-up page for the claimed account notic
   // The page hides this entry's surface; the shared host owns the container.
   expect(screen.queryByRole('dialog')).toBeNull()
   expect(screen.queryByRole('alert')).toBeNull()
+})
+
+it.each([en, zh])('shows the plan-required Modal that opens the plans page', async (copy) => {
+  const spies = pageSpies()
+  const { keepOpen } = mount({ pages: spies.pages, copy,
+    owner: { code: 'ACCOUNT_PLAN_REQUIRED', plan: 'Pro' } })
+  const dialog = screen.getByRole('dialog', { name: copy.planRequiredTitle })
+  expect(dialog.textContent).toContain('Pro')
+  await act(async () => { fireEvent.click(screen.getByRole('button', { name: copy.planRequiredAction })) })
+  expect(keepOpen).toHaveBeenCalledOnce()
+  expect(spies.open).toHaveBeenCalledWith('usage', expect.any(Function))
+  expect(spies.pages.getSnapshot()).toEqual({ page: 'usage' })
 })
 
 it.each([en, zh])('dismisses the account notice without requesting a page', (copy) => {

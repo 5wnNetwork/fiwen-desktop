@@ -18,3 +18,11 @@ it('selects zh_CN only for a Chinese primary language subtag', () => {
   expect(locale('ZH_hans')).toBe('zh_CN')
   for (const value of ['en', 'en-US', 'fr-FR', 'English', '', 'zhx']) expect(locale(value)).toBe('en_US')
 })
+
+it('selects vi_VN only for a Vietnamese primary language subtag', () => {
+  const locale = (value: string): string | undefined =>
+    platformClientHeaders(null, { version: 'v', locale: value, timezoneOffsetSeconds: 0 })['x-client-locale']
+  expect(locale('vi')).toBe('vi_VN')
+  expect(locale('vi-VN')).toBe('vi_VN')
+  expect(locale('VI_vn')).toBe('vi_VN')
+})

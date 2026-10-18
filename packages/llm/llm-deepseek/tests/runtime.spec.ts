@@ -9,6 +9,7 @@ import type { AttachmentStore, ImageAttachmentRef, RequestImageAttachment } from
 import { createLaunchEnvironmentSnapshot } from '@deepseek-ai/dsh-launch-environment'
 import LlmRuntime, { ToolCallId, createUserMessage,
   CONTEXT_WINDOW_EXCEEDED_CODE,
+  PLAN_REQUIRED_CODE,
   createToolResultMessage,
   createAssistantMessage,
   LlmError,
@@ -1507,6 +1508,17 @@ describe('DeepSeekAdapter against a mock server', () => {
     expect(providerError({ error: { message: 'invalid input: temperature exceeds maximum allowed value' } }, 400).code)
       .toBe('INVALID_REQUEST')
     expect(providerError({ error: { code: 'context_length_exceeded' } }, 413).code).toBe('CONTEXT_WINDOW_EXCEEDED')
+  })
+
+  it('classifies plan_required with the required plan name ahead of the 400 fallback', () => {
+    const error = providerError({ error: {
+      type: 'plan_required', message: 'Model deepseek-pro requires the Pro plan or higher', required_plan: 'Pro',
+    } }, 400)
+    expect(error.code).toBe(PLAN_REQUIRED_CODE)
+    expect(error.failure.requiredPlan).toBe('Pro')
+    // A plan error missing the structured field still routes by type.
+    expect(providerError({ error: { type: 'plan_required', message: 'x' } }, 400).code).toBe(PLAN_REQUIRED_CODE)
+    expect(providerError({ error: { type: 'plan_required', message: 'x' } }, 400).failure.requiredPlan).toBeUndefined()
   })
 
   it('distinguishes terminal quota exhaustion from transient HTTP 429 throttling', () => {

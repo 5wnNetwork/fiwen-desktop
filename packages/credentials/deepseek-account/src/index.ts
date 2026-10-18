@@ -1,7 +1,7 @@
 /** Account Service Definition shared by platform, API, and model consumers. */
 import { Context, Service } from '@deepseek-ai/cordis'
 import type { AccountBonusBatch, AccountBonusOrderId, AccountClientMetadata, AccountDetails, AccountUserId, AccountView, SignInAttemptId } from './types.ts'
-export type { AccountBonusBatch, AccountBonusNotification, AccountBonusOrderId, AccountClientMetadata, AccountDetails, AccountProfile, AccountUserId, AccountWallet, AccountLinks, AccountView, SignInAttemptId, SignInAttemptView, SignInErrorCode } from './types.ts'
+export type { AccountBonusBatch, AccountBonusNotification, AccountBonusOrderId, AccountClientMetadata, AccountDetails, AccountPlan, AccountProfile, AccountUserId, AccountWallet, AccountLinks, AccountView, SignInAttemptId, SignInAttemptView, SignInErrorCode } from './types.ts'
 export { isRunningAccountTask, installAccountTaskCancellation } from './account-tasks.ts'
 
 declare module '@deepseek-ai/cordis' {
@@ -166,9 +166,10 @@ export function platformClientHeaders(platform: 'darwin' | 'win32' | null, clien
 /**
  * Reduce a caller's UI language to the region-tagged Platform locale.
  * Shares one normalization with the header and with request body locale fields.
- * @param locale - active UI language such as `zh-CN`, `zh_TW`, or `en-US`.
- * @returns the region-tagged Platform locale for that language, `zh_CN` or `en_US`.
+ * @param locale - active UI language such as `zh-CN`, `zh_TW`, `vi-VN`, or `en-US`.
+ * @returns the region-tagged Platform locale for that language, `zh_CN`, `vi_VN`, or `en_US`.
  */
-export function platformWireLocale(locale: string): 'zh_CN' | 'en_US' {
-  return locale.toLowerCase().split(/[-_]/)[0] === 'zh' ? 'zh_CN' : 'en_US'
+export function platformWireLocale(locale: string): 'vi_VN' | 'zh_CN' | 'en_US' {
+  const primary = locale.toLowerCase().split(/[-_]/)[0]
+  return primary === 'zh' ? 'zh_CN' : primary === 'vi' ? 'vi_VN' : 'en_US'
 }

@@ -8,5 +8,18 @@ it.each([
   // The Platform wire schema can carry exponent notation, which Big parses natively.
   ['0E-16', '¥0.00'], ['5.0000000000000000', '¥5.00'], ['5e0', '¥5.00'], ['1E-8', '<¥0.01'],
 ])('formats %s using Platform currency rules', (amount, expected) => {
-  expect(formatBalance(amount, '¥')).toBe(expected)
+  expect(formatBalance(amount, 'CNY')).toBe(expected)
+})
+
+it('formats USD identically to the legacy dollar-symbol rule', () => {
+  expect(formatBalance('1234.56999', 'USD')).toBe('$1,234.56')
+})
+
+it.each([
+  // vi-VN glues the currency symbol to the amount with a no-break space.
+  ['vi', '12.346 ₫'],
+  ['en', '₫12,346'],
+  ['zh', '₫12,346'],
+])('formats VND with Intl whole-unit grouping for locale %s', (locale, expected) => {
+  expect(formatBalance('12345.678', 'VND', locale)).toBe(expected)
 })

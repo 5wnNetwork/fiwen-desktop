@@ -30,6 +30,12 @@ export const QUOTA_EXCEEDED_CODE = 'QUOTA'
 /** Account-token quota that can be replenished through the first-party billing page. */
 export const ACCOUNT_QUOTA_EXCEEDED_CODE = 'ACCOUNT_QUOTA'
 
+/** Canonical provider-neutral code for a model gated behind a higher subscription plan. */
+export const PLAN_REQUIRED_CODE = 'PLAN_REQUIRED'
+
+/** First-party account model gated behind a higher subscription plan. */
+export const ACCOUNT_PLAN_REQUIRED_CODE = 'ACCOUNT_PLAN_REQUIRED'
+
 /**
  * Canonical provider-neutral code for a response that completed normally but
  * carried no content blocks at all. Providers occasionally emit a degenerate

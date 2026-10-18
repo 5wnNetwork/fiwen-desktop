@@ -53,13 +53,40 @@ export interface AccountProfile {
 }
 /** Platform recharge or bonus wallet balance; decimal strings retain server precision. */
 export interface AccountWallet {
-  readonly currency: 'CNY' | 'USD'
+  readonly currency: 'CNY' | 'USD' | 'VND'
   readonly balance: string
+}
+/**
+ * Subscription plan and daily-quota snapshot supplied by a Platform that offers
+ * plans. Point amounts stay decimal strings like wallet balances; `expiresAt`
+ * is null for the plan without an assignment deadline.
+ */
+export interface AccountPlan {
+  readonly id: string
+  /** Server-authored display name. */
+  readonly name: string
+  readonly expiresAt: string | null
+  /** Daily quota in points. */
+  readonly dailyQuota: string
+  /** Points consumed in the current quota day. */
+  readonly quotaUsed: string
+  /** Points remaining in the current quota day. */
+  readonly quotaRemaining: string
+  /** ISO timestamp at which the current quota day ends. */
+  readonly resetsAt: string
+  /** Maximum context the plan admits, in tokens. */
+  readonly maxContext: number
 }
 /** Independent query outcomes allow profile and balance failures to render separately. */
 export interface AccountDetails {
   readonly profile: { readonly status: 'ready'; readonly value: AccountProfile } | { readonly status: 'failed' }
-  readonly balance: { readonly status: 'ready'; readonly value: readonly AccountWallet[]; readonly bonusWallets: readonly AccountWallet[] } | { readonly status: 'failed' }
+  readonly balance: {
+    readonly status: 'ready'
+    readonly value: readonly AccountWallet[]
+    readonly bonusWallets: readonly AccountWallet[]
+    /** Subscription plan and quota snapshot; absent when the Platform supplies none. */
+    readonly plan?: AccountPlan | null
+  } | { readonly status: 'failed' }
 }
 
 /** Identity of one granted bonus order; stable across devices and sign-ins. */

@@ -9,6 +9,7 @@ import type { PlatformBridge } from '../src/client/PlatformOverlay.tsx'
 import { createPlatformPages, type PlatformPages } from '../src/client/platform-pages.ts'
 import { AccountPlatformHost } from '../src/client/AccountPlatformHost.tsx'
 import { AccountSection, type AccountSectionInjected, type AccountSnapshot } from '../src/client/AccountSection.tsx'
+import { formatBalance } from '../src/client/formatBalance.ts'
 import type { BonusNotice } from '../src/client/bonus-notices.ts'
 import type { AccountMenuProps } from '../src/client/AccountMenu.tsx'
 import type {} from '../src/client/index.ts'
@@ -39,6 +40,10 @@ function operationsOf(state: Omit<AccountView, 'links'>, details?: Partial<Accou
     contactUs: vi.fn(), showLogin: vi.fn(), setOnboarding: vi.fn(),
     bonusNoticeShown: vi.fn(), bonusNoticeDismissed: vi.fn(),
     refreshAccount: vi.fn(() => Promise.resolve()),
+    formatWalletBalance: (balance, currency) => formatBalance(balance, currency),
+    formatPlanDate: iso => new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(iso)),
+    formatPlanReset: iso => new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit' }).format(new Date(iso)),
+    formatPlanPoints: points => new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(Number(points)),
     avatarFailed: vi.fn(),
     start: vi.fn(() => Promise.resolve()), cancel: vi.fn(() => Promise.resolve()), signOut: vi.fn(() => Promise.resolve()),
   }
@@ -54,7 +59,9 @@ function mount(state: Omit<AccountView, 'links'>, copy: typeof en | typeof zh = 
     <AccountSection {...globals} {...operations}
       useAccount={selector => selector(operations.hooks.account.getSnapshot())}
       useTheme={selector => selector(operations.hooks.theme.getSnapshot())}
-      close={() => {}} t={key => key in copy ? copy[key as AccountKey] : key} />
+      close={() => {}} t={(key, params) => Object.entries(params ?? {})
+        .reduce((text, [name, value]) => text.replaceAll(`{${name}}`, String(value)),
+          key in copy ? copy[key as AccountKey] : key)} />
     {/* The application renders this from `shell.overlay`; the settings page only requests a page. */}
     {platform !== undefined && pages !== undefined
       && <SharedPlatformHost Globals={globals} pages={pages} platform={platform} copy={copy}
@@ -259,6 +266,33 @@ it.each([en, zh])('renders Platform profile and recharge wallet balances', async
   expect(screen.getByText('¥1,234.56')).toBeTruthy()
   expect(screen.getByText('<$0.01')).toBeTruthy()
   await expect(`${screen.getByRole('region').textContent}\n`).toMatchFileSnapshot(`./expected/details-${copy === en ? 'en' : 'zh'}.txt`)
+})
+
+it.each([en, zh])('renders the plan name and daily quota row when the Platform supplies a plan', (copy) => {
+  mount({ status: 'credential-stored', attempt: null }, copy, {
+    balance: {
+      status: 'ready', value: [], bonusWallets: [],
+      plan: {
+        id: 'pro', name: 'Pro', expiresAt: '2030-06-01T00:00:00.000Z',
+        dailyQuota: '50000', quotaUsed: '1234.567', quotaRemaining: '48765.433',
+        resetsAt: '2030-01-02T22:00:00.000Z', maxContext: 1_000_000,
+      },
+    },
+  })
+  const region = screen.getByRole('region')
+  expect(within(region).getByText(copy.plan)).toBeTruthy()
+  expect(within(region).getByText(copy.dailyQuota)).toBeTruthy()
+  expect(region.textContent).toContain('Pro')
+  // Decimal point strings render as locale-grouped numbers, not raw wire text.
+  expect(region.textContent).toContain('1,234.6 / 50,000')
+})
+
+it('renders no plan row when the Platform supplies none', () => {
+  mount({ status: 'credential-stored', attempt: null }, en, {
+    balance: { status: 'ready', value: [], bonusWallets: [] },
+  })
+  expect(screen.queryByText(en.plan)).toBeNull()
+  expect(screen.queryByText(en.dailyQuota)).toBeNull()
 })
 
 it.each([en, zh])('shows the signed-out settings prompt without balance or Platform links', async (copy) => {

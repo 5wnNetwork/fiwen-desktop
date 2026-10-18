@@ -9,4 +9,4 @@ export const PLATFORM_IPC = {
 } as const
 
 /** Resolved Platform language; Desktop resolves the system preference before sending it. */
-export type PlatformLocale = 'en_US' | 'zh_CN'
+export type PlatformLocale = 'en_US' | 'zh_CN' | 'vi_VN'

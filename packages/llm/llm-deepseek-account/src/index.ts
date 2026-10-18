@@ -1,7 +1,7 @@
 /** Account-token authentication, the account model listing, and version gating for the DeepSeek account route. */
 import type {} from '@deepseek-ai/cordis-plugin-loader'
 import type { Context } from '@deepseek-ai/cordis'
-import { ACCOUNT_QUOTA_EXCEEDED_CODE, APP_IDENTITY, LlmError, QUOTA_EXCEEDED_CODE } from '@deepseek-ai/dsh-llm'
+import { ACCOUNT_PLAN_REQUIRED_CODE, ACCOUNT_QUOTA_EXCEEDED_CODE, APP_IDENTITY, LlmError, PLAN_REQUIRED_CODE, QUOTA_EXCEEDED_CODE } from '@deepseek-ai/dsh-llm'
 import type {} from '@deepseek-ai/dsh-deepseek-account'
 import { launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
 import { assertNever } from '@deepseek-ai/dsh-util-values'
@@ -61,6 +61,9 @@ export function apply(ctx: Context, config: Config): void {
         if (!(error instanceof LlmError)) return error
         if (error.code === QUOTA_EXCEEDED_CODE) {
           return new LlmError(error.message, ACCOUNT_QUOTA_EXCEEDED_CODE, { ...error.failure, cause: error })
+        }
+        if (error.code === PLAN_REQUIRED_CODE) {
+          return new LlmError(error.message, ACCOUNT_PLAN_REQUIRED_CODE, { ...error.failure, cause: error })
         }
         if (error.failure.status !== 401) return error
         const rejected = new LlmError(error.message, 'ACCOUNT_TOKEN_INVALID', { ...error.failure, cause: error })

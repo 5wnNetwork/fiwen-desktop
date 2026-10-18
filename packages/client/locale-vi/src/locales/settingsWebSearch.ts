@@ -1,0 +1,32 @@
+/** Vietnamese dictionary for `settings.webSearch`, key-checked against upstream `en`. */
+import type { en } from '@deepseek-ai/dsh-client-ui-settings-web-search/src/client/locales.ts'
+
+export const vi = {
+  'title': 'Tìm kiếm web',
+  'description': 'Thiết lập nhà cung cấp tìm kiếm DeepSeek.',
+  'useSearchApi': 'Dùng Web Search API mới',
+  'useSearchApiHint': 'Mặc định tắt: tìm kiếm chạy qua DeepSeek Messages. Về tính năng và giá của Web Search API mới, xem ',
+  'searchGuide': 'Hướng dẫn Search & Fetch',
+  'searchGuideUrl': 'https://api-docs.deepseek.com/guides/search',
+  'apiKey': 'Khóa API',
+  'apiKeyHint': 'Được lưu ngoài tệp cài đặt. Để trống để giữ khóa hiện tại.',
+  'apiKeySet': 'Đã cấu hình khóa.',
+  'apiKeyUnset': 'Chưa cấu hình khóa; chỉ các hội thoại dùng mô hình Tài khoản DeepSeek mới tìm kiếm được, qua điểm cuối mặc định.',
+  'baseUrl': 'URL gốc Messages API',
+  'baseUrlHint': 'Bao gồm tiền tố API, ví dụ https://api.deepseek.com/anthropic/v1. Nhà cung cấp nối thêm /messages. Để trống để khôi phục mặc định.',
+  'searchApiBaseUrl': 'URL gốc Search / Fetch API',
+  'searchApiBaseUrlHint': 'Bao gồm tiền tố API, ví dụ https://api.deepseek.com/v1/tools. Nhà cung cấp nối thêm /search hoặc /fetch. Để trống để khôi phục mặc định.',
+  'maxUses': 'Số lượt tìm kiếm tối đa mỗi yêu cầu',
+  'maxUsesHint': 'Số lượt tìm kiếm mô hình phụ được chạy trong một yêu cầu Messages. Chỉ áp dụng cho Messages API.',
+  'count': 'Kết quả mỗi lượt tìm',
+  'countHint': 'Số kết quả trả về mỗi truy vấn: số nguyên từ 1 đến 50, mặc định 10. Thiết lập này kiểm soát số kết quả, không phải số lần gọi tìm kiếm. web_search không giữ nhiều nguồn hơn giới hạn kết quả của chính nó.',
+  'overridden': 'Đã ghi đè',
+  'reset': 'Đặt lại về mặc định',
+  'readOnly': 'Bản triển khai này lưu cài đặt ở chế độ chỉ đọc.',
+  'unavailable': 'Plugin này chưa được tải nên hiện không thể cấu hình.',
+  'save': 'Lưu',
+  'saving': 'Đang lưu…',
+  'saveFailed': 'Bản triển khai không chấp nhận các giá trị này; chúng được giữ lại để bạn sửa.',
+  'invalidNumber': 'Nhập một số, hoặc để trống để dùng giá trị mặc định.',
+  'invalidCount': 'Nhập số nguyên từ 1 đến 50, hoặc để trống để dùng giá trị mặc định.',
+} satisfies Partial<Record<keyof typeof en, string>>

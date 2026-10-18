@@ -85,7 +85,7 @@ export function apply(ctx) {
 
 ### 偏好解析
 
-临时 locale 来自浏览器（`navigator.languages` 先按完整标签、再按主语言子标签匹配，以英文作为回退），在 Host settings scope 送达其存储偏好之前生效。Host 读取在插件激活后运行，因此 settings scope 不可用不会阻塞页面，结果会实时替换临时值。已存储的外部 locale 会等待其定义注册。`setLocale` 是唯一写入入口；即使 id 已与生效中的 locale 匹配也会持久化，因为生效中的值可能是临时的，必须能在共享同一 home 的其他浏览器上存活。
+临时 locale 来自浏览器（`navigator.languages` 先按完整标签、再按主语言子标签匹配，以英文作为回退），在 Host settings scope 送达其存储偏好之前生效。部署方也可以钉一个更宽松的默认值：行配置的 `defaultLocale` 在没有显式偏好且该 id 已注册时先于浏览器检测生效，语言包随后注册该 id 时同样适用；`defaultLocale` 未注册或缺省时保持浏览器检测不变。Host 读取在插件激活后运行，因此 settings scope 不可用不会阻塞页面，结果会实时替换临时值。已存储的外部 locale 会等待其定义注册。`setLocale` 是唯一写入入口；即使 id 已与生效中的 locale 匹配也会持久化，因为生效中的值可能是临时的，必须能在共享同一 home 的其他浏览器上存活。
 
 ### 字典查找
 

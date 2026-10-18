@@ -87,6 +87,7 @@ it('claims account balance notices from the frame-wide quota chain and declines 
     code: 'ACCOUNT_QUOTA', message: 'Request quota exhausted.', dismiss: vi.fn(), keepOpen: vi.fn(() => () => {}),
   }
   expect(select(notice)).toBe(notice)
+  expect(select({ ...notice, code: 'ACCOUNT_PLAN_REQUIRED', plan: 'Pro' })).toMatchObject({ plan: 'Pro' })
   expect(select({ ...notice, code: 'QUOTA' })).toBeNull()
 }, 60_000)
 

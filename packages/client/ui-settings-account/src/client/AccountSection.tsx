@@ -6,7 +6,7 @@ import type { AccountDetails, AccountView, SignInAttemptId } from '@deepseek-ai/
 import type { PropsRuntime, PropsLocale, InjectFace, HostObservable } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ThemeSnapshot } from '@deepseek-ai/dsh-client-ui-theme/client'
 import type { PlatformPage, PlatformPages } from './platform-pages.ts'
-import { formatBalance } from './formatBalance.ts'
+import type { BalanceCurrency } from './formatBalance.ts'
 import { AccountAvatar } from './AccountAvatar.tsx'
 import type { AccountAvatarSnapshot } from './account-avatar.ts'
 import { authorizeUrlWithTheme } from './authorize-url.ts'
@@ -54,6 +54,14 @@ export interface AccountSectionInjected {
   subscribeModelSignInRequired?: (listener: () => void) => () => void
   /** Desktop-only: show one page in the account feature's shared native host; absent in ordinary browsers. */
   openPlatformPage?: PlatformPages['open']
+  /** Locale-aware balance display for one wallet currency. */
+  formatWalletBalance: (balance: string, currency: BalanceCurrency) => string
+  /** Locale-aware medium date for a plan expiry timestamp. */
+  formatPlanDate: (iso: string) => string
+  /** Locale-aware wall time for the quota reset instant. */
+  formatPlanReset: (iso: string) => string
+  /** Locale-aware point amount from a decimal string. */
+  formatPlanPoints: (points: string) => string
 
   /** Account stream owned by the Host and theme snapshots published by the renderer, observed through framework hooks. */
   hooks: {
@@ -90,7 +98,11 @@ export interface AccountSectionInjected {
 export type AccountSectionProps =
   PropsRuntime<'settings.section'> & PropsLocale<'settings.account'> & InjectFace<AccountSectionInjected>
 /** @param props - localized actions, account subscription, and the shared Platform page channel. @returns account settings UI. */
-export function AccountSection({ t, useAccount, useTheme, start, cancel, openPlatformPage, avatarFailed }: AccountSectionProps) {
+export function AccountSection({
+  t, useAccount, useTheme, start, cancel, openPlatformPage,
+  formatWalletBalance, formatPlanDate, formatPlanReset, formatPlanPoints,
+  avatarFailed,
+}: AccountSectionProps) {
   const { view: state, details, avatar, failed: streamFailed } = useAccount(value => value)
   const colorScheme = useTheme(snapshot => snapshot.active.colorScheme)
   // The shared host owns the native view; this page holds only its own request,
@@ -102,6 +114,7 @@ export function AccountSection({ t, useAccount, useTheme, start, cancel, openPla
   const wallets = details?.balance?.status === 'ready' ? details.balance.value : undefined
   const bonusWallets = details?.balance?.status === 'ready'
     ? details.balance.bonusWallets.filter(wallet => new Big(wallet.balance).gt(0)) : []
+  const plan = details?.balance?.status === 'ready' ? details.balance.plan : undefined
   const showBonusRow = details?.balance?.status !== 'ready' || bonusWallets.length > 0
   const attempt = state?.attempt
   const active = attempt !== null && attempt !== undefined
@@ -189,7 +202,7 @@ export function AccountSection({ t, useAccount, useTheme, start, cancel, openPla
           <span>{t('balance')}</span>
           {signedIn && wallets !== undefined && wallets.length > 0
             ? <span className={css.amount}>{wallets.map(wallet => <span key={wallet.currency}>
-              {formatBalance(wallet.balance, wallet.currency === 'CNY' ? '¥' : '$')}
+              {formatWalletBalance(wallet.balance, wallet.currency)}
             </span>)}</span>
             : !signedIn || details?.balance === undefined
               ? <span className={css.unavailable}>{t(!signedIn ? 'balanceSignedOut' : 'loading')}</span>
@@ -202,11 +215,31 @@ export function AccountSection({ t, useAccount, useTheme, start, cancel, openPla
             <span className={css.bonusValue}>
               {bonusWallets.length > 0
                 ? <span className={css.amount}>{bonusWallets.map(wallet => <span key={wallet.currency}>
-                  {formatBalance(wallet.balance, wallet.currency === 'CNY' ? '¥' : '$')}
+                  {formatWalletBalance(wallet.balance, wallet.currency)}
                 </span>)}</span>
                 : details?.balance === undefined
                   ? <span className={css.unavailable}>{t('loading')}</span>
                   : platformLink(t('balanceUnavailable'), css.unavailableLink)}
+            </span>
+          </div>
+        </>}
+        {signedIn && plan != null && <>
+          <div className={css.divider} />
+          <div className={css.row}>
+            <span>{t('plan')}</span>
+            <span className={css.bonusValue}>
+              <span className={css.amount}><span>{plan.expiresAt === null
+                ? plan.name
+                : t('planValueUntil', { name: plan.name, date: formatPlanDate(plan.expiresAt) })}</span></span>
+            </span>
+          </div>
+          <div className={css.row}>
+            <span>{t('dailyQuota')}</span>
+            <span className={css.bonusValue}>
+              <span className={css.amount}><span>{t('quotaValueReset', {
+                used: formatPlanPoints(plan.quotaUsed), daily: formatPlanPoints(plan.dailyQuota),
+                time: formatPlanReset(plan.resetsAt),
+              })}</span></span>
             </span>
           </div>
         </>}

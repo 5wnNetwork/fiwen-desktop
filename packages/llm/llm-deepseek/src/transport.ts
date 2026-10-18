@@ -30,15 +30,19 @@ export function providerError(raw: unknown, status: number | undefined, headers?
   else if (isQuotaExceededError(detail) || status === 402) code = 'QUOTA'
   else if (status === 429 || type === 'rate_limit_error') code = 'RATE_LIMIT'
   else if (isContextWindowExceededError(detail)) code = 'CONTEXT_WINDOW_EXCEEDED'
+  else if (type === 'plan_required') code = 'PLAN_REQUIRED'
   else if (status === 400 || status === 413 || type === 'invalid_request_error') code = 'INVALID_REQUEST'
   else if ((status !== undefined && status >= 500) || ['api_error', 'overloaded_error'].includes(type)) code = 'SERVER'
   else code = status === undefined ? 'SERVER' : `HTTP_${status}`
   const retry = headers?.get('retry-after')
   const delay = retry == null ? NaN : /^\d+(?:\.\d+)?$/u.test(retry) ? Number(retry) * 1000 : Date.parse(retry) - Date.now()
   const id = headers?.get('request-id') ?? headers?.get('x-request-id') ?? headers?.get('x-deepseek-request-id')
+  const requiredPlan = typeof error.required_plan === 'string' && error.required_plan.length > 0
+    ? error.required_plan : undefined
   return new LlmError(message, code, {
     ...status === undefined ? {} : { status },
     ...id ? { requestId: ProviderRequestId(id) } : {},
     ...Number.isFinite(delay) && delay > 0 ? { providerRetryAfterMs: delay } : {},
+    ...requiredPlan === undefined ? {} : { requiredPlan },
   })
 }

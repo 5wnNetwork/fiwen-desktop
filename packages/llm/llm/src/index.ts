@@ -87,6 +87,8 @@ export interface LlmErrorOptions extends ErrorOptions {
   requestId?: ProviderRequestId
   /** Positive count of additional oldest retained image occurrences to offload; only with `IMAGE_OFFLOAD_REQUIRED`. */
   offloadImages?: number
+  /** Non-empty display name of the required subscription plan; only with `PLAN_REQUIRED`/`ACCOUNT_PLAN_REQUIRED`. */
+  requiredPlan?: string
 }
 
 /**
@@ -117,6 +119,10 @@ export class LlmError extends HarnessError {
       && (typeof options.requestId !== 'string' || options.requestId.length === 0)) {
       throw new Error('LlmError requestId must be a non-empty string')
     }
+    if (options?.requiredPlan !== undefined
+      && (typeof options.requiredPlan !== 'string' || options.requiredPlan.length === 0)) {
+      throw new Error('LlmError requiredPlan must be a non-empty string')
+    }
     super(message, code, options)
     this.name = 'LlmError'
     this.failure = Object.freeze({
@@ -126,6 +132,7 @@ export class LlmError extends HarnessError {
       ...options?.providerRetryAfterMs === undefined ? {} : { providerRetryAfterMs: options.providerRetryAfterMs },
       ...options?.requestId === undefined ? {} : { requestId: options.requestId },
       ...options?.offloadImages === undefined ? {} : { offloadImages: options.offloadImages },
+      ...options?.requiredPlan === undefined ? {} : { requiredPlan: options.requiredPlan },
     })
   }
 }

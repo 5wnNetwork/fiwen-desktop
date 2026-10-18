@@ -1,0 +1,30 @@
+/** Vietnamese dictionary for `agent-team`, key-checked against upstream `en`. */
+import type { en } from '@deepseek-ai/dsh-experimental-client-ui-agent-team/src/client/locales.ts'
+
+export const vi = {
+  'trigger': 'Nhóm tác tử',
+  'loading': 'Đang tải Nhóm…',
+  'unavailable': 'Nhóm không khả dụng',
+  'failure': 'Bản ghi Nhóm đã lưu không hợp lệ: {message}',
+  'empty': 'Chưa có tác vụ chia sẻ. Hãy tạo qua hội thoại.',
+  'roster': 'Thành viên',
+  'tasks': 'Tác vụ chia sẻ',
+  'model': 'Mô hình',
+  'open': 'Mở hội thoại của thành viên',
+  'current': 'Trò chuyện hiện tại',
+  'owner': 'Chủ sở hữu',
+  'unowned': 'Chưa có chủ',
+  'blockedBy': 'Bị chặn bởi',
+  'writeScopes': 'Phạm vi ghi',
+  'ready': 'Sẵn sàng',
+  'blocked': 'Bị chặn bởi phụ thuộc',
+  'task.expand': 'Xem thêm',
+  'task.collapse': 'Thu gọn',
+  'memberStatus.running': 'Đang chạy',
+  'memberStatus.inactive': 'Không hoạt động',
+  'memberStatus.provisioning': 'Đang khởi tạo',
+  'memberStatus.failed': 'Thất bại',
+  'status.pending': 'Đang chờ',
+  'status.in_progress': 'Đang thực hiện',
+  'status.completed': 'Hoàn thành',
+} satisfies Partial<Record<keyof typeof en, string>>

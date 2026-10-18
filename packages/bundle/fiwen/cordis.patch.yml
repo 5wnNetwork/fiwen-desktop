@@ -1,0 +1,94 @@
+# The dsh-fiwen bundle patch: the Fiwen deployment layer over dsh-web-app.
+# Applied after dsh-base and dsh-web-app; rows here override those layers by
+# id, with the profile's own cordis.patch.yml and any --patch overlays still
+# to come.
+#
+# A patch replaces the targeted row's whole `config`, so each row below
+# restates every key the earlier row set.
+#
+# One origin serves account sign-in, model inference, web tools, and
+# telemetry. FIWEN_ORIGIN overrides it for development; a loopback value also
+# enables the account plugin's loopback-HTTP opt-in.
+
+- id: deepseek-account
+  config:
+    platformOrigin: !!js process.env.FIWEN_ORIGIN ?? 'https://desktop.5wn.net'
+    desktopPlatform: !!js "ctx.get('profileContext')?.name === 'desktop' && ['darwin', 'win32'].includes(process.platform) ? process.platform : null"
+    inferenceOrigin: !!js process.env.FIWEN_ORIGIN ?? 'https://desktop.5wn.net'
+    allowLoopbackHttp: !!js "['localhost', '127.0.0.1', '[::1]'].includes(new URL(process.env.FIWEN_ORIGIN ?? 'https://desktop.5wn.net').hostname)"
+
+# The API-key route is not offered: account sign-in is the only credential
+# path. The Models onboarding dialog finds no `deepseek-official` row and
+# completes silently; the account package's onboarding owns the prompt.
+- id: llm-deepseek
+  disabled: true
+
+# Belt and braces: never auto-open the browser API-key onboarding step, even
+# if an upstream sync reintroduces a configurable `deepseek-official` row.
+- id: ui-settings-models
+  config:
+    credentialOnboarding: false
+
+# The account adapter points its Messages and /models listing traffic at the
+# Fiwen origin's /anthropic prefix.
+- id: llm-deepseek-account
+  config:
+    baseURL: !!js "`${process.env.FIWEN_ORIGIN ?? 'https://desktop.5wn.net'}/anthropic`"
+
+- id: agent-default-model
+  config:
+    provider: deepseek-account
+    model: !!js process.env.FIWEN_DEFAULT_MODEL ?? 'deepseek-flash'
+
+# Search and Fetch run on the Fiwen /v1/tools endpoints behind the account
+# token; the Messages-backed providers and their API-key credential stay out.
+- id: web
+  config:
+    searchProvider: deepseek-search-api
+    fetchProvider: deepseek-fetch-api
+
+- id: web-search-deepseek
+  disabled: true
+
+- id: web-deepseek-api
+  config:
+    apiKeyEnv: DEEPSEEK_API_KEY
+    baseURL: !!js "`${process.env.FIWEN_ORIGIN ?? 'https://desktop.5wn.net'}/v1/tools`"
+
+# Telemetry exports to the Fiwen OTLP intake; the env seams still win.
+- id: session-telemetry-otel
+  config:
+    mode: !!js process.env.DSH_TELEMETRY_MODE || 'FEEDBACK_ONLY'
+    shutdownTimeoutMillis: 3000
+    maxRequestBytes: 4000000
+    exporter:
+      url: !!js "`${process.env.DSH_TELEMETRY_OTLP_URL ?? `${process.env.FIWEN_ORIGIN ?? 'https://desktop.5wn.net'}/v1/logs`}`"
+      compression: gzip
+      timeoutMillis: 1000
+    processor:
+      scheduledDelayMillis: 10000
+      maxQueueSize: 2048
+      maxExportBatchSize: 2048
+      exportTimeoutMillis: 1500
+
+# Desktop product analytics to the same intake (row stays desktop-only).
+- id: desktop-product-telemetry
+  config:
+    scheduledDelayMillis: 30000
+    timeoutMillis: 15000
+    exportTimeoutMillis: 20000
+    shutdownTimeoutMillis: 2000
+    serviceName: deepseek-harness-desktop
+    serviceVersion: !!js process.env.DSH_CLIENT_VERSION
+    endpoint: !!js "`${process.env.DSH_PRODUCT_ANALYTICS_OTLP_URL ?? `${process.env.FIWEN_ORIGIN ?? 'https://desktop.5wn.net'}/v1/logs`}`"
+
+# Vietnamese is the deployment default when no explicit preference exists.
+- id: locale
+  config:
+    defaultLocale: vi
+
+- insert:
+    # The Vietnamese language pack: registers `vi` dictionaries for every
+    # client namespace the deployment ships.
+    - id: locale-vi
+      name: '@deepseek-ai/dsh-client-locale-vi'

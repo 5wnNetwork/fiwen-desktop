@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Terminal bền",
+    "description": "Giữ tiến trình shell tồn tại qua các lần gọi công cụ."
+  }
+}

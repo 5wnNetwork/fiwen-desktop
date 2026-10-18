@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Điều khiển máy tính (Cua Driver)",
+    "description": "Cho mô hình điều khiển desktop với runtime Cua Driver đi kèm; cần quyền desktop cho ứng dụng khởi chạy dsh."
+  }
+}

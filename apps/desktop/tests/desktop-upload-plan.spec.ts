@@ -53,7 +53,7 @@ async function fixture(
   const base = `deepseek-harness-${version}-${os}-${arch}`
   const origin = environment === 'test'
     ? TEST_ORIGIN
-    : 'https://download.deepseek.com'
+    : 'https://desktop.5wn.net'
   await writeFile(join(artifactsRoot, `${target}-release.json`), `${JSON.stringify({
     schemaVersion: 1,
     channel,
@@ -196,7 +196,7 @@ describe('desktop upload plan', () => {
     expect(load(plan.artifacts[2]!.contents!)).toMatchObject({
       version: '1.2.3',
       files: [{
-        url: 'https://download.deepseek.com/dsh-desk/bin/win-x64/deepseek-harness-1.2.3-win-x64.exe',
+        url: 'https://desktop.5wn.net/dsh-desk/bin/win-x64/deepseek-harness-1.2.3-win-x64.exe',
         sha512: digest('signed NSIS executable fixture'),
       }],
     })
@@ -271,7 +271,7 @@ describe('desktop upload plan', () => {
       'nightly.yml',
     ])
     expect(plan).toMatchObject({
-      publicUrl: 'https://download.deepseek.com/dsh-desk/feeds/win-x64/',
+      publicUrl: 'https://desktop.5wn.net/dsh-desk/feeds/win-x64/',
       bucket: PRODUCTION_BUCKET,
     })
   })

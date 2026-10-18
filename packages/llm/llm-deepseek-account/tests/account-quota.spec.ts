@@ -54,6 +54,23 @@ it.each([
   await expect(finishOf(ctx, provider)).resolves.toMatchObject({ kind: 'error', failure: { code } })
 })
 
+it.each([
+  { provider: 'deepseek-account', apiKey: '', code: 'ACCOUNT_PLAN_REQUIRED' },
+  { provider: 'deepseek-account', apiKey: 'fixture-api-key', code: 'ACCOUNT_PLAN_REQUIRED' },
+  { provider: 'deepseek-official', apiKey: 'fixture-api-key', code: 'PLAN_REQUIRED' },
+] as const)('reports a plan_required rejection on $provider as $code with the plan name', async ({ provider, apiKey, code }) => {
+  vi.stubEnv('DEEPSEEK_API_KEY', apiKey)
+  const ctx = await routeFor('account-token', provider)
+  vi.spyOn(globalThis, 'fetch').mockImplementation(messagesOnly(() => new Response(JSON.stringify({
+    type: 'error', error: {
+      type: 'plan_required', message: 'Model deepseek-pro requires the Pro plan or higher', required_plan: 'Pro',
+    },
+  }), { status: 400 })))
+  await expect(finishOf(ctx, provider)).resolves.toMatchObject({
+    kind: 'error', failure: { code, requiredPlan: 'Pro' },
+  })
+})
+
 it('reports an in-band account balance stream error as ACCOUNT_QUOTA', async () => {
   vi.stubEnv('DEEPSEEK_API_KEY', 'fixture-api-key')
   const ctx = await routeFor('account-token', 'deepseek-account')

@@ -1,0 +1,33 @@
+/** Vietnamese dictionary for `sidebarTerminal`, key-checked against upstream `en`. */
+import type { en } from '@deepseek-ai/dsh-client-ui-sidebar-terminal/src/client/locales.ts'
+
+export const vi = {
+  'shortcut.noSession': 'Hãy chọn một phiên trước',
+  'recoveryFailed': 'Khôi phục terminal thất bại: {message}',
+  'retryRecovery': 'Thử khôi phục terminal lại',
+  'shell': 'Chọn shell',
+  'shellLoading': 'Đang tải shell…',
+  'shellEmpty': 'Không có shell nào',
+  'description': 'Chạy lệnh trong không gian làm việc của Phiên',
+  'title': 'Terminal',
+  'new': 'Terminal mới',
+  'loading': 'Đang đọc môi trường terminal…',
+  'creating': 'Đang khởi động…',
+  'connecting': 'Đang kết nối…',
+  'disconnected': 'Đã ngắt kết nối.',
+  'reconnect': 'Kết nối lại',
+  'readonly': 'Chế độ xem này chỉ đọc.',
+  'control': 'Giành quyền điều khiển',
+  'closed': 'Terminal đã đóng.',
+  'exited': 'Tiến trình đã thoát ({code})',
+  'failed': 'Lỗi terminal: {message}',
+  'rename': 'Tên terminal',
+  'unavailable': 'Không khả dụng',
+  'retry': 'Thử lại',
+  'cleanupFailed': 'Không thể kết thúc terminal “{title}”: {message}',
+  'missingTerminal': 'Terminal này không còn tồn tại. Hãy mở terminal mới.',
+  'inputFull': 'Bộ đệm nhập đã đầy. Kết nối lại rồi thử lại.',
+  'attachmentEnded': 'Kết nối terminal đã kết thúc. Kết nối lại để tiếp tục.',
+  'invalidOutput': 'Không thể nhận màn hình terminal. Kết nối lại để khôi phục.',
+  'terminalLimit': 'Đã đạt giới hạn terminal. Hãy đóng các terminal không dùng rồi thử lại. Terminal đã thoát cũng tính vào giới hạn.',
+} satisfies Partial<Record<keyof typeof en, string>>

@@ -20,6 +20,7 @@ import { apply as applyChat, inject as injectChat } from '@deepseek-ai/dsh-clien
 import { AccountPlatformHost, type AccountPlatformHostInjected } from '../src/client/AccountPlatformHost.tsx'
 import { AccountQuotaNotice, type AccountQuotaNoticeInjected } from '../src/client/AccountQuotaNotice.tsx'
 import { AccountSection, type AccountSectionInjected, type AccountSnapshot } from '../src/client/AccountSection.tsx'
+import { formatBalance } from '../src/client/formatBalance.ts'
 import { DesktopOnboardingEntry, type DesktopOnboardingInjected } from '../src/client/DesktopOnboardingEntry.tsx'
 import type { DesktopOnboardingState } from '../src/client/onboarding-contract.ts'
 import { createPlatformPages, type PlatformPages } from '../src/client/platform-pages.ts'
@@ -64,6 +65,8 @@ function sectionOperations(account: AccountSnapshot, pages: PlatformPages): Acco
     },
     openPlatformPage: pages.open,
     refreshAccount: async () => {},
+    formatWalletBalance: (balance, currency) => formatBalance(balance, currency),
+    formatPlanDate: (iso: string) => `d:${iso}`, formatPlanReset: (iso: string) => `r:${iso}`, formatPlanPoints: (points: string) => points,
     avatarFailed: () => {},
     bonusNoticeShown: () => {}, bonusNoticeDismissed: () => {},
     hasRunningAccountTasks: async () => false,

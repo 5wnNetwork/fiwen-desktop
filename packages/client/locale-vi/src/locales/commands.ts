@@ -1,0 +1,33 @@
+/** Vietnamese dictionary for `command`, key-checked against upstream `en`. */
+import type { en } from '@deepseek-ai/dsh-client-ui-commands/src/client/locales.ts'
+
+export const vi = {
+  'section.add': 'Thêm',
+  'section.commands': 'Lệnh',
+  'label.goal': 'Mục tiêu',
+  'label.plan': 'Kế hoạch',
+  'label.feedback': 'Phản hồi',
+  'label.compact': 'Nén',
+  'label.permission': 'Quyền',
+  'label.export': 'Xuất',
+  'description.goal': 'Đặt hoặc xem mục tiêu cho tác vụ chạy dài',
+  'description.plan': 'Vào hoặc rời chế độ kế hoạch',
+  'description.feedback': 'Ghi phản hồi về phiên này',
+  'description.compact': 'Nén lịch sử hội thoại cũ',
+  'description.permission': 'Đổi preset quyền (chế độ sandbox + chính sách phê duyệt)',
+  'description.export': 'Tải nhật ký Phiên này dưới dạng tệp ZIP',
+  'token.goal': 'goal',
+  'token.plan': 'plan',
+  'token.feedback': 'feedback',
+  'token.compact': 'compact',
+  'token.permission': 'permission',
+  'token.export': 'export',
+  'search.placeholder': 'Tìm kiếm…',
+  'search.aria': 'Lọc tùy chọn',
+  'status.loading': 'Đang tải tùy chọn…',
+  'status.applying': 'Đang áp dụng…',
+  'status.empty': 'Không có tùy chọn',
+  'overlay.aria': 'Tùy chọn /{command}',
+  'listbox.aria': 'Kết quả khớp /{command}',
+  'notice.attachmentsUnsupported': '/{command} không chấp nhận tệp đính kèm; hãy gỡ chúng trước',
+} satisfies Partial<Record<keyof typeof en, string>>

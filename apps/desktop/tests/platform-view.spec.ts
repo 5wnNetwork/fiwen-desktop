@@ -150,7 +150,7 @@ it('injects the deployment and client identity headers only at the Platform orig
 })
 
 it('samples the language and UTC offset on every Platform request', async () => {
-  let locale: 'en_US' | 'zh_CN' = 'en_US'
+  let locale: 'en_US' | 'zh_CN' | 'vi_VN' = 'en_US'
   const owner = Object.assign(new EventEmitter(), {
     webContents: new EventEmitter(), contentView: { addChildView: vi.fn(), removeChildView: vi.fn() }, isDestroyed: () => false,
   })
@@ -313,7 +313,7 @@ it('does not reveal a pending view after the owner reloads or remove a replaceme
 
 it('bootstraps the current language and updates an open view without reloading', async () => {
   const { owner } = setup()
-  let locale: 'en_US' | 'zh_CN' = 'zh_CN'
+  let locale: 'en_US' | 'zh_CN' | 'vi_VN' = 'zh_CN'
   const manager = new DesktopPlatformView('/bundled/preload.cjs', () => locale, 'win32')
   manager.setSession({ origin: 'https://platform.deepseek.com', userId: 'fixture-user' as AccountUserId, token: 'fixture-secret' })
   manager.notifyLocaleChanged()

@@ -64,8 +64,8 @@ export interface AssistantActionOwnerProps {
   messageId: MessageId
 }
 
-/** Stable quota failure codes retained in the Session log; both raise the frame-wide notice. */
-export type QuotaNoticeCode = 'QUOTA' | 'ACCOUNT_QUOTA'
+/** Stable quota failure codes retained in the Session log; all raise the frame-wide notice. */
+export type QuotaNoticeCode = 'QUOTA' | 'ACCOUNT_QUOTA' | 'ACCOUNT_PLAN_REQUIRED'
 
 /** The notice on display; `seq` keys remounts so an unretained later notice restarts its transient display. */
 export interface QuotaNoticeState {
@@ -73,6 +73,8 @@ export interface QuotaNoticeState {
   code: QuotaNoticeCode
   /** Per-publication sequence; the host keys its surface by it. */
   seq: number
+  /** Display name of the required subscription plan, carried by `ACCOUNT_PLAN_REQUIRED` failures. */
+  plan?: string
 }
 
 /** Original model-provided reasoning offered to the expanded Body Slot. */
@@ -95,6 +97,8 @@ export interface QuotaNoticeOwnerProps {
   code: QuotaNoticeCode
   /** Provider-neutral notice copy in the active locale. */
   message: string
+  /** Display name of the required subscription plan for `ACCOUNT_PLAN_REQUIRED`. */
+  plan?: string
   /** Take the notice down. */
   dismiss: () => void
   /**

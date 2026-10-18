@@ -1,0 +1,31 @@
+/** Vietnamese dictionary for `sidebarBrowser`, key-checked against upstream `en`. */
+import type { en } from '@deepseek-ai/dsh-client-ui-sidebar-browser/src/client/locales.ts'
+
+export const vi = {
+  'type.label': 'Trình duyệt',
+  'guide.title': 'Trình duyệt',
+  'guide.description': 'Duyệt các trang web',
+  'shortcut.noSession': 'Hãy mở một phiên trước',
+  'address.placeholder': 'Nhập địa chỉ HTTP(S)',
+  'address.changed': 'URL đã thay đổi',
+  'back': 'Quay lại',
+  'forward': 'Tiến tới',
+  'reload': 'Tải lại',
+  'go': 'Đi',
+  'external': 'Mở trong trình duyệt hệ thống',
+  'sandbox.disable': 'Tắt giới hạn sandbox',
+  'sandbox.enable': 'Khôi phục giới hạn sandbox',
+  'sandbox.warning': 'Giới hạn sandbox đang tắt; trang có thể điều hướng ứng dụng cấp cao nhất và dùng tải xuống, hộp thoại modal và khóa nhập liệu.',
+  'start': 'Nhập địa chỉ HTTP(S) để bắt đầu duyệt',
+  'loading': 'Đang mở…',
+  'restore.previous': 'Đã mở trước đó',
+  'restore.action': 'Khôi phục trang',
+  'error.empty': 'Hãy nhập một địa chỉ.',
+  'error.invalid': 'Địa chỉ đó không hợp lệ hoặc quá dài.',
+  'error.protocol': 'Chỉ hỗ trợ địa chỉ HTTP và HTTPS; hãy dùng Xem trước tài liệu cho tệp cục bộ.',
+  'error.credentials': 'Địa chỉ không được chứa tên người dùng hoặc mật khẩu.',
+  'error.application-origin': 'Trình duyệt nhúng không thể mở chính ứng dụng DSH.',
+  'load.failed': 'Không thể tải trang; hãy tải lại hoặc mở trong trình duyệt hệ thống.',
+  'load.failed.detail': 'Tải trang thất bại ({code}): {description}',
+  'address.unknown': 'Trang đã điều hướng; trình duyệt này không đọc được URL mới.',
+} satisfies Partial<Record<keyof typeof en, string>>

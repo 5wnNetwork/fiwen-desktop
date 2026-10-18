@@ -339,33 +339,200 @@ export const zh = {
   mandatoryNotification: '返回应用确认安装并重启。',
 } as const satisfies DesktopMessages
 
+export const vi = {
+  cliCommandMenu: 'Quản lý lệnh dsh…',
+  cliCommandTitle: 'Quản lý lệnh dsh',
+  cliCommandLocation: 'Lệnh Desktop: {path}',
+  cliCommandSelected: 'Lệnh dsh hiện tại: {path}',
+  cliCommandTarget: 'Đích khởi chạy hiện tại: {path}',
+  cliCommandShadowed: 'Một bản dsh khác được ưu tiên. Gỡ hoặc sắp xếp lại bản cài đặt đó để dùng lệnh Desktop theo mặc định. Bạn cũng có thể chạy lệnh Desktop bằng đường dẫn đầy đủ.',
+  cliCommandSelectionUnknown: 'Không thể xác minh lệnh shell của bạn. Một alias hoặc bản cài đặt dsh khác có thể được ưu tiên.',
+  cliCommandInstalled: 'Lệnh Desktop đã được cài đặt.',
+  cliCommandNotInstalled: 'Thêm lệnh Desktop vào terminal của bạn.',
+  cliCommandBroken: 'Lệnh Desktop cần được sửa chữa.',
+  cliCommandInstall: 'Cài đặt',
+  cliCommandRepair: 'Sửa chữa',
+  cliCommandRemove: 'Gỡ bỏ',
+  cliCommandClose: 'Đóng',
+  cliCommandSwitch: 'Tiếp tục với lệnh Desktop?',
+  cliCommandPreserve: 'Lệnh hiện có sẽ được giữ lại. Các bản cài đặt khác và tệp khởi động shell sẽ không bị thay đổi.',
+  cliCommandContinue: 'Tiếp tục',
+  cliCommandInstallApp: 'Cài đặt Desktop vào thư mục Applications trước khi quản lý lệnh dsh.',
+  cliCommandUpdating: 'Đang cài đặt bản cập nhật. Quản lý lệnh sau khi cài đặt hoàn tất.',
+  cliCommandNewTerminal: 'Mở terminal mới và chạy dsh --version.',
+  cliCommandRemoved: 'Đã gỡ đăng ký lệnh Desktop.',
+  cliCommandPreviousRestored: 'Đã khôi phục trình khởi chạy trước đó.',
+  cliCommandOtherKept: 'Các bản cài đặt lệnh khác được giữ nguyên.',
+  cliCommandBackupKept: 'Trình khởi chạy trước đó được lưu tại: {path}',
+  cliCommandChanged: 'Lệnh hoặc PATH đã thay đổi khi hộp thoại này đang mở. Mở lại Quản lý lệnh dsh để xem trạng thái hiện tại.',
+  cliCommandOwnershipError: 'Đăng ký lệnh hoặc bản sao lưu đã thay đổi. Không có lệnh nào khác bị gỡ.',
+  cliCommandFailed: 'Không thể cập nhật lệnh. Kiểm tra ứng dụng đã được cài đặt và đích có thể ghi, rồi thử lại.',
+  application: 'Ứng dụng',
+  fileMenu: 'Tệp',
+  closePage: 'Đóng trang hoặc cửa sổ',
+  aboutMenu: 'Giới thiệu DeepSeek Harness',
+  aboutProduct: 'DeepSeek Harness',
+  aboutVersion: 'Phiên bản V{version}',
+  hideApplication: 'Ẩn DeepSeek Harness',
+  hideOtherApplications: 'Ẩn các ứng dụng khác',
+  showAllApplications: 'Hiện tất cả',
+  quitApplication: 'Thoát DeepSeek Harness',
+  openApplication: 'Mở DeepSeek Harness',
+  quit: 'Thoát',
+  cancel: 'Hủy',
+  quitTitle: 'Thoát DeepSeek Harness?',
+  quitActiveTasks: 'Các tác vụ đang chạy sẽ bị gián đoạn.',
+  quitScheduledTasks: 'Các tác vụ đã lên lịch sẽ không chạy khi ứng dụng đóng.',
+  quitActiveAndScheduledTasks: 'Các tác vụ đang chạy sẽ bị gián đoạn, và các tác vụ đã lên lịch sẽ không chạy khi ứng dụng đóng.',
+  backgroundNoticeBody: 'Các tác vụ đang chạy sẽ tiếp tục. Bạn có thể mở lại cửa sổ từ khay hệ thống.',
+  backgroundNoticeConfirm: 'Xác nhận',
+  edit: 'Chỉnh sửa',
+  menuBar: 'Menu ứng dụng',
+  delete: 'Xóa',
+  undo: 'Hoàn tác',
+  redo: 'Làm lại',
+  cut: 'Cắt',
+  copy: 'Sao chép',
+  paste: 'Dán',
+  selectAll: 'Chọn tất cả',
+  startupFailed: 'DeepSeek Harness không khả dụng',
+  fatalSummary: 'Ứng dụng không thể khởi động hoặc đã dừng bất ngờ.',
+  startupAddressInUse: 'Một phiên bản DSH khác (như dsh web hoặc ứng dụng desktop) đang chạy. Chúng không thể khởi động cùng lúc. Thoát phiên bản DSH đang chạy kia, rồi khởi động lại.',
+  diagnosticTruncated: '… Chi tiết lỗi đã được rút gọn.',
+  reportWrittenTo: 'Báo cáo chẩn đoán: {path}',
+  startupReinstallAdvice: 'Nếu tệp ứng dụng bị thiếu hoặc hỏng, đóng ứng dụng và cài đặt lại. Các tác vụ của bạn được lưu riêng.',
+  exitApplication: 'Thoát',
+  restartApplication: 'Khởi động lại',
+  recoveryOperationFailed: 'Thao tác khôi phục thất bại',
+  disableThirdPartyPlugins: 'Tắt plugin bên thứ ba, sao lưu profile patch và khởi động lại',
+  welcomeTitle: 'DeepSeek Harness',
+  welcomeBrand: 'DeepSeek Harness',
+  welcomeTaglineBefore: 'Chào mừng đến với ',
+  welcomeTaglineBrand: 'DeepSeek Harness',
+  welcomeTaglineAfter: '',
+  welcomeDescription: 'Kiến tạo tiềm năng. Khám phá trí tuệ.',
+  welcomeAuthStarting: 'Đang mở đăng nhập…',
+  welcomeAuthWaiting: 'Trình duyệt không tự mở?',
+  welcomeAuthWaitingDescription: 'Sao chép liên kết đăng nhập và mở trong trình duyệt để đăng nhập.',
+  welcomeAuthExchanging: 'Đang hoàn tất đăng nhập…',
+  welcomeAuthExpired: 'Đăng nhập đã hết hạn',
+  welcomeAuthExpiredDescription: 'Đăng nhập lại để tiếp tục',
+  welcomeAuthFailed: 'Không thể hoàn tất đăng nhập. Vui lòng thử lại.',
+  welcomeAuthCopyLink: 'Sao chép liên kết đăng nhập',
+  welcomeAuthCopied: 'Đã sao chép',
+  welcomeAuthCopyFailed: 'Không thể sao chép. Thử lại.',
+  welcomeAuthCancel: 'Hủy',
+  welcomeAuthRetry: 'Đăng nhập lại',
+  welcomeSignIn: 'Đăng nhập',
+  welcomeApiKey: 'Thêm API Key',
+  welcomeKeyTitle: 'Thêm API key để bắt đầu',
+  welcomeKeyDescription: 'Cấu hình mô hình DeepSeek chính thức để bắt đầu dùng Harness',
+  welcomeKeyPlaceholder: 'Nhập API key',
+  welcomeKeySave: 'Lưu và tiếp tục',
+  welcomeKeyLater: 'Thiết lập sau',
+  welcomeKeyBack: 'Quay lại đăng nhập',
+  welcomeSessionExpired: 'Bạn đã đăng xuất khỏi tài khoản, vui lòng đăng nhập lại.',
+  welcomeKeyBlank: 'Nhập API key.',
+  welcomeKeyInvalid: 'Chỉ nhập API key, không gồm dấu ngoặc kép, khoảng trắng hoặc phép gán biến môi trường.',
+  welcomeKeyFailed: 'Không thể lưu API key. Vui lòng thử lại.',
+  welcomeContinueFailed: 'Không thể mở workspace. Vui lòng thử lại.',
+  checkUpdatesMenu: 'Kiểm tra cập nhật…',
+  reloadPageMenu: 'Tải lại trang',
+  restartAppHostMenu: 'Khởi động lại ứng dụng và Host',
+  updateCheckFailedTitle: 'Kiểm tra cập nhật thất bại',
+  updateCheckFailed: 'Không thể kiểm tra cập nhật. Vui lòng thử lại sau.',
+  updateDownloadFailed: 'Không thể tải bản cập nhật. Vui lòng thử lại.',
+  updateInstallFailed: 'Không thể cài đặt bản cập nhật. Vui lòng thử lại sau.',
+  updateCheckNetworkFailed: 'Không thể kiểm tra cập nhật. Kiểm tra kết nối và thử lại.',
+  updateDownloadNetworkFailed: 'Không thể tải bản cập nhật. Kiểm tra kết nối và thử lại.',
+  updateInstallNetworkFailed: 'Không thể cài đặt bản cập nhật. Kiểm tra kết nối và thử lại.',
+  unknownError: 'Lỗi không xác định',
+  updateCheckTitle: 'Kiểm tra cập nhật',
+  updateCurrentDetail: 'Phiên bản hiện tại: {version}',
+  updateCurrent: 'Bạn đang dùng bản mới nhất!',
+  updateChecking: 'Đang kiểm tra cập nhật…',
+  updateDownload: 'Tải bản cập nhật',
+  updateDownloadedTitle: 'Phiên bản {version} đã sẵn sàng cài đặt',
+  updateDownloadedDetail: 'Ứng dụng sẽ đóng trong khi cập nhật và tự mở lại khi hoàn tất.',
+  updateDownloadedDetailWindows: 'Ứng dụng sẽ tạm đóng trong khi cập nhật và tự mở lại khi hoàn tất.\n\nQuá trình cập nhật có thể mất chút thời gian. Vui lòng chờ và không khởi chạy lại ứng dụng trong khi cài đặt.',
+  updateClose: 'Đóng',
+  updateAcknowledge: 'OK',
+  updateLater: 'Cập nhật sau',
+  updateDownloading: 'Đang tải {percent}%…',
+  updateVerifying: 'Đang xác minh tệp cập nhật…',
+  updateInstalling: 'Đang chuẩn bị khởi động lại…',
+  updateRetry: 'Thử cập nhật lại',
+  updateActiveTasks: 'Vẫn còn tác vụ đang chạy',
+  updateActiveTasksDetail: 'Cập nhật sẽ dừng các tác vụ đang chạy và khởi động lại ứng dụng. Tiếp tục?',
+  updateStopTasks: 'Dừng tác vụ và cập nhật',
+  updateTasksChanged: 'Đã có tác vụ mới bắt đầu. Xác nhận lại để dừng tác vụ và cập nhật.',
+  updateTasksUnavailable: 'Không có trạng thái tác vụ. Thử cập nhật lại khi workspace sẵn sàng.',
+  updateStopFailed: 'Không thể dừng tác vụ an toàn. Bản cập nhật chưa được cài đặt. Vui lòng thử lại sau.',
+  updateTechnicalDetails: 'Xem chi tiết kỹ thuật',
+  updateTitle: 'Cập nhật DeepSeek Harness',
+  updateAvailable: 'Có phiên bản mới: {version}',
+  updateDetail: 'Khi tải xong, bạn có thể cài đặt bản cập nhật và khởi động lại ứng dụng.',
+  installAndRestart: 'Cài đặt và khởi động lại',
+  later: 'Để sau',
+  updateFailedTitle: 'Cập nhật thất bại',
+  mandatoryTitle: 'Cập nhật để tiếp tục',
+  mandatoryDetail: 'Phiên bản này không còn được hỗ trợ. Cập nhật để tiếp tục. Các tác vụ đang chạy sẽ tiếp tục cho đến khi bạn xác nhận cài đặt và khởi động lại.',
+  mandatoryUnavailable: 'Không thể kiểm tra yêu cầu cập nhật. Vui lòng thử lại sau.',
+  policyLoginTitle: 'Đăng nhập môi trường thử nghiệm',
+  policyLoginRequired: 'Đăng nhập bằng Feishu để kiểm tra yêu cầu cập nhật cho bản thử nghiệm này. Đăng nhập sẽ không tải hay cài đặt bản cập nhật.',
+  policyLogin: 'Đăng nhập bằng Feishu',
+  policyLoginFailed: 'Đăng nhập Feishu chưa hoàn tất. Vui lòng thử lại.',
+  policyLoginLoading: 'Đang tải trang đăng nhập…',
+  mandatoryNoRelease: 'Không tìm thấy bản cập nhật tương thích. Kiểm tra lại hoặc liên hệ hỗ trợ.',
+  mandatoryRefresh: 'Kiểm tra lại',
+  mandatoryPage: 'Tải từ trang chính thức',
+  mandatoryCopy: 'Sao chép liên kết tải xuống',
+  mandatoryPageFailed: 'Không thể mở trang tải chính thức. Sao chép liên kết và mở trong trình duyệt.',
+  mandatoryActionFailed: 'Thao tác thất bại. Vui lòng thử lại. Bạn có thể dùng lại ứng dụng sau khi cập nhật hoàn tất.',
+  mandatoryReady: 'Bản cập nhật đã sẵn sàng',
+  mandatoryVersion: 'Phiên bản mới: {version}',
+  mandatoryReadyDetail: 'Ứng dụng sẽ đóng trong khi cập nhật và tự mở lại khi hoàn tất.',
+  mandatoryDeferred: 'Các tác vụ đang chạy sẽ tiếp tục. Hoàn tất cập nhật trước khi dùng lại ứng dụng.',
+  mandatoryContinue: 'Tiếp tục cập nhật',
+  mandatoryInspecting: 'Đang kiểm tra tác vụ…',
+  mandatoryStopping: 'Đang dừng tác vụ…',
+  mandatoryRestarting: 'Ứng dụng sắp khởi động lại. Vui lòng chờ.',
+  mandatoryDownloadFailed: 'Không thể tải hoặc chuẩn bị tệp cập nhật. Vui lòng thử lại.',
+  mandatoryInstallFailed: 'Bản cập nhật chưa được cài đặt. Kiểm tra lại tác vụ rồi thử lại.',
+  mandatoryOpenHelp: 'Trang không mở?',
+  mandatoryReopen: 'Mở lại trang tải chính thức',
+  mandatoryCopied: 'Đã sao chép liên kết',
+  mandatoryCopyFailed: 'Không thể sao chép liên kết. Chọn và sao chép bên dưới.',
+  mandatoryAddress: 'Liên kết tải xuống',
+  mandatoryNotification: 'Quay lại ứng dụng để xác nhận cài đặt và khởi động lại.',
+} as const satisfies DesktopMessages
+
 /** Locale payload exposed to the Desktop-owned renderer. */
 export interface DesktopLocale {
-  readonly id: 'en' | 'zh-CN'
+  readonly id: 'en' | 'zh-CN' | 'vi'
   readonly messages: DesktopMessages
 }
 
 /** Resolve Electron's locale to one shipped Desktop dictionary. */
 export function resolveDesktopLocale(locale: string): DesktopLocale {
-  return locale.toLowerCase().startsWith('zh')
+  const primary = locale.toLowerCase().split('-')[0]
+  return primary === 'zh'
     ? { id: 'zh-CN', messages: zh }
-    : { id: 'en', messages: en }
+    : primary === 'vi'
+      ? { id: 'vi', messages: vi }
+      : { id: 'en', messages: en }
 }
 
 /**
- * Choose a built-in dictionary from the shared preference, then ordered OS languages.
+ * Choose a built-in dictionary from the shared preference; Fiwen defaults to Vietnamese.
  * @param preference - explicit locale.preference, or null when no language was selected.
  * @param languages - operating-system languages in preference order.
- * @returns the supported dictionary, falling back to English.
+ * @returns the supported dictionary; the deployment default is Vietnamese.
  */
-export function resolveDesktopStartupLocale(preference: string | null, languages: readonly string[]): DesktopLocale {
+export function resolveDesktopStartupLocale(preference: string | null, _languages: readonly string[]): DesktopLocale {
   const selected = preference?.toLowerCase()
-  if (selected === 'zh' || selected === 'en') return resolveDesktopLocale(selected)
-  for (const language of languages) {
-    const primary = language.toLowerCase().split('-')[0]
-    if (primary === 'zh' || primary === 'en') return resolveDesktopLocale(primary)
-  }
-  return resolveDesktopLocale('en')
+  if (selected === 'zh' || selected === 'en' || selected === 'vi') return resolveDesktopLocale(selected)
+  return resolveDesktopLocale('vi')
 }
 
 /** Replace named placeholders in one locale-owned message. */

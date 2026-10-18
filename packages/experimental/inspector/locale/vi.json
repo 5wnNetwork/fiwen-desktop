@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "NodeJS Inspector",
+    "description": "Nhấn Ctrl/Cmd+Shift+. để mở Chrome DevTools ở bảng dưới phục vụ phát triển và gỡ lỗi."
+  }
+}

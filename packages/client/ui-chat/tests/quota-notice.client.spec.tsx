@@ -120,6 +120,22 @@ describe('frame-wide quota notices', () => {
     expect(notice.getSnapshot()?.seq).not.toBe(first)
   })
 
+  it('publishes a plan-gated failure with the required plan name', async () => {
+    const b = await bench()
+    await attach(b.runtime, b.sourceDescriptor)
+    const notice = noticeFace(b.runtime).hooks.notice
+    await b.runtime.sessions.appendEvent(SID, { type: 'event', event: {
+      type: 'turn/end', seq: 0 as SessionSeq, time: 0,
+      data: { turn: 0, reason: { kind: 'error', error: {
+        code: 'ACCOUNT_PLAN_REQUIRED', message: 'Model deepseek-pro requires the Pro plan or higher',
+        requiredPlan: 'Pro',
+      } } },
+    } })
+    expect(notice.getSnapshot()).toMatchObject({ code: 'ACCOUNT_PLAN_REQUIRED', plan: 'Pro' })
+    b.runtime.renderSlot('shell.overlay', {})
+    expect((await screen.findByRole('alert')).textContent).toBe('This model requires the Pro plan or higher.')
+  })
+
   it('never publishes for history replacement or paging, or for other failures', async () => {
     const b = await bench()
     await attach(b.runtime, b.sourceDescriptor)

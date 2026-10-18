@@ -338,6 +338,29 @@ describe('LocaleRuntime', () => {
     expect(make().svc.getLocale().active).toBe('en')
   })
 
+  it('applies a registered defaultLocale ahead of browser detection', () => {
+    stubLanguages('zh-CN')
+    const ctx = new Context()
+    const svc = new LocaleRuntime(ctx, undefined, undefined, 'pt-BR')
+    // Unregistered while the pack is absent: browser detection still rules.
+    expect(svc.getLocale().active).toBe('zh')
+    const dispose = svc.addLanguage({ id: 'pt-BR', label: 'Português (Brasil)', fallback: 'en' })
+    expect(svc.getLocale().active).toBe('pt-BR')
+    // Unloading the definition returns to browser detection without clearing it.
+    dispose()
+    expect(svc.getLocale().active).toBe('zh')
+  })
+
+  it('lets an explicit preference outrank defaultLocale', () => {
+    const host = stubConfigForm<LocaleSettings>()
+    host.publish({ status: 'ready', value: { preference: 'zh' }, revision: 1, writable: true })
+    const ctx = new Context()
+    const svc = new LocaleRuntime(ctx, host.scope, undefined, 'en')
+    expect(svc.getLocale().active).toBe('zh')
+    host.publish({ value: {}, revision: 2 })
+    expect(svc.getLocale().active).toBe('en')
+  })
+
   it('re-evaluates browser languages as external definitions register and unload', () => {
     stubLanguages('pt-BR', 'zh-CN')
     const { svc } = make()

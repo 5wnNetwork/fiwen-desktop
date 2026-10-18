@@ -9,7 +9,7 @@ import type { MenuItemConstructorOptions, MessageBoxOptions } from 'electron'
 import { DESKTOP_IPC, type DesktopUpdateState } from '../src/ipc.ts'
 import { MANDATORY_IPC } from '../src/mandatory-update-ipc.ts'
 import { DesktopHostFatalError, DesktopHostUncleanExitError } from '../src/host-process.ts'
-import { en, zh } from '../src/locale.ts'
+import { en, vi as viDict, zh } from '../src/locale.ts'
 import { DesktopUpdatePreparationError } from '../src/update-error.ts'
 import { writeCrashReport } from '../src/crash-report.ts'
 
@@ -133,7 +133,7 @@ const harness = await vi.hoisted(async () => {
     readonly updateTasks = vi.fn(async (_action: 'inspect' | 'lock' | 'unlock') => false)
     readonly inspectQuit = vi.fn(async () => ({ activeTasks: false, scheduledTasks: false }))
     url = 'http://127.0.0.1:3080/?token=test'
-    fetch = vi.fn(async () => Response.json({ hasApiKey: true, writable: true, localePreference: null }))
+    fetch = vi.fn(async () => Response.json({ hasApiKey: true, writable: true, localePreference: welcomeLocalePreference }))
     readonly ready = deferred()
     readonly exited = deferred()
     readonly stopping = deferred()
@@ -176,6 +176,9 @@ const harness = await vi.hoisted(async () => {
     }),
   })
   let accountListener: ((state: AccountView) => void) | undefined
+  // The shell renders a stored language preference; the desktop default is Vietnamese
+  // only while none exists, so tests that assert en/zh copy pin a preference.
+  let welcomeLocalePreference: string | null = 'en'
   let analyticsEnabled = true
   let analyticsEnabledListener: ((enabled: boolean) => void) | undefined
   const analytics = vi.fn(async (_event: unknown) => {})
@@ -199,6 +202,8 @@ const harness = await vi.hoisted(async () => {
 
     get analyticsEnabled() { return analyticsEnabled },
     set analyticsEnabled(value: boolean) { analyticsEnabled = value; analyticsEnabledListener?.(value) },
+    get welcomeLocalePreference() { return welcomeLocalePreference },
+    set welcomeLocalePreference(value: string | null) { welcomeLocalePreference = value },
     watchAccount: (
       listener: (state: AccountView) => void, _failed: () => void, _expired: () => void,
       onAnalyticsEnabledChanged?: (enabled: boolean) => void,
@@ -247,6 +252,7 @@ const harness = await vi.hoisted(async () => {
       windowFailure = undefined
       pluginsEnabled = false
       closeWindowsOnQuit = false
+      welcomeLocalePreference = 'en'
       prepareUpdate = undefined
       publishUpdate = undefined
       updateState = { phase: 'idle' }
@@ -364,7 +370,7 @@ vi.mock('../src/welcome-backend.ts', () => ({
   connectDesktopWelcome: async () => ({
     analyticsEnabled: async () => harness.analyticsEnabled,
     report: harness.analytics,
-    readLocalePreference: async () => null,
+    readLocalePreference: async () => harness.welcomeLocalePreference,
     read: async (): Promise<unknown> => (await harness.hosts.at(-1)!.fetch()).json() as Promise<unknown>,
     save: async () => ({ ok: true }),
     account: { watch: harness.watchAccount, state: async () => ({ status: 'signed-out', attempt: null }) },
@@ -388,7 +394,9 @@ function invoke(channel: string, origin = channel === DESKTOP_IPC.boot ? 'app' :
 }
 
 function applicationMenuItems(): MenuItemConstructorOptions[] {
-  const native = harness.menu.mock.calls[0]?.[0][0]?.submenu
+  // The stored language preference rebuilds the menu once the welcome read resolves,
+  // so the latest template is the application menu that startup settles on.
+  const native = harness.menu.mock.calls.at(-1)?.[0][0]?.submenu
   if (Array.isArray(native)) return native
   const sender = harness.windows[0]!.webContents
   void harness.handlers.get(DESKTOP_IPC.windowsMenu)!({ sender, senderFrame: sender.mainFrame }, 'application', 0, 0)
@@ -408,7 +416,11 @@ beforeEach(() => {
   onTestFinished(() => { rmSync(userData, { recursive: true, force: true }) })
   harness.app.getPath.mockImplementation(name => name === 'userData' ? userData : `desktop-test-${name}`)
   harness.dialog.showMessageBox.mockImplementation((options: { title?: string }) => {
-    if (options.title !== en.startupFailed) return Promise.resolve({ response: 1 })
+    // The failure dialog is localized; startup runs Vietnamese until the stored
+    // preference applies, so any dictionary title counts as the fatal report.
+    if (!([en.startupFailed, zh.startupFailed, viDict.startupFailed] as string[]).includes(options.title ?? '')) {
+      return Promise.resolve({ response: 1 })
+    }
     harness.dialogShown.resolve()
     return new Promise(() => {})
   })
@@ -467,7 +479,9 @@ describe('desktop main startup', () => {
     expect(harness.hosts).toHaveLength(1)
     expect(testAuth.login).not.toHaveBeenCalled()
     expect(console.warn).toHaveBeenCalledWith(expect.stringContaining(path), expect.any(Error))
-    expect(harness.dialog.showMessageBox).not.toHaveBeenCalledWith(expect.objectContaining({ title: en.startupFailed }))
+    for (const title of [en.startupFailed, zh.startupFailed, viDict.startupFailed]) {
+      expect(harness.dialog.showMessageBox).not.toHaveBeenCalledWith(expect.objectContaining({ title }))
+    }
     expect(readFileSync(path, 'utf8')).toBe(raw)
   })
 
@@ -536,8 +550,8 @@ describe('desktop main startup', () => {
   ] as const)('offers the About command before other commands on %s (packaged=%s, locale=%s)', async (platform, packaged, locale) => {
     vi.stubGlobal('process', { ...process, platform })
     harness.app.isPackaged = packaged
+    harness.welcomeLocalePreference = locale === 'zh-CN' ? 'zh' : 'en'
     vi.spyOn(harness.app, 'getLocale').mockReturnValue(locale)
-    vi.spyOn(harness.app, 'getPreferredSystemLanguages').mockReturnValue([locale])
     vi.spyOn(harness.app, 'getPreferredSystemLanguages').mockReturnValue([locale])
     await readyForUpdate()
     const submenu = applicationMenuItems()
@@ -674,7 +688,7 @@ describe('desktop main startup', () => {
       expect(harness.hosts).toHaveLength(0)
       expect(harness.dialog.showMessageBox).toHaveBeenCalledOnce()
       expect(harness.dialog.showMessageBox).toHaveBeenCalledWith(expect.objectContaining({
-        message: en.policyLoginRequired, buttons: [en.policyLogin, en.later], cancelId: 1,
+        message: viDict.policyLoginRequired, buttons: [viDict.policyLogin, viDict.later], cancelId: 1,
       }))
       checks.push(Promise.resolve(invoke(DESKTOP_IPC.updatesOpen, 'app')))
       expect(harness.dialog.showMessageBox).toHaveBeenCalledOnce()
@@ -690,8 +704,8 @@ describe('desktop main startup', () => {
       await vi.advanceTimersByTimeAsync(10_000)
       expect(testAuth.login).toHaveBeenCalledOnce()
       const messages = harness.dialog.showMessageBox.mock.calls.map(call => (call.at(-1) as { message: string }).message)
-      expect(messages.filter(message => message === en.policyLoginRequired)).toHaveLength(1)
-      expect(messages).toContain('You’re up to date!')
+      expect(messages.filter(message => message === viDict.policyLoginRequired)).toHaveLength(1)
+      expect(messages).toContain(viDict.updateCurrent)
     } finally {
       explanation.resolve({ response: 1 })
       login.resolve('cancelled')
@@ -708,7 +722,8 @@ describe('desktop main startup', () => {
     await readyForUpdate()
     await vi.advanceTimersByTimeAsync(0)
     expect(testAuth.login).not.toHaveBeenCalled()
-    expect(harness.dialog.showMessageBox).toHaveBeenCalledWith(expect.objectContaining({ message: en.policyLoginRequired }))
+    // The first consent prompt precedes the stored-preference read, so it uses the startup default.
+    expect(harness.dialog.showMessageBox).toHaveBeenCalledWith(expect.objectContaining({ message: viDict.policyLoginRequired }))
     harness.dialog.showMessageBox.mockClear()
     testAuth.login.mockImplementationOnce(async () => {
       request.mockImplementation(async () => Response.json({ code: 0, data: { biz_code: 0, biz_data: null } }))
@@ -997,13 +1012,13 @@ describe('desktop main startup', () => {
 
   it.each(['darwin', 'linux'] as const)('adds the product File menu and standard window commands only on macOS (%s)', async (platform) => {
     vi.spyOn(process, 'platform', 'get').mockReturnValue(platform)
-    await import('../src/main.ts')
-    await harness.preparing.promise
+    await readyForUpdate()
     const describeItem = (item: MenuItemConstructorOptions): string | undefined =>
       item.role ?? (item.type === 'separator' ? 'separator' : item.label)
     const template = harness.menu.buildFromTemplate.mock.calls
       .map(call => call[0])
-      .find(items => items.some(item => item.role === 'editMenu'))
+      .filter(items => items.some(item => item.role === 'editMenu'))
+      .at(-1)
     if (template === undefined) throw new Error('application menu missing')
     expect(template.map(describeItem)).toEqual(platform === 'darwin'
       ? ['Desktop test', en.fileMenu, 'editMenu', 'windowMenu']
@@ -1012,18 +1027,18 @@ describe('desktop main startup', () => {
     expect(application.filter(item => item.visible !== false).map(describeItem)).toEqual(platform === 'darwin'
       ? ['about', 'separator', en.checkUpdatesMenu, en.cliCommandMenu, 'separator', 'hide', 'hideOthers', 'unhide', 'separator', 'quit']
       : ['about', 'separator', en.checkUpdatesMenu, 'separator', 'quit'])
-    expect(harness.menu.setApplicationMenu).toHaveBeenCalledOnce()
+    expect(harness.menu.setApplicationMenu).toHaveBeenCalled()
   })
 
   it.each(['en-US', 'zh-CN'])('localizes macOS application commands without changing the application name (%s)', async (locale) => {
     vi.spyOn(process, 'platform', 'get').mockReturnValue('darwin')
+    harness.welcomeLocalePreference = locale === 'zh-CN' ? 'zh' : 'en'
     vi.spyOn(harness.app, 'getLocale').mockReturnValue(locale)
     vi.spyOn(harness.app, 'getPreferredSystemLanguages').mockReturnValue([locale])
     const originalName = harness.app.name
     harness.app.name = '@deepseek-ai/dsh-desktop'
     try {
-      await import('../src/main.ts')
-      await harness.preparing.promise
+      await readyForUpdate()
       const commands = applicationMenuItems().filter(item =>
         item.role === 'hide' || item.role === 'hideOthers' || item.role === 'unhide' || item.role === 'quit'
         || item.label === en.checkUpdatesMenu || item.label === zh.checkUpdatesMenu
@@ -1181,6 +1196,12 @@ describe('desktop main startup', () => {
     await harness.hostStarted.promise
     harness.hosts[0]!.ready.resolve()
     await harness.navigated.promise
+    // The stored language preference applies once the welcome read resolves; the
+    // second application-menu build is its observable point. Flush microtasks only:
+    // advancing fake time would fire the update coordinator's scheduled checks.
+    for (let flush = 0; flush < 20 && harness.menu.setApplicationMenu.mock.calls.length < 2; flush++) {
+      await vi.advanceTimersByTimeAsync(0)
+    }
     return harness.hosts[0]!
   }
 
@@ -1219,6 +1240,7 @@ describe('desktop main startup', () => {
     ['win32', 'zh-CN'], ['win32', 'en-US'], ['darwin', 'zh-CN'], ['darwin', 'en-US'],
   ] as const)('records the restart confirmation on %s in %s', async (platform, language) => {
     vi.stubGlobal('process', { ...process, platform })
+    harness.welcomeLocalePreference = language === 'zh-CN' ? 'zh' : 'en'
     vi.spyOn(harness.app, 'getPreferredSystemLanguages').mockReturnValue([language])
     await readyForUpdate()
     harness.updateState = { phase: 'ready', version: '0.1.7-alpha.2' }
@@ -1568,7 +1590,7 @@ describe('desktop main startup', () => {
     expect(request.mock.calls[0]![1]!.headers).toMatchObject({
       'x-client-bundle-id': '', 'x-client-platform': 'desktop-win', 'x-client-version': '1.2.3',
       'x-client-arch': 'x64', 'x-client-update-channel': 'nightly', 'x-client-bundled-dsh-version': '1.0.0',
-      'x-client-locale': 'en_US', 'x-client-timezone-offset': String(-new Date().getTimezoneOffset() * 60),
+      'x-client-locale': 'vi_VN', 'x-client-timezone-offset': String(-new Date().getTimezoneOffset() * 60),
     })
   })
 
@@ -2067,8 +2089,9 @@ describe('desktop main startup', () => {
     await harness.preparing.promise
     harness.prepared.reject(new Error('runtime resources missing'))
     await harness.dialogShown.promise
-    expect((harness.dialog.showMessageBox.mock.calls[0]![0] as MessageBoxOptions).detail).toContain('runtime resources missing')
-    expect((harness.dialog.showMessageBox.mock.calls[0]![0] as MessageBoxOptions).buttons).toEqual(['Exit', 'Restart', 'Disable third-party plugins, back up profile patch, and restart'])
+    const dialog = harness.dialog.showMessageBox.mock.calls[0]![0] as MessageBoxOptions
+    expect(dialog.detail).toContain('runtime resources missing')
+    expect(dialog.buttons).toEqual([viDict.exitApplication, viDict.restartApplication, viDict.disableThirdPartyPlugins])
     expect(harness.windows[0]!.urls).toEqual(['dsh-app://app/'])
   })
 

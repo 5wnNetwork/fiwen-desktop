@@ -33,6 +33,11 @@ export const en = {
   quotaTitle: 'No balance available',
   quotaDescription: 'DeepSeek Harness cannot start a new task with this account when no balance is available. Would you like to top up? You can also top up later in Settings → Account.',
   quotaTopUp: 'Top up',
+  planRequiredTitle: 'Plan required',
+  planRequiredDescription: 'This model requires the {plan} plan or higher. View plans to upgrade.',
+  planRequiredAction: 'View plans',
+  plan: 'Plan', planValueUntil: '{name} · until {date}',
+  dailyQuota: 'Daily quota', quotaValueReset: '{used} / {daily} points · resets {time}',
   bonusNoticeTitle: 'Bonus credited',
 } as const
 /** Account locale keys. */
@@ -69,5 +74,10 @@ export const zh: Record<AccountKey, string> = {
   quotaTitle: '当前无可用余额',
   quotaDescription: '没有可用额度时，DeepSeek Harness 无法开始新的任务，是否前往充值？或者可以稍后前往 设置 → 账号与余额 进行充值。',
   quotaTopUp: '去充值',
+  planRequiredTitle: '需要升级套餐',
+  planRequiredDescription: '此模型需要 {plan} 套餐或更高版本，请前往查看套餐。',
+  planRequiredAction: '查看套餐',
+  plan: '套餐', planValueUntil: '{name} · {date} 到期',
+  dailyQuota: '今日额度', quotaValueReset: '{used} / {daily} 点 · {time} 重置',
   bonusNoticeTitle: '赠金已到账',
 }

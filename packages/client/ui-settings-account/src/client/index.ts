@@ -14,6 +14,7 @@ import type { OnboardingChange } from './onboarding-contract.ts'
 import type { PlatformBridge } from './PlatformOverlay.tsx'
 import { ContactConfig, CONTACT_CONFIG_GLOBAL } from '../contact-config.ts'
 import { contactUrl } from './contact-url.ts'
+import { formatBalance } from './formatBalance.ts'
 import { authorizeUrlWithTheme } from './authorize-url.ts'
 import { BrowserLogin } from './browser-login.ts'
 import { AccountOnboarding } from './AccountOnboarding.tsx'
@@ -176,6 +177,11 @@ export function apply(ctx: Context): void {
     subscribeSessionExpired: listener => ctx.remote.$on('deepseek-account/session-expired', listener),
     subscribeModelSignInRequired: listener => ctx.remote.$on('deepseek-account/model-sign-in-required', listener),
     ...nativePlatform === undefined ? {} : { openPlatformPage: platformPageOpener(refreshAccount) },
+    formatWalletBalance: (balance, currency) => formatBalance(balance, currency, ctx.locale.getSnapshot().active),
+    formatPlanDate: iso => new Intl.DateTimeFormat(ctx.locale.getSnapshot().active, { dateStyle: 'medium' }).format(new Date(iso)),
+    formatPlanReset: iso => new Intl.DateTimeFormat(ctx.locale.getSnapshot().active, { hour: '2-digit', minute: '2-digit' }).format(new Date(iso)),
+    // Points arrive as decimal strings; one fraction digit keeps small spends visible.
+    formatPlanPoints: points => new Intl.NumberFormat(ctx.locale.getSnapshot().active, { maximumFractionDigits: 1 }).format(Number(points)),
     refreshAccount,
     contactUs() {
       // Sample the account, build and environment before awaiting native information, so
@@ -292,7 +298,7 @@ export function apply(ctx: Context): void {
   }, AccountOnboarding))
   ctx.slots.inject('shell.quota-notice', () => ctx.slots.register({
     name: 'shell.quota-notice', locale: 'settings.account',
-    select: owner => owner.code === 'ACCOUNT_QUOTA' ? owner : null,
+    select: owner => owner.code === 'ACCOUNT_QUOTA' || owner.code === 'ACCOUNT_PLAN_REQUIRED' ? owner : null,
     inject: (): AccountQuotaNoticeInjected => ({
       hooks: { account: operations.hooks.account, platformPage: platformPages },
       ...nativePlatform === undefined ? {} : { openPlatformPage: platformPageOpener(refreshAccount) },

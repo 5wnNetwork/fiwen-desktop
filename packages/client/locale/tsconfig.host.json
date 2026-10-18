@@ -6,6 +6,7 @@
     "tsBuildInfoFile": "lib/tsconfig.host.tsbuildinfo"
   },
   "files": [
+    "src/boot-config.ts",
     "src/index.ts",
     "src/locale-settings.ts"
   ],
@@ -15,6 +16,9 @@
     },
     {
       "path": "../../../vendor/schemastery"
+    },
+    {
+      "path": "../../host/webserver"
     },
     {
       "path": "../../settings/settings"

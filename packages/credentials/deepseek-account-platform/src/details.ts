@@ -12,9 +12,18 @@ const user = z.object({
 // grammar also accepts an omitted integer or fraction part and a decimal exponent (0E-16, 1e+3).
 const decimal = /^-?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i
 const wallet = z.object({
-  currency: z.enum(['CNY', 'USD']), balance: z.string().regex(decimal),
+  currency: z.enum(['CNY', 'USD', 'VND']), balance: z.string().regex(decimal),
 })
-const summary = z.object({ normal_wallets: z.array(wallet), bonus_wallets: z.array(wallet) })
+// Optional subscription snapshot; absence leaves the field unset rather than failing the read.
+const plan = z.object({
+  id: z.string(), name: z.string(),
+  expires_at: z.string().nullable(),
+  daily_quota: z.string(), quota_used: z.string(), quota_remaining: z.string(),
+  resets_at: z.string(), max_context: z.number(),
+})
+const summary = z.object({
+  normal_wallets: z.array(wallet), bonus_wallets: z.array(wallet), plan: plan.nullish(),
+})
 // Protocol responses are JSON-decoded; metadata keeps any JSON value without field validation.
 const bonusMetadata = z.custom<Exclude<AccountBonusNotification['campaign'], undefined>>().optional()
 const bonus = z.object({
@@ -63,7 +72,17 @@ const queries: { [K in keyof AccountDetails]: {
   }) },
   balance: { path: '/api/v0/users/get_user_summary', parse: (value) => {
     const parsed = accountPayload(summary, value, 'balance')
-    return { status: 'ready', value: parsed.normal_wallets, bonusWallets: parsed.bonus_wallets }
+    return {
+      status: 'ready', value: parsed.normal_wallets, bonusWallets: parsed.bonus_wallets,
+      ...parsed.plan == null ? {} : {
+        plan: {
+          id: parsed.plan.id, name: parsed.plan.name, expiresAt: parsed.plan.expires_at,
+          dailyQuota: parsed.plan.daily_quota, quotaUsed: parsed.plan.quota_used,
+          quotaRemaining: parsed.plan.quota_remaining, resetsAt: parsed.plan.resets_at,
+          maxContext: parsed.plan.max_context,
+        },
+      },
+    }
   } },
 }
 

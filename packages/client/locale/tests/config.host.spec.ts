@@ -22,6 +22,14 @@ describe('locale host', () => {
     await expect(configuration.update({ preference: '123' })).rejects.toThrow()
     await fiber.dispose()
   })
+
+  it('validates the optional deployment defaultLocale', async () => {
+    const ctx = new Context()
+    const configuration = await liveConfig(ctx, { Config, apply }, { defaultLocale: 'vi' })
+    expect(plainConfig(configuration.fiber.config)).toEqual({ defaultLocale: 'vi' })
+    await expect(liveConfig(new Context(), { Config, apply }, { defaultLocale: 'bad locale' })).rejects.toThrow()
+    await configuration.fiber.dispose()
+  })
 })
 
 it('keeps its own instance off the generated Settings pages', () => omitsGeneratedPage(ctx => ctx.plugin(HostPlugin)))

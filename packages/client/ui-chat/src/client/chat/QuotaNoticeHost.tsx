@@ -14,8 +14,12 @@ import type { QuotaNoticeHostProps, QuotaNoticeOwnerProps } from '../contract/sl
 export function QuotaNoticeHost({ useNotice, dismissNotice, keepNoticeOpen, renderSlotChain, t }: QuotaNoticeHostProps) {
   const notice = useNotice(current => current)
   if (notice === null) return null
+  const message = notice.code === 'ACCOUNT_PLAN_REQUIRED'
+    ? t('message.failure.planRequired', { plan: notice.plan ?? '' })
+    : t('message.failure.quota')
   const owner: QuotaNoticeOwnerProps = {
-    code: notice.code, message: t('message.failure.quota'), dismiss: dismissNotice, keepOpen: keepNoticeOpen,
+    code: notice.code, message, dismiss: dismissNotice, keepOpen: keepNoticeOpen,
+    ...notice.plan === undefined ? {} : { plan: notice.plan },
   }
   return (
     <Fragment key={`quota-notice-${String(notice.seq)}`}>

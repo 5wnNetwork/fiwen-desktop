@@ -6,6 +6,7 @@ import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ThemeSnapshot } from '@deepseek-ai/dsh-client-ui-theme/client'
 import { AccountOnboarding } from '../src/client/AccountOnboarding.tsx'
 import type { AccountSnapshot } from '../src/client/AccountSection.tsx'
+import { formatBalance, type BalanceCurrency } from '../src/client/formatBalance.ts'
 import { allowAllAccess, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { en } from '../src/client/locales.ts'
 
@@ -33,6 +34,8 @@ it('claims onboarding while loading, offers API key fallback, and completes afte
     start: vi.fn(async () => {}), cancel: vi.fn(async () => {}), signOut: vi.fn(async () => {}),
     contactUs: vi.fn(), t: makeTranslate(en),
     refreshAccount: vi.fn(async () => {}), bonusNoticeShown: vi.fn(), bonusNoticeDismissed: vi.fn(),
+    formatWalletBalance: (balance: string, currency: BalanceCurrency) => formatBalance(balance, currency),
+    formatPlanDate: (iso: string) => `d:${iso}`, formatPlanReset: (iso: string) => `r:${iso}`, formatPlanPoints: (points: string) => points,
     avatarFailed: vi.fn(),
   }
   const view = render(<AccountOnboarding {...props} />)

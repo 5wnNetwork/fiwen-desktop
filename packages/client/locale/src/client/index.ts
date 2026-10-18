@@ -4,6 +4,7 @@
  * preference row into the settings General section — the locale feature owns
  * its own settings surface.
  */
+import z from '@deepseek-ai/schemastery'
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type { LocalizedText } from '@deepseek-ai/dsh-package-manifest'
 import {
@@ -14,6 +15,7 @@ import {
 // (client bundle purity gate).
 import type { ConfigForm } from '@deepseek-ai/dsh-client-ui-settings/client'
 import { parseLocaleBootstrap, type LocaleBootstrap, type LocaleBridge } from './bootstrap.ts'
+import { BootConfig, LOCALE_CONFIG_GLOBAL } from '../boot-config.ts'
 // Type-only: pulls the SlotRegistry service merge (ctx.slots).
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import {
@@ -182,8 +184,12 @@ export class LocaleRuntime {
    * @param host - durable preference scope owned by the providing plugin;
    * absent compositions (standalone dictionary registries) stay process-local.
    * @param bootstrap - native initialization; absent in ordinary browsers.
+   * @param deploymentDefault - deployment `defaultLocale`; applies ahead of
+   * browser detection only while the id is registered and no explicit
+   * preference exists.
    */
-  constructor(ctx: ClientContext, host?: ConfigForm<LocaleSettings>, private readonly bootstrap?: LocaleBootstrap) {
+  constructor(ctx: ClientContext, host?: ConfigForm<LocaleSettings>, private readonly bootstrap?: LocaleBootstrap,
+    private readonly deploymentDefault?: LocaleId) {
     this.ctx = ctx
     this.host = host
     for (const locale of BUILT_IN_LOCALES) this.catalog.set(localeKey(locale.id), locale)
@@ -321,8 +327,17 @@ export class LocaleRuntime {
 
   /** Resolve an explicit preference only while its definition is available. */
   private resolveActive(): LocaleId {
-    if (this.preference === undefined) return this.provisional
-    return this.catalog.get(localeKey(this.preference))?.id ?? this.provisional
+    if (this.preference === undefined) return this.resolveUnpreferred()
+    return this.catalog.get(localeKey(this.preference))?.id ?? this.resolveUnpreferred()
+  }
+
+  /** Registered deployment default ahead of browser detection. */
+  private resolveUnpreferred(): LocaleId {
+    if (this.deploymentDefault !== undefined) {
+      const registered = this.catalog.get(localeKey(this.deploymentDefault))
+      if (registered !== undefined) return registered.id
+    }
+    return this.provisional
   }
 
   /** Snapshot the catalog in registration order. */
@@ -553,14 +568,29 @@ function detectBrowserLocale(locales: readonly LocaleDefinition[], languages?: r
 /** Required services: slot registration plus the settings transport. */
 export const inject = ['slots', 'remote', 'configForms']
 
+/** Deployment choices reaching the browser half. */
+export interface Config {
+  /**
+   * Locale applied when no explicit preference exists — ahead of browser or
+   * OS detection, but only while the id is registered; a language pack
+   * registering it later activates it through the catalog recompute.
+   */
+  defaultLocale?: string
+}
+
+export const Config = z.object({
+  defaultLocale: z.string().pattern(LOCALE_ID_PATTERN).required(false),
+})
+
 /**
  * Client plugin body: provide the locale service with base dictionaries and
  * register the feature-owned Language preference row into the General
  * section's item slot (a feature owns its settings surface).
  * @param ctx - client cordis context.
+ * @param config - row config projected to the browser.
  * @returns resolves after native language initialization and plugin registration.
  */
-export async function apply(ctx: ClientContext): Promise<void> {
+export async function apply(ctx: ClientContext, config?: Config): Promise<void> {
   const bridge = (globalThis as { __DSH_LOCALE__?: LocaleBridge }).__DSH_LOCALE__
   let bootstrap: LocaleBootstrap | undefined
   if (bridge !== undefined) {
@@ -575,7 +605,11 @@ export async function apply(ctx: ClientContext): Promise<void> {
     bootstrap = parseLocaleBootstrap(value)
   }
   const host = ctx.configForms.get<LocaleSettings>(LOCALE_SETTINGS_NAMESPACE)
-  const locale = new LocaleRuntime(ctx, host, bootstrap)
+  // Row config reaches the Host half only; the served page carries the
+  // deployment default as a bootstrap global (roster entries are config-less).
+  const page = globalThis as Partial<Record<typeof LOCALE_CONFIG_GLOBAL, unknown>>
+  const bootConfig = BootConfig(page[LOCALE_CONFIG_GLOBAL] === undefined ? {} : page[LOCALE_CONFIG_GLOBAL])
+  const locale = new LocaleRuntime(ctx, host, bootstrap, config?.defaultLocale ?? bootConfig.defaultLocale)
   locale.register(COMMON_NS, { zh, en })
   locale.register(SETTINGS_NS, { zh: settingsZh, en: settingsEn })
   ctx.provide('locale', locale)

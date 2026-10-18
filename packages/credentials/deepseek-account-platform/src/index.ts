@@ -66,7 +66,7 @@ export const Config = Schema.object({
 })
 
 interface Attempt {
-  locale: 'en_US' | 'zh_CN'
+  locale: 'en_US' | 'zh_CN' | 'vi_VN'
   clientHeaders: Record<string, string>
   view: SignInAttemptView
   controller: AbortController
@@ -639,12 +639,14 @@ export class PlatformAccount extends DeepSeekAccount {
     if (attempt.loginSource === 'web') {
       const nonce = randomBytes(16).toString('base64url')
       const message = attempt.locale === 'zh_CN' ? '登录失败，请关闭此标签页并在原页面重试。'
-        : 'Sign-in failed. Close this tab and try again in the original tab.'
+        : attempt.locale === 'vi_VN' ? 'Đăng nhập thất bại. Đóng thẻ này và thử lại ở thẻ ban đầu.'
+          : 'Sign-in failed. Close this tab and try again in the original tab.'
+      const lang = attempt.locale === 'zh_CN' ? 'zh-CN' : attempt.locale === 'vi_VN' ? 'vi' : 'en'
       attempt.callback?.writeHead(200, {
         'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store',
         'content-security-policy': `default-src 'none'; script-src 'nonce-${nonce}'; frame-ancestors 'none'`,
         'referrer-policy': 'no-referrer',
-      }).end(`<!doctype html><html lang="${attempt.locale === 'zh_CN' ? 'zh-CN' : 'en'}"><meta charset="utf-8"><title>${message}</title>`
+      }).end(`<!doctype html><html lang="${lang}"><meta charset="utf-8"><title>${message}</title>`
         + `<body><p>${message}</p><script nonce="${nonce}">window.close()</script></body></html>`)
     } else {
       // Native account subscribers focus the login window; retain the browser’s Platform document.
