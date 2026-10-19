@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "Giao diện tác vụ",
-    "description": "Trang tác vụ Automation trên thanh bên, cùng thẻ tác vụ và dấu nhắc trong phiên."
+    "title": "Giao diện task",
+    "description": "Trang automation task trên thanh bên, cùng thẻ task và dấu nhắc trong session."
   }
 }

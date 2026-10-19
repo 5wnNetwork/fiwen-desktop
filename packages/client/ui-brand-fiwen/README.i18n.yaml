@@ -1,0 +1,43 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/client/ui-brand-fiwen/README.md
+/:
+  en: 973425f5f2f9f9ef
+  zh: 1fcfe19295108e95
+/deepseek-ai-dsh-client-ui-brand-fiwen:
+  en: d5067edba3206fd6
+  zh: 3a91acee540aa8e6
+/deepseek-ai-dsh-client-ui-brand-fiwen/summary:
+  en: 28fb6403f7aa444b
+  zh: 1a7d2a67703f6b28
+/deepseek-ai-dsh-client-ui-brand-fiwen/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 09388d293f9be9cb
+/deepseek-ai-dsh-client-ui-brand-fiwen/use-this-package:
+  en: ef64d3f9b69ae968
+  zh: eac082dae18cabf3
+/deepseek-ai-dsh-client-ui-brand-fiwen/use-this-package/registering-the-brand:
+  en: 343c0c5ef659e0c9
+  zh: 9671c8a448a2839c
+/deepseek-ai-dsh-client-ui-brand-fiwen/use-this-package/replacing-the-brand:
+  en: 6222296757c2531f
+  zh: 0a583a53c710b9d0
+/deepseek-ai-dsh-client-ui-brand-fiwen/understand-the-implementation:
+  en: 826d6df7a1c88c92
+  zh: 7f8502c90addfea3
+/deepseek-ai-dsh-client-ui-brand-fiwen/further-exploration:
+  en: c9ae240d8e831cc0
+  zh: a7c9170bae79824f
+/deepseek-ai-dsh-client-ui-brand-fiwen/model-experience:
+  en: 618008c7641070e7
+  zh: 7233febb4d92ccfb
+/deepseek-ai-dsh-client-ui-brand-fiwen/model-experience/kv-cache-effect:
+  en: ca75c51c89c2c9b0
+  zh: f57cc48a1b5cbfa9
+/deepseek-ai-dsh-client-ui-brand-fiwen/known-limitations-and-deferred-work:
+  en: 89e2b4bd095a0265
+  zh: a002f0c8a60267ad
+/deepseek-ai-dsh-client-ui-brand-fiwen/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: 3bb0c20c93f16f98

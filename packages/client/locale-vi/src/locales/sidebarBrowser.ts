@@ -5,7 +5,7 @@ export const vi = {
   'type.label': 'Trình duyệt',
   'guide.title': 'Trình duyệt',
   'guide.description': 'Duyệt các trang web',
-  'shortcut.noSession': 'Hãy mở một phiên trước',
+  'shortcut.noSession': 'Hãy mở một session trước',
   'address.placeholder': 'Nhập địa chỉ HTTP(S)',
   'address.changed': 'URL đã thay đổi',
   'back': 'Quay lại',

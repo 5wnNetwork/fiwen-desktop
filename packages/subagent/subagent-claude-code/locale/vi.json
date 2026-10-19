@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "Tác tử con Claude Code",
-    "description": "Ủy thác một tác vụ cho Claude Code dùng xác thực và cài đặt gốc của nó."
+    "title": "Subagent Claude Code",
+    "description": "Ủy thác một task cho Claude Code dùng xác thực và cài đặt gốc của nó."
   }
 }

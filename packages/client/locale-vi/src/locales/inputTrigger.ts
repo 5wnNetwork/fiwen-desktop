@@ -4,7 +4,7 @@ import type { en } from '@deepseek-ai/dsh-client-ui-input-trigger/src/client/loc
 export const vi = {
   'command': 'Lệnh',
   'skill': 'Kỹ năng',
-  'subagent': 'Tác tử phụ',
+  'subagent': 'Subagent',
   'loading': 'Đang tải…',
   'drill.aria': 'Duyệt thư mục',
   'drill.hint': 'Duyệt thư mục',

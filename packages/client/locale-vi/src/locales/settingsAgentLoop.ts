@@ -2,8 +2,8 @@
 import type { en } from '@deepseek-ai/dsh-client-ui-settings-agent-loop/src/client/locales.ts'
 
 export const vi = {
-  'title': 'Vòng lặp tác tử',
-  'description': 'Kiểm soát cách tác tử phát các lời gọi công cụ.',
+  'title': 'Vòng lặp agent',
+  'description': 'Kiểm soát cách agent phát các lời gọi công cụ.',
   'maxParallel': 'Lời gọi công cụ song song',
   'maxParallelHint': 'Giới hạn trên số lời gọi an toàn chạy song song trong một bước.',
   'overridden': 'Đã ghi đè',

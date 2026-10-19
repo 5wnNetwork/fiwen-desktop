@@ -12,7 +12,7 @@ export const vi = {
   'preview.loading': 'Đang tải kế hoạch…',
   'preview.failed': 'Không thể tải kế hoạch',
   'preview.invalidAddress': 'Địa chỉ kế hoạch không hợp lệ',
-  'preview.historyUnavailable': 'Không có lịch sử phiên',
+  'preview.historyUnavailable': 'Không có lịch sử session',
   'preview.notFound': 'Không tìm thấy kế hoạch này',
   'preview.unavailable': 'Không thể xem trước kế hoạch',
   'preview.expired': 'Bản xem trước kế hoạch tạm thời này đã hết hạn. Hãy mở lại từ thẻ đánh giá đang chờ.',

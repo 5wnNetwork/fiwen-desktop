@@ -1,7 +1,7 @@
-DeepSeek Harness
-DeepSeek Harness
+Fiwen Desktop
+Fiwen Desktop
 Add an API key to get started
-Configure official DeepSeek models to start using Harness
+Configure official DeepSeek models to start using Fiwen Desktop
 Enter API key [password]
 Save and continue [disabled]
 Set up later

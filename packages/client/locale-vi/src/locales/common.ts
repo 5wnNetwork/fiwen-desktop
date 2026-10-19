@@ -34,7 +34,7 @@ export const vi = {
   'expand': 'Mở rộng',
   'back': 'Quay lại',
   'brand.localBuild': 'Bản dựng DSH cục bộ',
-  'workspace.defaultName': 'Không gian làm việc mặc định',
+  'workspace.defaultName': 'Workspace mặc định',
   'unknown': 'Không rõ',
   'none': 'Không có',
   'truncated': 'Đã cắt bớt',

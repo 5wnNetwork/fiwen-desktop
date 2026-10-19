@@ -7,7 +7,7 @@ export const vi = {
   'command.noRefresh': 'Trang này không thể làm mới',
   'command.toggle': 'Bật/tắt thanh bên phải',
   'command.fullscreen': 'Bật/tắt toàn màn hình bảng',
-  'command.noSession': 'Hãy chọn một phiên trước',
+  'command.noSession': 'Hãy chọn một session trước',
   'command.noFocus': 'Hãy chọn một ngăn thanh bên phải trước',
   'command.stale': 'Trang đã thay đổi; hãy chọn lại nó',
   'command.collapsed': 'Hãy mở rộng thanh bên phải trước',

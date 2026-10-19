@@ -11,7 +11,7 @@ export const vi = {
   'apiKey': 'Khóa API',
   'apiKeyHint': 'Được lưu ngoài tệp cài đặt. Để trống để giữ khóa hiện tại.',
   'apiKeySet': 'Đã cấu hình khóa.',
-  'apiKeyUnset': 'Chưa cấu hình khóa; chỉ các hội thoại dùng mô hình Tài khoản DeepSeek mới tìm kiếm được, qua điểm cuối mặc định.',
+  'apiKeyUnset': 'Chưa cấu hình khóa; chỉ các hội thoại dùng mô hình Tài khoản Fiwen mới tìm kiếm được, qua điểm cuối mặc định.',
   'baseUrl': 'URL gốc Messages API',
   'baseUrlHint': 'Bao gồm tiền tố API, ví dụ https://api.deepseek.com/anthropic/v1. Nhà cung cấp nối thêm /messages. Để trống để khôi phục mặc định.',
   'searchApiBaseUrl': 'URL gốc Search / Fetch API',

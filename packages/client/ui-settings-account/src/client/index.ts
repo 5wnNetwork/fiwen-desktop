@@ -235,7 +235,10 @@ export function apply(ctx: Context): void {
         const result = await ctx.remote.account.startSignIn(client(),
           desktop && transport?.streamBaseUrl !== undefined ? new URL(transport.streamBaseUrl).origin : window.location.origin,
           desktop ? 'desktop' : 'web')
-        if (!result.ok) throw new Error('account start failed')
+        if (!result.ok) {
+          console.error('[dsh-account] startSignIn failed', { error: String(result.error), errorCode: (result.error as { code?: string }).code })
+          throw new Error('account start failed')
+        }
         return result.value
       }
       try {

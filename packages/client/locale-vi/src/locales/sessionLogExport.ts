@@ -3,13 +3,13 @@ import type { en } from '@deepseek-ai/dsh-session-log-export/src/client/locales.
 
 export const vi = {
   'header.more': 'Thao tác khác',
-  'menu.download': 'Tải nhật ký phiên',
+  'menu.download': 'Tải nhật ký session',
   'menu.feedback': 'Phản hồi',
-  'dialog.preparingTitle': 'Đang xuất phiên',
-  'dialog.preparingDescription': 'Đang chuẩn bị tệp ZIP chứa phiên này, các phiên con và tệp đính kèm.',
-  'dialog.successTitle': 'Đã bắt đầu tải phiên',
-  'dialog.successDescription': 'Trình duyệt đang tải xuống tệp ZIP của phiên.',
-  'dialog.errorTitle': 'Xuất phiên thất bại',
+  'dialog.preparingTitle': 'Đang xuất session',
+  'dialog.preparingDescription': 'Đang chuẩn bị tệp ZIP chứa session này, các session con và tệp đính kèm.',
+  'dialog.successTitle': 'Đã bắt đầu tải session',
+  'dialog.successDescription': 'Trình duyệt đang tải xuống tệp ZIP của session.',
+  'dialog.errorTitle': 'Xuất session thất bại',
   'dialog.close': 'Đóng',
-  'dialog.commandFailed': 'Không thể bắt đầu xuất phiên.',
+  'dialog.commandFailed': 'Không thể bắt đầu xuất session.',
 } satisfies Partial<Record<keyof typeof en, string>>

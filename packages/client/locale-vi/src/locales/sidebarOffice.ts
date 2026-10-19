@@ -10,7 +10,7 @@ export const vi = {
   'missingFontsDescription': 'Các phông chữ này không khả dụng cho bản xem trước. Văn bản và bố cục có thể khác với tài liệu gốc.',
   'missingFontsCount': 'Phông chữ: {count}',
   'closeDetails': 'Đóng chi tiết phông chữ',
-  'unavailable': 'Không thể xem trước tài liệu Office. Hãy bật dịch vụ xem trước tài liệu trên máy đang chạy DeepSeek Harness.',
+  'unavailable': 'Không thể xem trước tài liệu Office. Hãy bật dịch vụ xem trước tài liệu trên máy đang chạy Fiwen Desktop.',
   'invalid': 'Không thể xem trước tệp Office này. Tệp có thể bị hỏng, được bảo vệ bằng mật khẩu hoặc sai phần mở rộng.',
   'tooLarge': 'Tệp Office hoặc PDF đã chuyển đổi vượt quá giới hạn kích thước xem trước. Hãy giảm kích thước tệp hoặc điều chỉnh cấu hình xem trước.',
   'failed': 'Chuyển đổi Office không tạo ra PDF dùng được. Hãy kiểm tra tệp và thử lại.',

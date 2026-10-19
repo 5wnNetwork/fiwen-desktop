@@ -10,7 +10,7 @@ export const vi = {
   'dialog.categories': 'Danh mục phản hồi',
   'dialog.detail': 'Chi tiết phản hồi',
   'dialog.hint': 'Thêm chi tiết để giúp chúng tôi cải thiện. Nội dung gửi sẽ kèm theo nhật ký hội thoại hiện tại.',
-  'category.task-result': 'Kết quả tác vụ',
+  'category.task-result': 'Kết quả task',
   'category.instruction-following': 'Khả năng hiểu và tuân theo chỉ dẫn',
   'category.product-interaction': 'Tính năng và tương tác sản phẩm',
   'category.service-stability': 'Độ ổn định và tốc độ',

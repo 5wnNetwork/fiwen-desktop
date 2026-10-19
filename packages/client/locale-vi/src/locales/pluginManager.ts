@@ -81,7 +81,7 @@ export const vi = {
   'installPathTemplateHint': 'Thay bằng đường dẫn thực tế tới thư mục plugin cục bộ.',
   'installGuideFill': 'Dùng ví dụ',
   'installGuideFillAria': 'Dùng ví dụ {example}',
-  'installGuideSafety': 'Chỉ cài plugin bạn tin tưởng: chúng chạy với quyền của bạn và có thể làm hỏng DeepSeek Harness hoặc làm lộ dữ liệu của bạn.',
+  'installGuideSafety': 'Chỉ cài plugin bạn tin tưởng: chúng chạy với quyền của bạn và có thể làm hỏng Fiwen Desktop hoặc làm lộ dữ liệu của bạn.',
   'installUpgradeNotice': 'Plugin chính thức cài theo nhu cầu có nút Cập nhật khi phiên bản khác với DSH. Để cập nhật plugin khác, hãy gỡ rồi cài lại.',
   'registryToggle': 'Registry',
   'registryLegend': 'Registry npm nơi plugin được tải về',

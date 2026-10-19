@@ -283,8 +283,8 @@ describe('DeepSeekSearchProvider account authentication', () => {
     expect(error).toMatchObject({
       code: 'WEB_PROVIDER_ERROR',
       message: 'DeepSeek API error (HTTP 401): invalid token\n\n'
-        + 'DeepSeek rejected the account sign-in used for this web search. '
-        + 'Guide the user to sign in to DeepSeek again; the search endpoint does not need changing.',
+        + 'Fiwen rejected the account sign-in used for this web search. '
+        + 'Guide the user to sign in to Fiwen again; the search endpoint does not need changing.',
     })
   })
 

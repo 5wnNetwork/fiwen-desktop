@@ -2,17 +2,17 @@
 import type { en } from '@deepseek-ai/dsh-client-ui-jobs/src/client/locales.ts'
 
 export const vi = {
-  'count.live.one': '{count} tác vụ nền đang chạy',
-  'count.live.other': '{count} tác vụ nền đang chạy',
-  'count.idle.one': '{count} tác vụ nền',
-  'count.idle.other': '{count} tác vụ nền',
-  'list.aria': 'Tác vụ nền',
+  'count.live.one': '{count} task nền đang chạy',
+  'count.live.other': '{count} task nền đang chạy',
+  'count.idle.one': '{count} task nền',
+  'count.idle.other': '{count} task nền',
+  'list.aria': 'Task nền',
   'section.live': 'Đang chạy',
   'section.settledCount': 'Đã xong {count}',
   'section.clear': 'Xóa',
   'row.expandAria': 'Hiện đầu ra trực tiếp của {label}',
   'row.collapseAria': 'Ẩn đầu ra trực tiếp của {label}',
-  'kill.stop': 'Dừng tác vụ {label}',
+  'kill.stop': 'Dừng task {label}',
   'kill.confirm': 'Nhấn lần nữa để xác nhận',
   'kill.confirmAction': 'Xác nhận dừng',
   'kill.failed': 'Dừng thất bại',

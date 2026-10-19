@@ -87,8 +87,17 @@
   config:
     defaultLocale: vi
 
+# The Fiwen brand occupant below replaces the official DeepSeek brand rows.
+- id: ui-brand-official
+  disabled: true
+
 - insert:
     # The Vietnamese language pack: registers `vi` dictionaries for every
     # client namespace the deployment ships.
     - id: locale-vi
       name: '@deepseek-ai/dsh-client-locale-vi'
+
+    # The Fiwen brand: fills the sidebar and hero brand slots with the Fiwen
+    # mark and localized product name.
+    - id: ui-brand-fiwen
+      name: '@deepseek-ai/dsh-client-ui-brand-fiwen'

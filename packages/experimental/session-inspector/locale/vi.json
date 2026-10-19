@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "Nhật ký phiên",
-    "description": "Cho phép phân tích dữ liệu thô của phiên hiện tại và tin nhắn đã nhóm trong thanh bên phiên."
+    "title": "Nhật ký session",
+    "description": "Cho phép phân tích dữ liệu thô của session hiện tại và tin nhắn đã nhóm trong thanh bên session."
   }
 }

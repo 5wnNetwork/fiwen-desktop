@@ -136,7 +136,7 @@ export class PlatformAccount extends DeepSeekAccount {
       maxRetries: resolved.logoutMaxRetries, delayMs: resolved.logoutRetryDelayMs, requestTimeoutMs: this.requestTimeout,
     }
     ctx.authorization.registerFlow({
-      key: KEY, label: 'DeepSeek', methods: [{ id: 'browser', label: 'DeepSeek' }],
+      key: KEY, label: 'Fiwen', methods: [{ id: 'browser', label: 'Fiwen' }],
       run: (session) => {
         const attempt = this.attempt
         if (attempt === undefined) return Promise.reject(new PlatformAuthError('protocol'))
@@ -422,27 +422,32 @@ export class PlatformAccount extends DeepSeekAccount {
       controller: new AbortController(), done: Promise.resolve(), running: Promise.resolve(),
     }
     this.attempt = attempt
-    attempt.done = this.ctx.authorization.begin({
-      key: KEY, signal: attempt.controller.signal,
-      interaction: { notify: () => undefined, prompt: () => Promise.reject(new PlatformAuthError('protocol')) },
-    }).then((outcome) => {
-      this.update(attempt, { phase: outcome.status === 'authorized' ? 'succeeded' : 'cancelled' })
-      if (outcome.status === 'authorized' && attempt.completionUrl !== undefined) {
-        attempt.callback?.writeHead(302, { location: attempt.completionUrl, 'cache-control': 'no-store' }).end()
-      } else attempt.callback?.writeHead(204, { 'cache-control': 'no-store' }).end()
-    }).catch((error: unknown) => {
-      const code = error instanceof PlatformAuthError ? error.code : 'protocol'
-      console.error('[deepseek-account] sign-in failed', { errorCode: code })
-      this.update(attempt, { phase: code === 'expired' ? 'expired' : 'failed', errorCode: code })
-      this.finishFailedCallback(attempt)
-    }).then(async () => {
+    attempt.done = (async (): Promise<void> => {
+      try {
+        const outcome = await this.ctx.authorization.begin({
+          key: KEY, signal: attempt.controller.signal,
+          interaction: { notify: () => undefined, prompt: () => Promise.reject(new PlatformAuthError('protocol')) },
+        })
+        this.update(attempt, { phase: outcome.status === 'authorized' ? 'succeeded' : 'cancelled' })
+        if (outcome.status === 'authorized' && attempt.completionUrl !== undefined) {
+          attempt.callback?.writeHead(302, { location: attempt.completionUrl, 'cache-control': 'no-store' }).end()
+        } else attempt.callback?.writeHead(204, { 'cache-control': 'no-store' }).end()
+      } catch (error: unknown) {
+        // Catches synchronous throws from begin() (e.g. NO_FLOW, UNKNOWN_METHOD,
+        // ALREADY_IN_FLIGHT) that a promise chain would otherwise miss, so the
+        // failure is logged instead of surfacing as a silent { ok: false }.
+        const code = error instanceof PlatformAuthError ? error.code : 'protocol'
+        console.error('[deepseek-account] sign-in failed', { errorCode: code })
+        this.update(attempt, { phase: code === 'expired' ? 'expired' : 'failed', errorCode: code })
+        this.finishFailedCallback(attempt)
+      }
       // begin() may report cancellation before the HTTP work observes its signal.
       await attempt.running.catch(() => undefined)
       if (attempt.callback !== undefined) {
         await streamPromises.finished(attempt.callback, { cleanup: true }).catch(() => undefined)
       }
       await attempt.disposeCallback?.()
-    })
+    })()
     this.changed()
     return this.getState()
   }

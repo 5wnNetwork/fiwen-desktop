@@ -8,7 +8,7 @@ export const vi = {
   'deepseekAccount': 'DeepSeek Flash — Tài khoản (trả phí)',
   'deepseekOfficial': 'DeepSeek Flash — API chính thức (trả phí)',
   'providerUnavailableOption': '{provider} — không khả dụng',
-  'providerUnavailable': 'Nhà cung cấp này không khả dụng. Hãy cấu hình tài khoản DeepSeek hoặc nhà cung cấp API chính thức, hoặc chọn dịch vụ khả dụng.',
+  'providerUnavailable': 'Nhà cung cấp này không khả dụng. Hãy cấu hình tài khoản Fiwen hoặc nhà cung cấp API chính thức, hoặc chọn dịch vụ khả dụng.',
   'paidNotice': 'Mỗi đoạn chưa có trong bộ đệm gửi một yêu cầu DeepSeek Flash trả phí riêng qua tài khoản hoặc khóa API chính thức đã chọn. Mở lại phần suy luận sẽ dùng lại kết quả đã lưu; đổi nhà cung cấp, ngôn ngữ, văn bản nguồn hoặc cài đặt yêu cầu có thể gửi yêu cầu trả phí mới.',
   'anonymousNotice': 'Bing và Google không cần đăng nhập dịch thuật hay khóa API. Điểm cuối ẩn danh của chúng có thể từ chối hoặc giới hạn yêu cầu.',
   'targetLanguage': 'Ngôn ngữ đích',

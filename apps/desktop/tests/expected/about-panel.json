@@ -1,53 +1,53 @@
 {
   "darwin:en-US": {
     "menu": [
-      { "label": "About DeepSeek Harness", "role": "about" },
+      { "label": "About Fiwen Desktop", "role": "about" },
       { "type": "separator" }
     ],
     "options": {
-      "applicationName": "DeepSeek Harness",
+      "applicationName": "Fiwen Desktop",
       "applicationVersion": "1.0.0",
       "version": "",
-      "copyright": "",
+      "copyright": "© Fiwen Network",
       "iconPath": "<app icon>"
     }
   },
   "darwin:zh-CN": {
     "menu": [
-      { "label": "关于 DeepSeek Harness", "role": "about" },
+      { "label": "关于 Fiwen 桌面端", "role": "about" },
       { "type": "separator" }
     ],
     "options": {
-      "applicationName": "DeepSeek Harness",
+      "applicationName": "Fiwen Desktop",
       "applicationVersion": "1.0.0",
       "version": "",
-      "copyright": "",
+      "copyright": "© Fiwen Network",
       "iconPath": "<app icon>"
     }
   },
   "win32:zh-CN": {
     "menu": [
-      { "label": "关于 DeepSeek Harness" },
+      { "label": "关于 Fiwen 桌面端" },
       { "type": "separator" }
     ],
     "options": {
-      "applicationName": "DeepSeek Harness",
+      "applicationName": "Fiwen Desktop",
       "applicationVersion": "1.0.0",
       "version": "",
-      "copyright": "",
+      "copyright": "© Fiwen Network",
       "iconPath": "<app icon>"
     }
   },
   "win32:en-US": {
     "menu": [
-      { "label": "About DeepSeek Harness" },
+      { "label": "About Fiwen Desktop" },
       { "type": "separator" }
     ],
     "options": {
-      "applicationName": "DeepSeek Harness",
+      "applicationName": "Fiwen Desktop",
       "applicationVersion": "1.0.0",
       "version": "",
-      "copyright": "",
+      "copyright": "© Fiwen Network",
       "iconPath": "<app icon>"
     }
   }

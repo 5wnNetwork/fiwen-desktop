@@ -1,6 +1,5 @@
-DeepSeek Harness
-DeepSeek Harness
-Welcome to DeepSeek Harness
+Fiwen Desktop
+Fiwen Desktop
+Welcome to Fiwen Desktop
 Build potential. Explore intelligence.
 Sign in
-Add API Key

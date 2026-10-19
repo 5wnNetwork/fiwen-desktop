@@ -1,6 +1,5 @@
-DeepSeek Harness
-DeepSeek Harness
-欢迎使用 DeepSeek Harness
+Fiwen 桌面端
+Fiwen 桌面端
+欢迎使用 Fiwen 桌面端
 组装无限可能，共探智能上限
 登录
-添加 API Key

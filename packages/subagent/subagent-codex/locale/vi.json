@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "Tác tử con Codex",
-    "description": "Ủy thác một tác vụ cho Codex dùng xác thực và cài đặt gốc của nó."
+    "title": "Subagent Codex",
+    "description": "Ủy thác một task cho Codex dùng xác thực và cài đặt gốc của nó."
   }
 }

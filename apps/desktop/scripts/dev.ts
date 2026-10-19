@@ -83,9 +83,6 @@ async function launchElectron(): Promise<void> {
     return
   }
   await run(electron, [
-    `--inspect=127.0.0.1:${String(mainPort)}`,
-    `--remote-debugging-port=${String(rendererPort)}`,
-    `--user-data-dir=${userData}`,
     APP_ROOT,
   ], APP_ROOT, environment)
 }

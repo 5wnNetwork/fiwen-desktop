@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "Kỹ năng huy hiệu DSH",
-    "description": "Cho phép tác tử thêm huy hiệu “powered by dsh” vào tài liệu, pull request và các đầu ra khác."
+    "description": "Cho phép agent thêm huy hiệu “powered by dsh” vào tài liệu, pull request và các đầu ra khác."
   }
 }

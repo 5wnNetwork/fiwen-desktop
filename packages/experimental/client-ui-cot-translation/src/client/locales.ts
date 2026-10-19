@@ -7,9 +7,9 @@ export const NS = 'cotTranslation'
 /** English copy and key source. */
 export const en = {
   provider: 'Translation service', google: 'Google', bing: 'Bing',
-  deepseekAccount: 'DeepSeek Flash — Account (paid)', deepseekOfficial: 'DeepSeek Flash — Official API (paid)',
+  deepseekAccount: 'DeepSeek Flash — Fiwen Account (paid)', deepseekOfficial: 'DeepSeek Flash — Official API (paid)',
   providerUnavailableOption: '{provider} — unavailable',
-  providerUnavailable: 'This provider is unavailable. Configure your DeepSeek account or Official API provider, or choose an available service.',
+  providerUnavailable: 'This provider is unavailable. Configure your Fiwen account or Official API provider, or choose an available service.',
   paidNotice: 'Each uncached fragment sends a separate paid DeepSeek Flash request through the selected account or Official API credentials. Reopening reasoning reuses saved results; changing the provider, language, source text, or request settings may send a new paid request.',
   anonymousNotice: 'Bing and Google need no translation login or API key. Their anonymous endpoints may reject or limit requests.', targetLanguage: 'Target language',
   targetLanguageHint: 'auto follows the UI language; language codes such as zh, en, and ja also work.',
@@ -28,9 +28,9 @@ export type CotTranslationKey = keyof typeof en
 /** Chinese copy. */
 export const zh: Record<CotTranslationKey, string> = {
   provider: '翻译服务', google: 'Google', bing: 'Bing',
-  deepseekAccount: 'DeepSeek Flash · 账号（付费）', deepseekOfficial: 'DeepSeek Flash · 官方 API（付费）',
+  deepseekAccount: 'DeepSeek Flash · Fiwen 账号（付费）', deepseekOfficial: 'DeepSeek Flash · 官方 API（付费）',
   providerUnavailableOption: '{provider} — 不可用',
-  providerUnavailable: '此服务暂不可用，请配置 DeepSeek 账号或官方 API 服务，或选择可用的翻译服务',
+  providerUnavailable: '此服务暂不可用，请配置 Fiwen 账号或官方 API 服务，或选择可用的翻译服务',
   paidNotice: '每个未缓存片段都会通过所选账号或官方 API 凭据单独发送一次付费的 DeepSeek Flash 请求；重新展开会复用已保存的译文，更改服务、语言、原文或请求设置可能发送新的付费请求',
   anonymousNotice: 'Bing 和 Google 翻译无需额外登录或 API key，但匿名接口可能拒绝或限制请求', targetLanguage: '目标语言',
   targetLanguageHint: 'auto 使用界面语言；也可填写语言代码，例如 zh、en、ja',

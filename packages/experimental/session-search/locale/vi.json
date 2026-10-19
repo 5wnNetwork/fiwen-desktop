@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "Tìm kiếm phiên",
-    "description": "Cung cấp cho tác tử công cụ tìm và đọc các phiên trước trong không gian làm việc hiện tại."
+    "title": "Tìm kiếm session",
+    "description": "Cung cấp cho agent công cụ tìm và đọc các session trước trong workspace hiện tại."
   }
 }

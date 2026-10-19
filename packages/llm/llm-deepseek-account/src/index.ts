@@ -35,11 +35,11 @@ function refuse(model: string, refusal: CatalogRefusal | undefined): void {
   switch (refusal.kind) {
     case 'upgrade-required':
       throw new LlmError(
-        `DeepSeek model "${model}" requires DeepSeek Harness ${refusal.requiredVersion} or later; current version is ${APP_IDENTITY.version}`,
+        `DeepSeek model "${model}" requires Fiwen Desktop ${refusal.requiredVersion} or later; current version is ${APP_IDENTITY.version}`,
         'CLIENT_UPGRADE_REQUIRED',
       )
     case 'unsupported':
-      throw new LlmError(`DeepSeek model "${model}" is not supported by DeepSeek Harness; current version is ${APP_IDENTITY.version}`, 'MODEL_UNSUPPORTED')
+      throw new LlmError(`DeepSeek model "${model}" is not supported by Fiwen Desktop; current version is ${APP_IDENTITY.version}`, 'MODEL_UNSUPPORTED')
     /* v8 ignore next 2 -- catalog resolution produces only the closed refusal union */
     default:
       assertNever(refusal, 'account catalog refusal')
@@ -54,7 +54,7 @@ export function apply(ctx: Context, config: Config): void {
   const account = () => ctx.get('deepseekAccount')
   const resolveAuth = async (connection: ResolvedDeepSeekOptions): Promise<DeepSeekRequestAuth> => {
     const token = await account()?.resolveToken(connection.baseURL)
-    if (token === undefined) throw new LlmError('Sign in to DeepSeek to use the account provider. The request destination must allow account authentication.', 'ACCOUNT_SIGN_IN_REQUIRED')
+    if (token === undefined) throw new LlmError('Sign in to Fiwen to use the account provider. The request destination must allow account authentication.', 'ACCOUNT_SIGN_IN_REQUIRED')
     return {
       headers: { [TOKEN_HEADER]: token },
       onRequestError: async (error) => {
@@ -98,7 +98,7 @@ export function apply(ctx: Context, config: Config): void {
     }
     return { ...resolved.protocol, models: result.resolution, catalog: result }
   }
-  const entry = { provider: PROVIDER, displayName: 'DeepSeek Account', settingsNs: ctx.fiber.entry?.options.id ?? name, settingsPath: [] }
+  const entry = { provider: PROVIDER, displayName: 'Fiwen Account', settingsNs: ctx.fiber.entry?.options.id ?? name, settingsPath: [] }
   const directory = ctx.llm.registerConfigurableProviders([entry])
   let reportedError: string | undefined
   /** Publish override diagnostics on the provider directory. */
@@ -112,7 +112,7 @@ export function apply(ctx: Context, config: Config): void {
     return connection
   }
   registerDeepSeekProvider<AccountConnection>(ctx, PROVIDER, {
-    providerName: 'DeepSeek Account',
+    providerName: 'Fiwen Account',
     options: () => connectionOf(catalog.current()),
     connect: async signal => connectionOf(await catalog.view(signal)),
     resolveAuth,

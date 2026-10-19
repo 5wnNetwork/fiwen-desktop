@@ -19,6 +19,6 @@ export const vi = {
   'frequency.once': 'Một lần',
   'frequency.every': 'Mỗi {value} {unit}',
   ...frequencyVi,
-  'mark.aria': '{count} tác vụ đã lên lịch',
+  'mark.aria': '{count} task đã lên lịch',
   'hover.more': '{count} mục khác',
 } satisfies Partial<Record<keyof typeof en, string>>

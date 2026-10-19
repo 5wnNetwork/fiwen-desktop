@@ -2,13 +2,13 @@
 import type { en } from '@deepseek-ai/dsh-client-ui-sidebar-terminal/src/client/locales.ts'
 
 export const vi = {
-  'shortcut.noSession': 'Hãy chọn một phiên trước',
+  'shortcut.noSession': 'Hãy chọn một session trước',
   'recoveryFailed': 'Khôi phục terminal thất bại: {message}',
   'retryRecovery': 'Thử khôi phục terminal lại',
   'shell': 'Chọn shell',
   'shellLoading': 'Đang tải shell…',
   'shellEmpty': 'Không có shell nào',
-  'description': 'Chạy lệnh trong không gian làm việc của Phiên',
+  'description': 'Chạy lệnh trong workspace của Session',
   'title': 'Terminal',
   'new': 'Terminal mới',
   'loading': 'Đang đọc môi trường terminal…',

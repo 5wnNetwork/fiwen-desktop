@@ -541,7 +541,7 @@ describe('edge joins', () => {
 
 it.each([false, true])('uses account availability without asking for an API key: %s', async (accountAvailable) => {
   const { ctx, mirror, seenRefs } = api({ accountAvailable, providers: async () => ok({ providers: [{
-    provider: 'deepseek-account', displayName: 'DeepSeek Account', settingsNs: 'llm-deepseek-account', settingsPath: [], active: true,
+    provider: 'deepseek-account', displayName: 'Fiwen account', settingsNs: 'llm-deepseek-account', settingsPath: [], active: true,
   }] }) })
   const store = new ModelsSettingsStore(ctx, settingsSchema, mirror)
   await store.load()
@@ -557,7 +557,7 @@ it.each([false, true])('uses account availability without asking for an API key:
 
 it('removes the account row after sign-out and restores it after sign-in', async () => {
   const overrides = { accountAvailable: true, providers: async () => ok({ providers: [{
-    provider: 'deepseek-account', displayName: 'DeepSeek Account', settingsNs: 'llm-deepseek-account', settingsPath: [], active: true,
+    provider: 'deepseek-account', displayName: 'Fiwen account', settingsNs: 'llm-deepseek-account', settingsPath: [], active: true,
   }, ...DIRECTORY] }) }
   const { ctx, mirror } = api(overrides)
   const store = new ModelsSettingsStore(ctx, settingsSchema, mirror)

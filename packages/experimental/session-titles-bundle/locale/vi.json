@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "Tiêu đề theo hội thoại",
-    "description": "Làm mới tiêu đề phiên khi có prompt mới của người dùng."
+    "description": "Làm mới tiêu đề session khi có prompt mới của người dùng."
   }
 }

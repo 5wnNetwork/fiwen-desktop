@@ -3,7 +3,7 @@ import type { en } from '@deepseek-ai/dsh-client-ui-settings-session-log/src/cli
 
 export const vi = {
   'title': 'Tải Session Log lên khi dùng API mô hình chính thức',
-  'description': 'Giúp cải thiện các mô hình và sản phẩm của DeepSeek.',
+  'description': 'Giúp cải thiện các mô hình và sản phẩm của Fiwen.',
   'saved': 'Đã lưu tùy chọn',
   'failed': 'Không thể lưu tùy chọn',
 } satisfies Partial<Record<keyof typeof en, string>>

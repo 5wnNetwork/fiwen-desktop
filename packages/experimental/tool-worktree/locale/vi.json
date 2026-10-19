@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "Git Worktrees",
-    "description": "Cho tác tử tạo nhánh Git và worktree mới rồi tiếp tục làm việc tại đó."
+    "description": "Cho agent tạo nhánh Git và worktree mới rồi tiếp tục làm việc tại đó."
   }
 }

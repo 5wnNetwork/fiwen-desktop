@@ -2,13 +2,13 @@
 import type { en } from '@deepseek-ai/dsh-experimental-client-ui-agent-team/src/client/locales.ts'
 
 export const vi = {
-  'trigger': 'Nhóm tác tử',
+  'trigger': 'Nhóm agent',
   'loading': 'Đang tải Nhóm…',
   'unavailable': 'Nhóm không khả dụng',
   'failure': 'Bản ghi Nhóm đã lưu không hợp lệ: {message}',
-  'empty': 'Chưa có tác vụ chia sẻ. Hãy tạo qua hội thoại.',
+  'empty': 'Chưa có task chia sẻ. Hãy tạo qua hội thoại.',
   'roster': 'Thành viên',
-  'tasks': 'Tác vụ chia sẻ',
+  'tasks': 'Task chia sẻ',
   'model': 'Mô hình',
   'open': 'Mở hội thoại của thành viên',
   'current': 'Trò chuyện hiện tại',

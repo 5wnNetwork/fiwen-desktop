@@ -1,5 +1,5 @@
-DeepSeek Harness
-DeepSeek Harness
+Fiwen Desktop
+Fiwen Desktop
 Sign in timed out
 Sign in again
 Add API Key

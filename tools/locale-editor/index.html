@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fiwen locale editor</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header>
+  <strong>Fiwen locale editor</strong>
+  <input id="search" type="search" placeholder="Search key / en / zh / vi" autocomplete="off">
+  <nav id="chips">
+    <button data-filter="all" class="on">All</button>
+    <button data-filter="missing">Missing</button>
+    <button data-filter="same">Same as English</button>
+    <button data-filter="edited">Edited this session</button>
+  </nav>
+  <button id="reload" title="Re-scan all files">Reload</button>
+</header>
+<main>
+  <aside>
+    <div id="sortbar">
+      Sort:
+      <button data-sort="name" class="on">name</button>
+      <button data-sort="missing">missing</button>
+    </div>
+    <div id="entries"></div>
+  </aside>
+  <section id="content">
+    <div id="pathbar"><span id="path"></span><button id="copyPath" title="Copy path">copy</button></div>
+    <table id="rows">
+      <thead><tr><th>Key</th><th>English</th><th>中文</th><th>Tiếng Việt</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div id="status"></div>
+  </section>
+</main>
+<script src="app.js"></script>
+</body>
+</html>

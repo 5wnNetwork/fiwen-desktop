@@ -3,7 +3,7 @@ import type { en } from '@deepseek-ai/dsh-client-ui-settings-models/src/client/l
 
 export const vi = {
   'nav': 'Mô hình',
-  'deepSeekAccount': 'Tài khoản DeepSeek',
+  'deepSeekAccount': 'Tài khoản Fiwen',
   'title': 'Mô hình',
   'intro': 'Nhập khóa API để dùng mô hình từ các nhà cung cấp sau.',
   'edit': 'Sửa',
@@ -127,7 +127,7 @@ export const vi = {
   'create': 'Tạo nhà cung cấp',
   'creating': 'Đang tạo…',
   'welcomeTitle': 'Thông báo bản xem trước',
-  'welcomeBody': 'DeepSeek Harness 0.2 vẫn đang ở bản xem trước và nhiều phần cần tiếp tục cải thiện, hoàn thiện. Chúng tôi hoan nghênh phản hồi và góp ý từ mọi nhà phát triển và người dùng. Ứng dụng desktop mới hướng tới nhiều đối tượng người dùng, còn các tính năng nâng cao cho nhà phát triển có thể bật trong cài đặt. Tính năng sản phẩm và API plugin của DeepSeek Harness dự kiến tiếp tục lặp và phát triển nhanh, dần ổn định theo thời gian.\n\nChúng tôi mong được cùng người dùng và nhà phát triển trên toàn thế giới khám phá giới hạn của trí tuệ, trên nền tảng hạ tầng mã nguồn mở, tái sử dụng và có thể tổ hợp. Hoan nghênh mọi người hiện thực hóa ý tưởng với DeepSeek Harness và tham gia cộng đồng để làm phong phú hệ sinh thái plugin.',
+  'welcomeBody': 'Fiwen Desktop 0.2 vẫn đang ở bản xem trước và nhiều phần cần tiếp tục cải thiện, hoàn thiện. Chúng tôi hoan nghênh phản hồi và góp ý từ mọi nhà phát triển và người dùng. Ứng dụng desktop mới hướng tới nhiều đối tượng người dùng, còn các tính năng nâng cao cho nhà phát triển có thể bật trong cài đặt. Tính năng sản phẩm và API plugin của Fiwen Desktop dự kiến tiếp tục lặp và phát triển nhanh, dần ổn định theo thời gian.\n\nChúng tôi mong được cùng người dùng và nhà phát triển trên toàn thế giới khám phá giới hạn của trí tuệ, trên nền tảng hạ tầng mã nguồn mở, tái sử dụng và có thể tổ hợp. Hoan nghênh mọi người hiện thực hóa ý tưởng với Fiwen Desktop và tham gia cộng đồng để làm phong phú hệ sinh thái plugin.',
   'welcomeContinue': 'Tiếp tục',
   'welcomeError': 'Không thể lưu xác nhận. Vui lòng thử lại.',
   'onboardingTitle': 'Thêm khóa API để bắt đầu',

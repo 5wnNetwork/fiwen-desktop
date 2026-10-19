@@ -2,7 +2,7 @@
 import type { en } from '@deepseek-ai/dsh-client-ui-model-selection/src/client/locales.ts'
 
 export const vi = {
-  'provider.account': 'Tài khoản DeepSeek',
+  'provider.account': 'Tài khoản Fiwen',
   'command.label': 'Mô hình',
   'command.description': 'Chọn mô hình cho cuộc hội thoại này',
   'option.loadError': 'Tải danh mục thất bại: {message}',
@@ -17,7 +17,7 @@ export const vi = {
   'effort.providerDefault': 'Mặc định',
   'status.loading': 'Đang làm mới danh sách mô hình…',
   'error.action': 'Thao tác mô hình thất bại: {message}',
-  'error.sessionInUse': 'Phiên này đang được sử dụng, có thể bởi một phiên bản DSH khác đang chạy (như dsh web hoặc ứng dụng desktop). Hãy thoát các phiên bản DSH khác rồi thử lại.',
+  'error.sessionInUse': 'Session này đang được sử dụng, có thể bởi một phiên bản DSH khác đang chạy (như dsh web hoặc ứng dụng desktop). Hãy thoát các phiên bản DSH khác rồi thử lại.',
   'action.reload': 'Tải lại',
   'warning.groupLoad': '{name} tải thất bại: {message}',
   'search.placeholder': 'Tìm mô hình…',

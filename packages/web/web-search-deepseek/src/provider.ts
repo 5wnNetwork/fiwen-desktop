@@ -336,7 +336,7 @@ export class DeepSeekSearchProvider implements WebSearchProvider {
     throw new WebError(
       `DeepSeek search has no API key for "${ref}"; store it through the credentials service`
       + ' (the web Models page writes it), export it in the launching environment, or set a literal'
-      + ' "apiKey" in the web-search-deepseek config; a conversation using a DeepSeek Account model'
+      + ' "apiKey" in the web-search-deepseek config; a conversation using a Fiwen Account model'
       + ' searches with the account sign-in instead',
       'WEB_PROVIDER_CREDENTIAL_MISSING',
     )
@@ -367,11 +367,11 @@ async function resolveCredential(
   }
 }
 
-/** Replace endpoint guidance with sign-in guidance when DeepSeek rejects the account token. */
+/** Replace endpoint guidance with sign-in guidance when the endpoint rejects the account token. */
 function accountRejectedError(message: string): WebError {
   return new WebError(
-    `${message}\n\nDeepSeek rejected the account sign-in used for this web search. `
-    + 'Guide the user to sign in to DeepSeek again; the search endpoint does not need changing.',
+    `${message}\n\nFiwen rejected the account sign-in used for this web search. `
+    + 'Guide the user to sign in to Fiwen again; the search endpoint does not need changing.',
     'WEB_PROVIDER_ERROR',
   )
 }

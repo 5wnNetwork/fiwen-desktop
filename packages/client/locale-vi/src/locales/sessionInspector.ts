@@ -2,8 +2,8 @@
 import type { en } from '@deepseek-ai/dsh-experimental-session-inspector/src/client/locales.ts'
 
 export const vi = {
-  'tab.title': 'Nhật ký phiên',
-  'tab.description': 'Phân tích nhật ký thô và tin nhắn trò chuyện đã nhóm của phiên hiện tại trong thanh bên.',
+  'tab.title': 'Nhật ký session',
+  'tab.description': 'Phân tích nhật ký thô và tin nhắn trò chuyện đã nhóm của session hiện tại trong thanh bên.',
   'view.presentation': 'Trình bày',
   'view.sessionLog': 'Nhật ký thô',
   'view.chatNode': 'Nhóm trò chuyện',
@@ -11,7 +11,7 @@ export const vi = {
   'picker.cancel': 'Hủy chọn (Esc)',
   'picker.instructions': 'Di chuột trong Trò chuyện chính để xem trước, rồi nhấn để chọn. Esc để hủy.',
   'picker.noMatch': 'Không có bản ghi khớp trong bảng này. Chọn phần tử khác hoặc nhấn Esc để hủy.',
-  'picker.noChat': 'Hãy mở Phiên này trong Trò chuyện chính trước khi chọn.',
+  'picker.noChat': 'Hãy mở Session này trong Trò chuyện chính trước khi chọn.',
   'table.id': 'Chỉ mục',
   'table.type': 'Loại',
   'filter.title': 'Lọc loại',
