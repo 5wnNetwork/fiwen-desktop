@@ -1218,7 +1218,7 @@ describe('runtime resolution', { concurrent: false }, () => {
       dsh: { profile: { bundles: ['bundle-b'] } },
     }))
 
-    const profile = loadProfile('dsh', 'web', f.installAnchor, f.root)
+    const profile = loadProfile('fwnd', 'web', f.installAnchor, f.root)
     expect(profile.layers.map(layer => layer.packageName)).toEqual(['bundle-b'])
     expect(existsSync(join(profileDir, '.dsh-module-fallback'))).toBe(false)
     expect(existsSync(join(modules, plugin))).toBe(false)

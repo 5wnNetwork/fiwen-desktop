@@ -1,6 +1,6 @@
 /**
  * Profile discovery, initialization, and patch-layer composition for the
- * `dsh --profile` launcher family.
+ * `fwnd --profile` launcher family.
  *
  * A profile is a directory under `$DSH_HOME/profiles/<name>` holding a
  * `package.json` (out-of-tree plugin dependencies plus the profile manifest
@@ -162,7 +162,7 @@ export interface RuntimeResolution {
 
 /**
  * Resolve a profile's directory under the Harness home.
- * @param name - the profile name (`dsh --profile <name>`).
+ * @param name - the profile name (`fwnd --profile <name>`).
  * @param home - the Harness home; defaults to {@link resolveDshHome}.
  * @returns the absolute profile directory (which may not exist yet).
  */
@@ -170,7 +170,7 @@ export function resolveProfileDir(name: string, home: string = resolveDshHome())
   if (name === '' || name.includes('/') || name.includes('\\') || name === '.' || name === '..'
     // Node reserves this name for dependency lookup.
     || name === 'node_modules') {
-    throw new Error(`dsh: invalid profile name ${JSON.stringify(name)}`)
+    throw new Error(`fwnd: invalid profile name ${JSON.stringify(name)}`)
   }
   return join(home, PROFILES_DIR, name)
 }
@@ -210,7 +210,7 @@ const RETIRED_BUNDLES: ReadonlySet<string> = new Set([
   '@deepseek-ai/dsh-experimental-schedule-bundle',
 ])
 
-/** The bundle list a `dsh plugin` init uses for a name with no shipped template. */
+/** The bundle list a `fwnd plugin` init uses for a name with no shipped template. */
 export const DEFAULT_PROFILE_BUNDLES: readonly string[] = ['@deepseek-ai/dsh-base']
 
 /**
@@ -236,7 +236,7 @@ export const OPTIONAL_BUNDLES: readonly string[] = [
   '@deepseek-ai/dsh-experimental-tool-worktree',
 ]
 
-const PROFILE_PATCH_TEMPLATE = `# Your patch layer for this dsh profile, applied after every bundle layer:
+const PROFILE_PATCH_TEMPLATE = `# Your patch layer for this fwnd profile, applied after every bundle layer:
 # a top-level YAML array of loader patch entries (id-targeted config
 # overrides, disables, and insert lists; \`!!js\` expressions allowed).
 []
@@ -418,7 +418,7 @@ function collectInstallationScopePackages(
       const manifestPath = join(realModuleDirectory(dir), 'package.json')
       let manifest: ProfileManifest
       try {
-        manifest = skippedBundles.has(dep) ? readProfileManifest('dsh', dir) : readPackageManifest(manifestPath)
+        manifest = skippedBundles.has(dep) ? readProfileManifest('fwnd', dir) : readPackageManifest(manifestPath)
       } catch (error) {
         if (!skippedBundles.has(dep)) throw error
         continue
@@ -525,7 +525,7 @@ export class ProfileRuntimeResolution implements RuntimeResolution {
     const { installAnchor, home, profileDir } = this.#source
     return createRuntimeResolution({
       installAnchor, home,
-      ...profileDir === undefined ? {} : { profile: loadProfileDirectory('dsh', profileDir, installAnchor) },
+      ...profileDir === undefined ? {} : { profile: loadProfileDirectory('fwnd', profileDir, installAnchor) },
     })
   }
 }
@@ -720,8 +720,8 @@ export function resolveBundleDir(
     if (dir !== undefined) return dir
   }
   throw new Error(
-    `${binName}: cannot resolve profile bundle ${JSON.stringify(packageName)} from the dsh installation or ${profileDir}; `
-    + `run 'dsh plugin --profile ${basename(profileDir)} install' if its dependency is not installed`,
+    `${binName}: cannot resolve profile bundle ${JSON.stringify(packageName)} from the fwnd installation or ${profileDir}; `
+    + `run 'fwnd plugin --profile ${basename(profileDir)} install' if its dependency is not installed`,
   )
 }
 
@@ -796,7 +796,7 @@ export function loadProfile(
     const template = PROFILE_TEMPLATES[name]
     if (template === undefined) {
       throw new Error(
-        `${binName}: profile ${JSON.stringify(name)} does not exist; create it with 'dsh plugin --profile ${name} add <package>'`,
+        `${binName}: profile ${JSON.stringify(name)} does not exist; create it with 'fwnd plugin --profile ${name} add <package>'`,
       )
     }
     initProfile(dir, template.bundles)

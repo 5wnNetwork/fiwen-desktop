@@ -16,7 +16,7 @@ function records(content: string): Record<string, unknown>[] {
   return content.split('\n').filter(Boolean).map(line => JSON.parse(line) as Record<string, unknown>)
 }
 
-describe('dsh run with Agent Teams enabled', () => {
+describe('fwnd run with Agent Teams enabled', () => {
   it('runs two teammates, direct peer messages, dependent tasks, waiting, and final aggregation', async () => {
     const cwd = await mkdtemp(join(tmpdir(), 'dsh-agent-team-headless-'))
     try {
@@ -78,7 +78,7 @@ describe('dsh run with Agent Teams enabled', () => {
       })
       expect(
         result.exitCode,
-        `dsh headless profile exited unexpectedly.\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`,
+        `fwnd headless profile exited unexpectedly.\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`,
       ).toBe(0)
       expect(result.stderr).toBe('')
       expect(result.stdout).toContain('TEAM_WORKFLOW_OK')

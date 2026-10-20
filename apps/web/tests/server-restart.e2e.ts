@@ -1,4 +1,4 @@
-/** Persisted Session recovery across two real dsh server processes on the same port. */
+/** Persisted Session recovery across two real fwnd server processes on the same port. */
 import { spawn, type ChildProcess } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { createServer } from 'node:http'
@@ -41,7 +41,7 @@ class RestartableServer {
     this.child = child
     const receive = (data: Buffer): void => {
       this.output += data.toString()
-      const url = /dsh web: (http:\/\/[^\s]+)/u.exec(this.output)?.[1]
+      const url = /fwnd web: (http:\/\/[^\s]+)/u.exec(this.output)?.[1]
       if (url !== undefined) ready.resolve(url)
     }
     child.stdout?.on('data', receive)

@@ -56,7 +56,7 @@ it('copies workspace package links as files and removes command shims', async ()
   await mkdir(join(staging, 'node_modules', '.bin'), { recursive: true })
   await writeFile(join(staging, 'package.json'), '{"name":"dsh-python-runtime-closure"}\n')
   await symlink(packageDirectory, join(staging, 'node_modules', '@deepseek-ai', 'dsh-base'), directoryLinkType)
-  await symlink(packageDirectory, join(staging, 'node_modules', '.bin', 'dsh'), directoryLinkType)
+  await symlink(packageDirectory, join(staging, 'node_modules', '.bin', 'fwnd'), directoryLinkType)
 
   await materializeStagedLinks(staging)
 

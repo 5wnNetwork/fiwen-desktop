@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for guide.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/upgrade-guide/v0.2.1-rc.2/desktop-identity/guide.md
+/:
+  en: c4789a75a3dfcf8d
+  zh: 950769337681d62f
+/desktop-identity-fiwen-home-and-fiwen-scheme:
+  en: e433f69f5b9dd9a8
+  zh: e15d59c94b007184
+/desktop-identity-fiwen-home-and-fiwen-scheme/change:
+  en: aa56d7738c68695c
+  zh: d42600b59095bb19
+/desktop-identity-fiwen-home-and-fiwen-scheme/migration:
+  en: 2483fd136768345d
+  zh: fb40864dae3b0e34

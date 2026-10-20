@@ -198,7 +198,7 @@ Manage profile files and apply their declared reload lifecycle.
 @Remote setBundleEnabled(name: string, enabled: boolean): Promise<ChangeResult>
 
 /**
- * Install a package using the same pnpm implementation as dsh plugin. GitHub
+ * Install a package using the same pnpm implementation as fwnd plugin. GitHub
  * repositories get a connection check bounded by githubConnectionTimeoutMs before pnpm starts;
  * only network failures or timeouts stop installation, while pnpm owns authentication and transport fallback. A run
  * that fails, is cancelled, or adds a package without a bundle patch restores
@@ -224,7 +224,7 @@ Manage profile files and apply their declared reload lifecycle.
  */
 @Remote async cancelInstall(requestId: PluginInstallRequestId): Promise<PluginInstallCancellation>
 
-/** Unload and remove a profile-owned bundle dependency through dsh plugin's pnpm path; a selected name no
+/** Unload and remove a profile-owned bundle dependency through fwnd plugin's pnpm path; a selected name no
  * dependency holds is only deselected.
  * @param name Installed dependency or selected bundle name.
  * @returns Removal diagnostics and the remaining profile state.

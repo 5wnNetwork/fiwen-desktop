@@ -1,5 +1,5 @@
 /**
- * Resolve the public SDK launch configuration to one dsh subprocess.
+ * Resolve the public SDK launch configuration to one fwnd subprocess.
  * @module @deepseek-ai/dsh-sdk-client/launch
  */
 
@@ -26,7 +26,7 @@ export interface RuntimeProcessOptions {
   disposeGraceMs?: number
 }
 
-/** Node argv plus internal profile patches required by one resolved dsh entry. */
+/** Node argv plus internal profile patches required by one resolved fwnd entry. */
 export interface DshNodeLaunch {
   /** Arguments before the profile selector. */
   nodeArgs: string[]
@@ -47,10 +47,10 @@ function manifest(url: string): PackageManifest {
 }
 
 /**
- * Resolve and version-check a dsh executable from package manifests.
+ * Resolve and version-check a fwnd executable from package manifests.
  * @param dshManifestUrl - resolved URL of the dsh package manifest.
  * @param clientManifestUrl - resolved URL of the SDK client manifest.
- * @returns the absolute dsh executable path.
+ * @returns the absolute fwnd executable path.
  */
 export function resolveDshBinFromManifests(dshManifestUrl: string, clientManifestUrl: string): string {
   const dshManifest = manifest(dshManifestUrl)
@@ -59,14 +59,14 @@ export function resolveDshBinFromManifests(dshManifestUrl: string, clientManifes
     throw new Error(`dsh SDK client ${String(clientManifest.version)} requires the same dsh version, got ${String(dshManifest.version)}`)
   }
   const bin = typeof dshManifest.bin === 'object' && dshManifest.bin !== null
-    ? (dshManifest.bin as Record<string, unknown>).dsh
+    ? (dshManifest.bin as Record<string, unknown>).fwnd
     : dshManifest.bin
-  if (typeof bin !== 'string' || bin === '') throw new Error('@deepseek-ai/dsh declares no dsh executable')
+  if (typeof bin !== 'string' || bin === '') throw new Error('@deepseek-ai/dsh declares no fwnd executable')
   return resolve(dirname(fileURLToPath(dshManifestUrl)), bin)
 }
 
 /**
- * Resolve and version-check the built dsh executable installed with this SDK.
+ * Resolve and version-check the built fwnd executable installed with this SDK.
  * @returns the absolute built executable path, whether or not it exists in a source checkout.
  */
 export function installedDshBin(): string {
@@ -77,7 +77,7 @@ export function installedDshBin(): string {
 }
 
 /**
- * Resolve the Node launch for one same-version dsh package.
+ * Resolve the Node launch for one same-version dsh package as a fwnd launch.
  * @param dshManifestUrl - resolved URL of the dsh package manifest.
  * @param clientManifestUrl - resolved URL of the SDK client manifest.
  * @param sourceLoaderUrl - optional absolute tsx loader URL for deterministic tests.
@@ -109,7 +109,7 @@ export function resolveDshNodeLaunchFromManifests(
 }
 
 /**
- * Resolve the installed dsh package to a built or source Node launch.
+ * Resolve the installed dsh package to a built or source Node fwnd launch.
  * @returns the launch descriptor for the current checkout or installed package.
  */
 function installedDshNodeLaunch(): DshNodeLaunch {
@@ -120,7 +120,7 @@ function installedDshNodeLaunch(): DshNodeLaunch {
 }
 
 /**
- * Resolve caller-relative filesystem inputs and construct canonical dsh argv.
+ * Resolve caller-relative filesystem inputs and construct canonical fwnd argv.
  * @param options - public SDK launch options.
  * @param callerCwd - parent-process directory used for lexical resolution.
  * @returns one generic subprocess spec for the JSON-RPC transport.
@@ -147,7 +147,7 @@ export function resolveDshLaunch(
       ...dshLaunch.environment,
       ...dshHome === undefined ? {} : { DSH_HOME: dshHome },
     }),
-    description: `dsh profile ${JSON.stringify(profile)}`,
+    description: `fwnd profile ${JSON.stringify(profile)}`,
     initializeTimeoutMs: options.initializeTimeoutMs ?? DEFAULT_INITIALIZE_TIMEOUT_MS,
     ...options.requestTimeoutMs === undefined ? {} : { requestTimeoutMs: options.requestTimeoutMs },
     ...options.shutdownTimeoutMs === undefined ? {} : { shutdownTimeoutMs: options.shutdownTimeoutMs },

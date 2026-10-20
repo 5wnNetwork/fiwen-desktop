@@ -16,7 +16,7 @@ const repoRoot = fileURLToPath(new URL('../../../', import.meta.url))
 const builtBin = join(repoRoot, 'apps/cli/lib/bin.js')
 const builtArtifactsExist = existsSync(builtBin)
 if (process.env.DSH_EXAMPLE_MODE === 'lib' && !builtArtifactsExist) {
-  throw new Error('dsh config-schema acceptance requires built CLI artifacts in lib mode; run pnpm run build first')
+  throw new Error('fwnd config-schema acceptance requires built CLI artifacts in lib mode; run pnpm run build first')
 }
 const packageName = 'dsh-schema-acceptance-fixture'
 const profileName = 'schema-acceptance'
@@ -133,7 +133,7 @@ export default class ClassPlugin {
   constructor() { throw new Error('PLUGIN_CONSTRUCTOR_EXECUTED') }
 }`
 
-describe.skipIf(!builtArtifactsExist)('dsh --dump-config-schema assembled output', () => {
+describe.skipIf(!builtArtifactsExist)('fwnd --dump-config-schema assembled output', () => {
   it('prints native namespace and class schemas without applying plugins or evaluating !!js', async () => {
     const fixture = await createFixture({
       namespace: namespaceModule,
@@ -306,9 +306,9 @@ describe.skipIf(!builtArtifactsExist)('dsh --dump-config-schema assembled output
       { level: 'error', path: '/2', message: 'fixture module import failed' },
     ])
     expect(result.stderr.split('\n')).toEqual([
-      'dsh: error: [/0] Config is not a native Schemastery schema',
-      'dsh: error: [/1] fixture lazy schema failed',
-      'dsh: error: [/2] fixture module import failed',
+      'fwnd: error: [/0] Config is not a native Schemastery schema',
+      'fwnd: error: [/1] fixture lazy schema failed',
+      'fwnd: error: [/2] fixture module import failed',
     ])
   })
 
@@ -344,7 +344,7 @@ describe.skipIf(!builtArtifactsExist)('dsh --dump-config-schema assembled output
     await writeFile(overlay, '- id: missing\n  disabled: true\n')
     const schema = await dump(fixture, ['--patch', overlay])
     expect(schema.exitCode).toBe(0)
-    expect(schema.stderr).toBe('dsh: warning: patch: entry "missing" not found')
+    expect(schema.stderr).toBe('fwnd: warning: patch: entry "missing" not found')
     expect(parseSchema(schema.stdout)['x-cordis'].diagnostics).toEqual([{ level: 'warning', message: 'patch: entry "missing" not found' }])
     const config = await dump(fixture, ['--patch', overlay], '--dump-config')
     expect(config.exitCode).toBe(0)

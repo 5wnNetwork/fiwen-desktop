@@ -17,7 +17,7 @@ export const vi = {
   'effort.providerDefault': 'Mặc định',
   'status.loading': 'Đang làm mới danh sách mô hình…',
   'error.action': 'Thao tác mô hình thất bại: {message}',
-  'error.sessionInUse': 'Session này đang được sử dụng, có thể bởi một phiên bản DSH khác đang chạy (như dsh web hoặc ứng dụng desktop). Hãy thoát các phiên bản DSH khác rồi thử lại.',
+  'error.sessionInUse': 'Session này đang được sử dụng, có thể bởi bạn có nhiều hơn 1 app FiwenDesktop đang hoạt động đồng thời. Hãy thử tắt chúng và thử lại.',
   'action.reload': 'Tải lại',
   'warning.groupLoad': '{name} tải thất bại: {message}',
   'search.placeholder': 'Tìm mô hình…',

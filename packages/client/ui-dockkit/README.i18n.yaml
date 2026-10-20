@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-dockkit/README.md
 /:
-  en: 93fc2e9e86fc50f8
+  en: 0d11ac654e9c6f02
   zh: 61c7c38a66935ad6
 /deepseek-ai-dsh-client-ui-dockkit:
   en: 9d34bd85fc9e76b4

@@ -105,7 +105,7 @@ export function createElectronBuilderConfig(
   const packaged = resolveDesktopBuildCommit(env)
   return {
     appId,
-    protocols: [{ name: 'Fiwen Desktop', schemes: ['dsh'] }],
+    protocols: [{ name: 'Fiwen Desktop', schemes: ['fiwen'] }],
     extraMetadata: {
       dshDesktopAppId: appId,
       dshDesktopUpdateChannel: update?.channel ?? 'nightly',

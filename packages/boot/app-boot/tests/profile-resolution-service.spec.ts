@@ -70,7 +70,7 @@ describe('profile package metadata service', () => {
     const ctx = new Context()
     contexts.push(ctx)
     await ctx.plugin(PluginPackages, {
-      resolution: await createRuntimeResolution({ installAnchor, home: root, profile: loadProfileDirectory('dsh', profileDir, installAnchor) }),
+      resolution: await createRuntimeResolution({ installAnchor, home: root, profile: loadProfileDirectory('fwnd', profileDir, installAnchor) }),
     })
     expect(ctx.pluginPackages.packageOf('metadata-lib', parentURL)).toBeUndefined()
 

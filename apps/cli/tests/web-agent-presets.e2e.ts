@@ -111,7 +111,7 @@ async function bootWeb(
   const storageRoot = join(profileHome, 'storages')
   const overrides: PatchOptions[] = [
     // storage-json's root is anchored to the real $DSH_HOME. Unpinned, this
-    // file writes the developer's own `~/.dsh/storages/` — and then reads it
+    // file writes the developer's own `~/.fiwen/storages/` — and then reads it
     // back on the next run, so a stored document from any other build decides
     // this test's boot.
     { id: 'storage-json', config: { root: storageRoot } },
@@ -197,7 +197,7 @@ async function bootWeb(
       dependencies: Object.fromEntries(profileBundles.map(name => [name, 'workspace:*'])),
       dsh: { profile: { bundles: profileBundles } },
     }, null, 2) + '\n')
-    profile = loadProfile('dsh-test', surface, INSTALL_ANCHOR, home, { userLayer: false })
+    profile = loadProfile('fwnd-test', surface, INSTALL_ANCHOR, home, { userLayer: false })
     bundlePatches = profile.layers.flatMap(layer => layer.patches)
   }
   // Deployment defaults live in a bundle beneath the profile patch, so Settings writes are not shadowed by overlays.

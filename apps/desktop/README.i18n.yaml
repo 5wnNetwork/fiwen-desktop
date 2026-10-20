@@ -5,75 +5,75 @@
 /:
   en: 0d36989eb614345d
   zh: a0a1a18c07621393
-/deepseek-harness-desktop:
-  en: 69a6e0c6712e463b
-  zh: 84e1d0b09c803704
-/deepseek-harness-desktop/summary:
+/fiwen-desktop:
+  en: b73de4660b55aa6a
+  zh: 37b621614e931634
+/fiwen-desktop/summary:
   en: 7bc8bf30de693222
   zh: e85993d8852b6cab
-/deepseek-harness-desktop/table-of-contents:
+/fiwen-desktop/table-of-contents:
   en: 05fd227f99ee535a
   zh: 60d7d62bc0026973
-/deepseek-harness-desktop/application-overview:
-  en: e9b22f232837e131
-  zh: fc5f3834b969d2d2
-/deepseek-harness-desktop/terminal-command:
-  en: 5f2d25a1d8472647
-  zh: 2acb5c5d7d1917e2
-/deepseek-harness-desktop/closing-the-window-and-quitting:
-  en: 24387a07ae4eb8e7
-  zh: 0119352685cf273c
-/deepseek-harness-desktop/key-technical-decisions:
+/fiwen-desktop/application-overview:
+  en: 329c7368ccabb48f
+  zh: e20f06dd0524d4f6
+/fiwen-desktop/terminal-command:
+  en: 4b9069ba92b056a4
+  zh: 7ced09434fd3810f
+/fiwen-desktop/closing-the-window-and-quitting:
+  en: 3f6a107ed255561a
+  zh: b8a11174d144f334
+/fiwen-desktop/key-technical-decisions:
   en: 3724c53da4f7647b
   zh: 76ae549d43c99bb4
-/deepseek-harness-desktop/key-technical-decisions/bundled-workspace-dependencies:
-  en: 3368ff9b955ada69
-  zh: e9209ef6ad4fd305
-/deepseek-harness-desktop/bundled-command-runtime:
-  en: 372297005b57a08b
-  zh: 074a635ac17e4362
-/deepseek-harness-desktop/installation-ownership:
+/fiwen-desktop/key-technical-decisions/bundled-workspace-dependencies:
+  en: a66183874579a134
+  zh: 5f4bd21b83e03f28
+/fiwen-desktop/bundled-command-runtime:
+  en: 3f5e203f28a8fb7e
+  zh: 19ee876966d790c9
+/fiwen-desktop/installation-ownership:
   en: 22153a298a6662e1
-  zh: 3600803c8c9d0274
-/deepseek-harness-desktop/installation-ownership/runtime-and-plugin-activation:
-  en: a1a47b09f4a72ba4
-  zh: 7b1cf27f0b72cf31
-/deepseek-harness-desktop/installation-ownership/host-environment:
+  zh: 81a0c7805f6de330
+/fiwen-desktop/installation-ownership/runtime-and-plugin-activation:
+  en: f13c99170df97a5f
+  zh: 454958f7ae307ab8
+/fiwen-desktop/installation-ownership/host-environment:
   en: 98cf848762482d48
   zh: 74f9100a39ec8c2f
-/deepseek-harness-desktop/develop:
+/fiwen-desktop/develop:
   en: fe6d23e6a3d3bc66
   zh: d60c8d3a55747916
-/deepseek-harness-desktop/develop/startup-onboarding:
-  en: a51346b8d880ddba
-  zh: 7913214c1c66063c
-/deepseek-harness-desktop/develop/welcome-window-appearance:
+/fiwen-desktop/develop/startup-onboarding:
+  en: e9059640f9a917b6
+  zh: 06e59323d2851d0d
+/fiwen-desktop/develop/welcome-window-appearance:
   en: 617a89aeb28131b9
   zh: 4d84bd5d86501c86
-/deepseek-harness-desktop/package:
+/fiwen-desktop/package:
   en: ac31ebdd9de54f34
   zh: 921e534d5c4b3a16
-/deepseek-harness-desktop/windows-installer-interface:
-  en: 8cb4b7babbd8714d
-  zh: b4aebc1d2d152e01
-/deepseek-harness-desktop/updates:
+/fiwen-desktop/windows-installer-interface:
+  en: 01028168b336fea6
+  zh: de3f7a4301235ad0
+/fiwen-desktop/updates:
   en: 4788b6b60489ef92
   zh: 6312c5590efa27f1
-/deepseek-harness-desktop/updates/local-desktop-settings:
+/fiwen-desktop/updates/local-desktop-settings:
   en: 2e57457c44c85b5f
   zh: 5b8510a3dc4c6c9d
-/deepseek-harness-desktop/updates/mandatory-update-policy:
+/fiwen-desktop/updates/mandatory-update-policy:
   en: 54596bef0706d305
   zh: 48737302dcf3c939
-/deepseek-harness-desktop/updates/local-updater-qualification:
+/fiwen-desktop/updates/local-updater-qualification:
   en: 68ec2f8bd5763ea6
   zh: 23b932dfe8503602
-/deepseek-harness-desktop/low-level-development-overrides:
+/fiwen-desktop/low-level-development-overrides:
   en: 8264b135871e8978
   zh: 0939aafb1b2961fc
-/deepseek-harness-desktop/known-limitations:
-  en: c63d4dc7a9104954
-  zh: a4c676e5b46a6ac0
-/deepseek-harness-desktop/dev-note:
+/fiwen-desktop/known-limitations:
+  en: 22e1e5c6fab98d1f
+  zh: c8c86294404a880e
+/fiwen-desktop/dev-note:
   en: 8e26b460ba31f21b
   zh: fbcd0307b3867125

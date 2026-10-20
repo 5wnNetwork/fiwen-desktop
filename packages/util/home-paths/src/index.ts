@@ -1,5 +1,5 @@
 /**
- * Shared filesystem path helpers for DeepSeek Harness user data.
+ * Shared filesystem path helpers for Fiwen user data.
  *
  * @module @deepseek-ai/dsh-home-paths
  */
@@ -8,13 +8,13 @@ import { opendir, realpath } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 
-/** Directory name for the default DeepSeek Harness home under the OS home. */
-export const DSH_HOME_DIR_NAME = '.dsh'
+/** Directory name for the default Fiwen home under the OS home. */
+export const DSH_HOME_DIR_NAME = '.fiwen'
 
-/** Stable user-facing display form for the default DeepSeek Harness home. */
+/** Stable user-facing display form for the default Fiwen home. */
 export const DEFAULT_DSH_HOME_DISPLAY = `~/${DSH_HOME_DIR_NAME}`
 
-/** Environment variable that overrides the default DeepSeek Harness home. */
+/** Environment variable that overrides the default Fiwen home. */
 export const DSH_HOME_ENV = 'DSH_HOME'
 
 /** Directory name for the default shared agent configuration root under the OS home. */
@@ -64,7 +64,7 @@ export async function canonicalizeWatchPath(path: string): Promise<string> {
 }
 
 /**
- * Resolve the default DeepSeek Harness home using Node's platform path rules.
+ * Resolve the default Fiwen home using Node's platform path rules.
  * @returns the absolute default harness home path.
  */
 export function defaultDshHome(): string {
@@ -122,10 +122,10 @@ function rootDisplay(resolvedRoot: string, defaultRoot: string, defaultLabel: st
 }
 
 /**
- * Resolve the single-root DeepSeek Harness home.
+ * Resolve the single-root Fiwen home.
  *
  * Precedence, highest first: an explicit configured path, `$DSH_HOME`, then
- * `~/.dsh`. The harness keeps all user data under one root. An empty or
+ * `~/.fiwen`. The harness keeps all user data under one root. An empty or
  * whitespace-only `$DSH_HOME` is treated as unset, so a blank override never
  * resolves the home to the current working directory.
  * @param configured - explicit harness-home override, which has highest precedence.
@@ -141,7 +141,7 @@ export function resolveDshHome(configured?: string, env: Record<string, string |
  *
  * Precedence, highest first: an explicit configured path, `$DSH_AGENTS_HOME`,
  * then `~/.agents`. The root holds configuration shared with other agent tools,
- * so it stays independent of the DeepSeek Harness home. An empty or
+ * so it stays independent of the Fiwen home. An empty or
  * whitespace-only `$DSH_AGENTS_HOME` is treated as unset, so a blank override
  * never resolves the root to the current working directory.
  * @param configured - explicit shared-root override, which has highest precedence.
@@ -153,7 +153,7 @@ export function resolveAgentsHome(configured?: string, env: Record<string, strin
 }
 
 /**
- * Join path segments onto the resolved DeepSeek Harness home.
+ * Join path segments onto the resolved Fiwen home.
  * @param segments - path segments appended to the Harness home; an empty list returns the home itself.
  * @returns the normalized absolute joined path.
  */
@@ -176,9 +176,9 @@ export function dshCachePath(optionsOrSegment: { dshHome?: string } | string = {
  * Describe a resolved harness home symbolically for user-facing display.
  *
  * It never returns an absolute machine path: the default home is labelled
- * `~/.dsh`, and any configured home is labelled `$DSH_HOME`.
+ * `~/.fiwen`, and any configured home is labelled `$DSH_HOME`.
  * @param resolvedHome - the absolute path returned by {@link resolveDshHome}.
- * @returns `~/.dsh` for the default home, otherwise `$DSH_HOME`.
+ * @returns `~/.fiwen` for the default home, otherwise `$DSH_HOME`.
  */
 export function dshHomeDisplay(resolvedHome: string): string {
   return rootDisplay(resolvedHome, defaultDshHome(), DEFAULT_DSH_HOME_DISPLAY, DSH_HOME_ENV)

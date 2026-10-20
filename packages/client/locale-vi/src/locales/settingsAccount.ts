@@ -62,7 +62,7 @@ export const vi = {
   'plan': 'Gói',
   'planValueUntil': '{name} · đến {date}',
   'dailyQuota': 'Hạn mức hôm nay',
-  'quotaValueReset': '{used} / {daily} điểm · đặt lại lúc {time}',
+  'quotaValueReset': '{used} / {daily} điểm · đặt lại {time}',
   'bonusNoticeTitle': 'Đã cộng thưởng',
   'onboardingArtworkLocale': 'vi',
   'onboardingWelcome': 'Chào mừng đến với',

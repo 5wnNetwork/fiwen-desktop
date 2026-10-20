@@ -13,7 +13,7 @@ export const vi = {
   'setupPrompt.unavailableBody': 'Mở chi tiết plugin giọng nói để kiểm tra trạng thái nhận dạng, tiến độ chuẩn bị hoặc lỗi.',
   'setup.local': 'Mô hình cục bộ sẽ được tải về máy đang chạy DSH. Không cần Python hay trình biên dịch.',
   'setup.disk': 'Dung lượng đĩa',
-  'setup.diskValue': 'Cần khoảng {gb} GB cho mô hình, runtime và bộ đệm tải xuống',
+  'setup.diskValue': 'Cần khoảng {gb} GB cho mô hình, runtime và download cache',
   'setup.memory': 'Bộ nhớ',
   'setup.memoryValue': 'Khoảng {gb} GB khi đã nạp mô hình; nhận dạng có thể dùng thêm',
   'setup.time': 'Thiết lập lần đầu',

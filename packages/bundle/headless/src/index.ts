@@ -134,7 +134,7 @@ function streamReasoning(
       case 'reasoning-delta':
         if (chunk.text === '') return
         if (!open) {
-          stderr.write('dsh: reasoning:\n')
+          stderr.write('fwnd: reasoning:\n')
           open = true
         }
         stderr.write(chunk.text)
@@ -297,7 +297,7 @@ async function resolveAgent(
 function fail(io: HeadlessIo, error: unknown, json: boolean): void {
   const message = error instanceof Error ? error.message : String(error)
   if (json) io.stdout.write(`${boundJsonLine({ type: 'error', message })}\n`)
-  io.stderr.write(`dsh: ${message}\n`)
+  io.stderr.write(`fwnd: ${message}\n`)
   io.exit(1)
 }
 
@@ -328,7 +328,7 @@ async function run(ctx: Context, config: Config, io: HeadlessIo): Promise<void> 
     ? await internals.readStdin()
     : config.task
   if (task.trim() === '') {
-    throw new Error('a task is required, for example: dsh --profile headless "run the tests"')
+    throw new Error('a task is required, for example: fwnd --profile headless "run the tests"')
   }
 
   const selection = defaultModel.currentSelection()
@@ -393,7 +393,7 @@ async function run(ctx: Context, config: Config, io: HeadlessIo): Promise<void> 
     if (projection === undefined) io.stdout.write(outcome.text + '\n')
     else projection.finish(outcome.text)
     if (outcome.reason?.kind === 'error') {
-      io.stderr.write(`dsh: ${outcome.reason.error.code}: ${outcome.reason.error.message}\n`)
+      io.stderr.write(`fwnd: ${outcome.reason.error.code}: ${outcome.reason.error.message}\n`)
     }
     io.exit(outcome.reason?.kind === 'completed' ? 0 : 1)
   } finally {

@@ -23,7 +23,7 @@ const repoRoot = fileURLToPath(new URL('../../../../../../', import.meta.url))
 const dshSourceBin = 'apps/cli/src/bin.ts'
 const sourceToolTimeoutMs = 90_000
 
-describe.skipIf(!existsSync(join(repoRoot, 'apps/cli/lib/bin.js')))('dsh SOURCE tools with prepared runtime artifacts', () => {
+describe.skipIf(!existsSync(join(repoRoot, 'apps/cli/lib/bin.js')))('fwnd SOURCE tools with prepared runtime artifacts', () => {
   it('dispatches a source-profile shell call to a result, including sandbox-unavailable hosts, without mixing tools src/lib', async () => {
     const root = await mkdtemp(join(tmpdir(), 'dsh-source-tool-'))
     try {

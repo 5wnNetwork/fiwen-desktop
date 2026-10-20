@@ -3,20 +3,20 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write docs/user/develop/basic/publish.md
 /package-and-install-a-plugin:
-  en: 0958da34d1ea9b49
-  zh: 66a024ba2f2faba2
+  en: 392d7be711f656c1
+  zh: 5658378c6112519c
 /package-and-install-a-plugin/two-concepts-two-manifests:
-  en: 341c334cee646f58
-  zh: 1ac8f40609a71123
+  en: 89b0afe8543d0fd6
+  zh: 97ac82d53bf096a9
 /package-and-install-a-plugin/two-concepts-two-manifests/the-bundle-manifest:
-  en: 3013d78e5b04e2d9
-  zh: e6f02c61cf681829
+  en: 628eb1e7da9b4398
+  zh: a5a253355d9b88a8
 /package-and-install-a-plugin/two-concepts-two-manifests/the-profile-manifest:
-  en: 00c4218e1af87e9d
-  zh: bd49e41ae376606c
+  en: 04da5030400eeb72
+  zh: d3b9c7cca162b08b
 /package-and-install-a-plugin/install-into-a-profile:
-  en: 78baf6471bd6e82b
-  zh: 0453a7d35fd57399
+  en: 4657bde1df6fe026
+  zh: 85fdafb598d3f2cf
 /package-and-install-a-plugin/the-loading-order:
   en: 41ea3455ac8c7635
   zh: 7fabf467485898a5
@@ -24,8 +24,8 @@
   en: cda660c66cef28a6
   zh: 0dcad683c4521f50
 /package-and-install-a-plugin/installing-from-github-the-build-script-catch:
-  en: 974a37cd652bdfc0
-  zh: db9dd766c8ad7182
+  en: 088dcdf1aaf1a3ce
+  zh: 0534f417076cf4b4
 /package-and-install-a-plugin/next-steps:
   en: 1914c4c5eeb1d913
   zh: 6f20168ebc196239

@@ -1,4 +1,4 @@
-/** Assembled keyless snapshot for the default `dsh web` browser handoff. */
+/** Assembled keyless snapshot for the default `fwnd web` browser handoff. */
 
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -11,12 +11,12 @@ const repoRoot = fileURLToPath(new URL('../../../', import.meta.url))
 const builtBin = join(repoRoot, 'apps/cli/lib/bin.js')
 const frontendIndex = join(repoRoot, 'apps/web/dist/index.html')
 const openerHook = new URL('./fixtures/web-browser-open/register.mjs', import.meta.url).href
-const openingMessage = 'dsh web: opening the default browser; pass --no-open to disable'
+const openingMessage = 'fwnd web: opening the default browser; pass --no-open to disable'
 const tempRoots: string[] = []
 const builtArtifactsExist = existsSync(builtBin) && existsSync(frontendIndex)
 
 if (process.env.DSH_EXAMPLE_MODE === 'lib' && !builtArtifactsExist) {
-  throw new Error('dsh web browser-open snapshot requires built CLI and Web artifacts in lib mode')
+  throw new Error('fwnd web browser-open snapshot requires built CLI and Web artifacts in lib mode')
 }
 
 afterEach(() => {
@@ -37,7 +37,7 @@ function normalizeLocalUrl(url: string): string {
     .replace(/token=[^&]+/u, 'token={{token}}')
 }
 
-describe.skipIf(!builtArtifactsExist)('dsh web browser-open assembled snapshot', () => {
+describe.skipIf(!builtArtifactsExist)('fwnd web browser-open assembled snapshot', () => {
   it('hands the reachable page to the default browser after the shipped tree settles', async () => {
     const root = mkdtempSync(join(tmpdir(), 'dsh-web-browser-open-snapshot-'))
     tempRoots.push(root)
@@ -63,11 +63,11 @@ describe.skipIf(!builtArtifactsExist)('dsh web browser-open assembled snapshot',
       killSignal: 'SIGKILL',
       reject: false,
     })
-    const readyUrl = /dsh web: (http:\/\/[^\s]+)/u.exec(result.stdout)?.[1]
+    const readyUrl = /fwnd web: (http:\/\/[^\s]+)/u.exec(result.stdout)?.[1]
     const openLine = result.stdout.split('\n').find(line => line.startsWith('dsh browser-open: '))
     const opening = result.stdout.includes(openingMessage)
     if (readyUrl === undefined || openLine === undefined || !opening) {
-      throw new Error(`dsh web browser-open evidence missing\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`)
+      throw new Error(`fwnd web browser-open evidence missing\nstdout:\n${result.stdout}\nstderr:\n${result.stderr}`)
     }
     const opened = JSON.parse(openLine.slice('dsh browser-open: '.length)) as BrowserOpenRecord
 
@@ -123,7 +123,7 @@ describe.skipIf(!builtArtifactsExist)('dsh web browser-open assembled snapshot',
       killSignal: 'SIGKILL',
       reject: false,
     })
-    const readyUrl = /dsh web: (http:\/\/[^\s]+)/u.exec(result.stdout)?.[1]
+    const readyUrl = /fwnd web: (http:\/\/[^\s]+)/u.exec(result.stdout)?.[1]
     const diagnostic = result.stderr.split(/\r?\n/u)
       .find(line => line.startsWith('web-app: could not open the default browser because '))
 
@@ -135,7 +135,7 @@ describe.skipIf(!builtArtifactsExist)('dsh web browser-open assembled snapshot',
       readyUrl: readyUrl === undefined ? undefined : normalizeLocalUrl(readyUrl),
     }).toMatchInlineSnapshot(`
       {
-        "diagnostic": "web-app: could not open the default browser because fixture desktop unavailable; use the dsh web URL printed at startup",
+        "diagnostic": "web-app: could not open the default browser because fixture desktop unavailable; use the fwnd web URL printed at startup",
         "exitCode": 0,
         "opened": false,
         "opening": true,
@@ -171,7 +171,7 @@ describe.skipIf(!builtArtifactsExist)('dsh web browser-open assembled snapshot',
       killSignal: 'SIGKILL',
       reject: false,
     })
-    const readyUrl = /dsh web: (http:\/\/[^\s]+)/u.exec(result.stdout)?.[1]
+    const readyUrl = /fwnd web: (http:\/\/[^\s]+)/u.exec(result.stdout)?.[1]
 
     expect({
       exitCode: result.exitCode,
@@ -218,18 +218,18 @@ describe.skipIf(!builtArtifactsExist)('dsh web browser-open assembled snapshot',
     })
 
     const diagnostic = result.stderr.split(/\r?\n/u)
-      .find(line => line.startsWith('Error: dsh: '))
-      ?.replace(/^Error: dsh: .*[/\\]\.env/u, 'dsh: {{root}}/.env')
+      .find(line => line.startsWith('Error: fwnd: '))
+      ?.replace(/^Error: fwnd: .*[/\\]\.env/u, 'fwnd: {{root}}/.env')
 
     expect({
       diagnostic,
       exitCode: result.exitCode,
       opening: result.stdout.includes(openingMessage),
       opened: result.stdout.includes('dsh browser-open: '),
-      ready: result.stdout.includes('dsh web: '),
+      ready: result.stdout.includes('fwnd web: '),
     }).toMatchInlineSnapshot(`
       {
-        "diagnostic": "dsh: {{root}}/.env sets "BROWSER", which only the launching environment may set (it decides how this process starts, where its code and instructions load from, or how it reaches the network); export BROWSER instead of putting it in a .env file",
+        "diagnostic": "fwnd: {{root}}/.env sets "BROWSER", which only the launching environment may set (it decides how this process starts, where its code and instructions load from, or how it reaches the network); export BROWSER instead of putting it in a .env file",
         "exitCode": 1,
         "opened": false,
         "opening": false,

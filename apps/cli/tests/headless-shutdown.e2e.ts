@@ -110,10 +110,10 @@ async function runHeadlessPtySmoke(): Promise<string> {
       stripFinalNewline: false,
     })
     if (result.timedOut) {
-      throw new Error(`dsh headless PTY driver did not exit. stdout:\n${result.stdout}\nstderr:\n${result.stderr}`)
+      throw new Error(`fwnd headless PTY driver did not exit. stdout:\n${result.stdout}\nstderr:\n${result.stderr}`)
     }
     if (result.failed) {
-      throw new Error(`dsh headless PTY driver exited ${String(result.exitCode)}. stdout:\n${result.stdout}\nstderr:\n${result.stderr}`)
+      throw new Error(`fwnd headless PTY driver exited ${String(result.exitCode)}. stdout:\n${result.stdout}\nstderr:\n${result.stderr}`)
     }
     return result.stdout
   } finally {
@@ -124,7 +124,7 @@ async function runHeadlessPtySmoke(): Promise<string> {
 describe.skipIf(process.platform === 'win32')('headless process shutdown (real Loader tree in a PTY)', () => {
   it('lets a second Ctrl+C force exit while the first signal is draining', async () => {
     const output = await runHeadlessPtySmoke()
-    expect(output).not.toContain('dsh: observing at ')
+    expect(output).not.toContain('fwnd: observing at ')
     expect(output).toContain('dsh-test: never-dispose ready')
     expect(output).toContain('dsh-test: never-dispose started')
   }, LOADER_SMOKE_TEST_TIMEOUT_MS)

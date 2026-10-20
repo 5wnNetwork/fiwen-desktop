@@ -60,7 +60,7 @@ it('configures MCP on a live profile, restores it on restart, and removes its to
     for (const stream of [child.stdout, child.stderr]) stream!.on('data', (data) => { output = (output + String(data)).slice(-30_000) })
     await expect.poll(() => {
       if (child.exitCode !== null) throw new Error(output)
-      return output.includes('dsh web: http://')
+      return output.includes('fwnd web: http://')
     }, { timeout: 60_000 }).toBe(true)
     return { stop, request: (phase: string): Promise<Observation> => new Promise((resolve, reject) => {
       child.once('message', (value: { result: Observation; error?: string }) => {
@@ -87,7 +87,7 @@ it('configures MCP on a live profile, restores it on restart, and removes its to
   expect(initial.after).toContain('mcp__demo__ping')
   expect(initial.other).toContain('mcp__demo__ping')
   expect(JSON.stringify(initial.ping)).toContain('pong')
-  const saved = readProfileManifest('dsh', join(root, 'home/profiles/web'))
+  const saved = readProfileManifest('fwnd', join(root, 'home/profiles/web'))
   expect(saved.dsh?.profile?.bundles).toContain('@test/creator-mcp')
   expect(saved.dependencies).toHaveProperty('@test/creator-mcp')
   await first.stop()

@@ -2,10 +2,10 @@
 
 [English](public-deployments.md) | 中文
 
-`dsh --profile web` 在 loopback 端口上提供 GUI，因此其他机器上的浏览器无法访问它，进程也无从得知你实际使用的地址。它前面的反向代理拥有这条外部链路——公开主机名、TLS，以及转发到监听器之前剥离的路径前缀——`--public-url` 则告诉 DSH 浏览器使用的是哪个地址：
+`fwnd --profile web` 在 loopback 端口上提供 GUI，因此其他机器上的浏览器无法访问它，进程也无从得知你实际使用的地址。它前面的反向代理拥有这条外部链路——公开主机名、TLS，以及转发到监听器之前剥离的路径前缀——`--public-url` 则告诉 DSH 浏览器使用的是哪个地址：
 
 ```sh
-dsh --profile web --public-url https://app.example/ui/ --trusted-host app.example
+fwnd --profile web --public-url https://app.example/ui/ --trusted-host app.example
 ```
 
 ## `--public-url` 公告什么

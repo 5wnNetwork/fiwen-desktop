@@ -1,7 +1,7 @@
 /**
- * Shared boot glue for `dsh` profiles, including the CLI packaged by the Python runtime wheel: load the gitignored
+ * Shared boot glue for `fwnd` profiles, including the CLI packaged by the Python runtime wheel: load the gitignored
  * `.env`, install the fail-loud Loader guards, resolve the config path (snapshot-aware), load the
- * optional user patch layers from the Harness home (`~/.dsh`), expose its path resolver to
+ * optional user patch layers from the Harness home (`~/.fiwen`), expose its path resolver to
  * config expressions, and drive the Cordis Loader against a leaf `cordis.yml` until the tree settles.
  * @module @deepseek-ai/dsh-app-boot
  */
@@ -735,7 +735,7 @@ function groupedDump(
  * @param patches - initial app and user patches, applied in order.
  * @param bareModuleBaseUrl - optional installed-host base for bare package
  * names; relative names continue to resolve beside the configuration file.
- * @param binName - diagnostic prefix for a profile plugin denied by compatibility policy; defaults to `dsh`.
+ * @param binName - diagnostic prefix for a profile plugin denied by compatibility policy; defaults to `fwnd`.
  * @returns the created root Include entry, or `undefined` when a surface
  * disposed the whole tree (taking the Loader service with it) while the
  * entry creation was in flight.
@@ -745,7 +745,7 @@ export async function mountRootInclude(
   absoluteConfigPath: string,
   patches: readonly PatchOptions[] = [],
   bareModuleBaseUrl?: string,
-  binName = 'dsh',
+  binName = 'fwnd',
 ): Promise<Entry | undefined> {
   ctx.loader.builtins.include = bareModuleBaseUrl === undefined
     ? Include

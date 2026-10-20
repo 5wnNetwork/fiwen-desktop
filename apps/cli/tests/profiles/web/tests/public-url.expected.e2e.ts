@@ -77,7 +77,7 @@ interface RunningWeb {
 }
 
 /**
- * Boot the built CLI and wait for its `dsh web:` line and bound listener port.
+ * Boot the built CLI and wait for its `fwnd web:` line and bound listener port.
  * The marker plugin also polls for the interrupt file and emits `SIGTERM` on
  * the child's own process, because Windows has no deliverable SIGTERM.
  */
@@ -113,7 +113,7 @@ async function bootWeb(root: string, flags: string[]): Promise<RunningWeb> {
   }
   lines.on('line', (line) => {
     if (line.startsWith('public-url-listen-port: ')) port = Number(line.slice('public-url-listen-port: '.length))
-    if (line.startsWith('dsh web: http')) startup = new URL(line.slice('dsh web: '.length))
+    if (line.startsWith('fwnd web: http')) startup = new URL(line.slice('fwnd web: '.length))
     announced()
   })
   void child.then((result) => {
@@ -212,7 +212,7 @@ async function exchange(
   return { cookie: setCookie.split(';', 1)[0]!, setCookie }
 }
 
-describe.skipIf(!builtArtifactsExist)('dsh Web profile bind address and advertised root', () => {
+describe.skipIf(!builtArtifactsExist)('fwnd Web profile bind address and advertised root', () => {
   it('serves the default advertised URL over verified TLS with Secure browser authentication', async () => {
     const root = mkdtempSync(join(tmpdir(), 'dsh-web-tls-'))
     try {

@@ -31,7 +31,7 @@ kind: "package-reference"
 
 同一凭据的第一次访问会等待列表，最长 `modelsTimeoutMs`。之后的访问直接使用已加载的列表，列表超过 `modelsMaxAgeMs` 后在后台刷新。获取失败或得到空列表时保留上一份；还没有加载到任何列表时，路由提供当前版本内置的目录（`deepseek-flash` 与 `deepseek-v4-pro`）。列表请求返回 HTTP 401 不会清除已保存的登录。每次加载成功、连续失败中的第一次失败及其退回的目录、以及每个被隐藏的列表条目，都会以 `[llm-deepseek-account]` 标签写到控制台日志；不记录任何密钥。每个账号 token 有自己的列表，因此服务端可以先对部分账号开放某个模型。
 
-只有当前版本的 DeepSeek Harness 能用的模型才会出现在目录里。声明了 `client_requirements["deepseek-harness"].min_version` 的模型，在当前版本号按 semver 顺序不低于该版本时提供，预发布号（如 `0.2.0-alpha.1`、`0.2.0-rc.1`）同样参与比较。预发布版本低于同号的正式版本：`min_version: 0.2.1` 会拒绝 `0.2.1-alpha.2`，因此要放行预发布版本的列表应声明它允许的最早一个，如 `0.2.1-alpha.0`。没有这个声明的模型，只有内置目录认识它的 id 时才提供；其余列出的模型保持隐藏。请求一个当前版本不能用的已列出模型时，会在网络请求之前失败：`CLIENT_UPGRADE_REQUIRED` 会写明所需版本和当前版本，否则为 `MODEL_UNSUPPORTED`。列表没有列出的模型 id 照常透传。
+只有当前版本的 Fiwen 能用的模型才会出现在目录里。声明了 `client_requirements["deepseek-harness"].min_version` 的模型，在当前版本号按 semver 顺序不低于该版本时提供，预发布号（如 `0.2.0-alpha.1`、`0.2.0-rc.1`）同样参与比较。预发布版本低于同号的正式版本：`min_version: 0.2.1` 会拒绝 `0.2.1-alpha.2`，因此要放行预发布版本的列表应声明它允许的最早一个，如 `0.2.1-alpha.0`。没有这个声明的模型，只有内置目录认识它的 id 时才提供；其余列出的模型保持隐藏。请求一个当前版本不能用的已列出模型时，会在网络请求之前失败：`CLIENT_UPGRADE_REQUIRED` 会写明所需版本和当前版本，否则为 `MODEL_UNSUPPORTED`。列表没有列出的模型 id 照常透传。
 
 提供的模型以列表中的名称、`context_window`、输入模态和 Messages system prompt 模式覆盖同 id 的内置条目，内置条目保留工具更新模式、图片预算和描述。`max_output_tokens` 限制请求默认值：请求没有指定上限时，发送 `maxTokens` 与该能力上限中较小的一个。列表中的推理档位不被读取；每个模型都提供 `off`、`low`、`high`、`max`。
 

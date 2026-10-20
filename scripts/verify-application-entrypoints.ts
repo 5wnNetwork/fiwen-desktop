@@ -1,5 +1,5 @@
 /**
- * Enforce dsh profiles as the only supported Node application launcher.
+ * Enforce fwnd profiles as the only supported Node application launcher.
  * Vendor CLIs, build tools, and test tools are explicit classifications
  * rather than implicit holes.
  */
@@ -25,13 +25,13 @@ interface LauncherPolicy {
 
 /** Public product launcher plus the build-only WebWorker packer. */
 const MANIFEST_BIN_ALLOWLIST = new Map<string, ManifestBin>([
-  ['apps/cli/package.json', { dsh: 'lib/bin.js' }],
+  ['apps/cli/package.json', { fwnd: 'lib/bin.js' }],
   ['packages/experimental/webworker-packer/package.json', { 'dsh-pack-vfs-image': './bin.js' }],
 ])
 
 /** Every JavaScript executable in an application or packaging workspace has one explicit role. */
 const EXECUTABLE_SOURCE_ALLOWLIST = new Map<string, string>([
-  ['apps/cli/src/bin.ts', 'supported dsh application launcher'],
+  ['apps/cli/src/bin.ts', 'supported fwnd application launcher'],
   ['apps/desktop/scripts/logged-notarytool.mjs', 'build-only notarization logging wrapper'],
   ['packages/context/time-context/tests/fixtures/driver.ts', 'test-only subprocess driver'],
   ['packages/experimental/webworker-packer/bin.js', 'build-only wrapper'],
@@ -49,7 +49,7 @@ const EXECUTABLE_SOURCE_ALLOWLIST = new Map<string, string>([
 ])
 
 /**
- * Root scripts that start an application must visibly select dsh: every `demo:*`
+ * Root scripts that start an application must visibly select fwnd: every `demo:*`
  * script needs a row here, and the Web start and development scripts are pinned
  * by name.
  */
@@ -106,7 +106,7 @@ function manifestBinViolations(root: string): string[] {
     if (manifest.bin === undefined) continue
     const expected = MANIFEST_BIN_ALLOWLIST.get(path)
     if (expected === undefined) {
-      failures.push(`${path}: package bin bypasses the dsh launcher; applications use apps/cli profiles`)
+      failures.push(`${path}: package bin bypasses the fwnd launcher; applications use apps/cli profiles`)
       continue
     }
     if (normalizedBin(manifest.bin) !== normalizedBin(expected)) {
@@ -146,7 +146,7 @@ function rootLauncherViolations(root: string): string[] {
     const policy = ROOT_LAUNCHER_POLICIES.get(name)
     if (policy === undefined) {
       if (name.startsWith('demo:')) {
-        failures.push(`package.json scripts.${name}: demo launcher has no explicit dsh or in-process classification`)
+        failures.push(`package.json scripts.${name}: demo launcher has no explicit fwnd or in-process classification`)
       }
       continue
     }
@@ -198,6 +198,6 @@ if (process.argv[1] !== undefined && import.meta.url === pathToFileURL(resolve(p
     for (const failure of failures) console.error(`  ${failure}`)
     process.exitCode = 1
   } else {
-    console.log('verify-application-entrypoints: dsh is the only supported Node application launcher.')
+    console.log('verify-application-entrypoints: fwnd is the only supported Node application launcher.')
   }
 }

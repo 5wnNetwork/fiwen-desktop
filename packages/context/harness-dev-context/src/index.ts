@@ -1,6 +1,6 @@
 /**
  * @deepseek-ai/dsh-harness-dev-context — model context for an agent that can
- * inspect and extend the DeepSeek Harness serving its Web GUI. It registers
+ * inspect and extend Fiwen serving its Web GUI. It registers
  * path- and URL-free prompt sections and states the current implementation
  * checkout and Web GUI URL as runtime context, so a process started from
  * another checkout, port, or installation leaves the system prompt unchanged.
@@ -35,9 +35,9 @@ const WEB_SURFACE = 'app:web-surface'
 
 const HARNESS_SOURCE_GUIDANCE = 'The checkout location and current working directory are separate values and may differ; '
   + 'never infer the working directory from the checkout path. Use pwd to determine the current working directory. '
-  + 'Use this checkout only to inspect or extend DSH itself.'
+  + 'Use this checkout only to inspect or extend Fiwen itself.'
 
-const HARNESS_SOURCE_PROMPT = `The runtime context names the DeepSeek Harness implementation checkout. ${HARNESS_SOURCE_GUIDANCE}`
+const HARNESS_SOURCE_PROMPT = `The runtime context names the Fiwen implementation checkout. ${HARNESS_SOURCE_GUIDANCE}`
 
 const WEB_SURFACE_GUIDANCE = 'When the user refers to "this page", "this GUI", or "this app" without naming another target, they mean this GUI. '
   + 'The browser provides no implicit DOM, route, or screenshot context. '
@@ -45,10 +45,10 @@ const WEB_SURFACE_GUIDANCE = 'When the user refers to "this page", "this GUI", o
   + '`pnpm run dev:web` is also running from this same checkout to rebuild their bundles; verify that watcher before promising automatic updates. '
   + 'Every other change — the apps/web shell and plain packages — requires rebuilding the affected Web artifacts and verifying this existing URL after a page refresh. '
   + 'Starting another server does not update this GUI. '
-  + 'The apps/web Vite entry builds the shell but is not a standalone application because only dsh web injects window.__DSH_BOOT__. '
+  + 'The apps/web Vite entry builds the shell but is not a standalone application because only fwnd web injects window.__DSH_BOOT__. '
   + 'Do not start a replacement server unless the user asks; if one is needed, use a managed background job and verify its exact URL.'
 
-const WEB_SURFACE_PROMPT = `You are interacting with the user through the DeepSeek Harness Web GUI whose URL the runtime context names. ${WEB_SURFACE_GUIDANCE}`
+const WEB_SURFACE_PROMPT = `You are interacting with the user through the Fiwen Web GUI whose URL the runtime context names. ${WEB_SURFACE_GUIDANCE}`
 
 /**
  * Fixed text around the value in each paragraph that embedded it, frozen as
@@ -148,7 +148,7 @@ export function apply(ctx: Context): void {
     name: HARNESS_SOURCE,
     order: ctx.systemPrompt.getContextOrder('HARNESS_SOURCE'),
     interpolate: false,
-    text: `Current DeepSeek Harness implementation checkout: ${JSON.stringify(SOURCE_ROOT)}.`,
+    text: `Current Fiwen implementation checkout: ${JSON.stringify(SOURCE_ROOT)}.`,
   })
   ctx.systemPrompt.section({
     name: WEB_SURFACE,
@@ -160,6 +160,6 @@ export function apply(ctx: Context): void {
     name: WEB_SURFACE,
     order: ctx.systemPrompt.getContextOrder('WEB_SURFACE'),
     interpolate: false,
-    text: () => `Current DeepSeek Harness Web GUI URL: ${JSON.stringify(ctx.webApp.getAdvertisedUrl())}.`,
+    text: () => `Current Fiwen Web GUI URL: ${JSON.stringify(ctx.webApp.getAdvertisedUrl())}.`,
   })
 }

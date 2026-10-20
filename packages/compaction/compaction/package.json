@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-compaction",
-  "description": "Abstract compaction service seam (ctx.compaction) for the DeepSeek Harness",
+  "description": "Abstract compaction service seam (ctx.compaction) for Fiwen",
   "version": "0.2.1-rc.2",
   "publishConfig": {
     "access": "public"

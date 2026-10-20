@@ -37,7 +37,7 @@ kind: "package-reference"
 
 默认设置适合典型检出：`.git` 标记项目根目录，`AGENTS.md` 与 `CLAUDE.md` 是基础候选，`AGENTS.local.md` 与 `CLAUDE.local.md` 是叠加的本地 overlay。只有 `maxBytes` 必填——它限制完整渲染后的基线，让每个部署显式选择自己的提示词预算。
 
-存放用户全局 `AGENTS.md` 的 harness home 属于进程策略，而不是配置行：该插件通过 `@deepseek-ai/dsh-home-paths` 解析 `$DSH_HOME` 或 `~/.dsh`，因此指令加载始终读取进程 home。共享 agents 根目录同样如此解析：`$DSH_AGENTS_HOME` 或 `~/.agents`。残留的 `dshHome` 与 `agentsHome` 配置行字段会被忽略。
+存放用户全局 `AGENTS.md` 的 harness home 属于进程策略，而不是配置行：该插件通过 `@deepseek-ai/dsh-home-paths` 解析 `$DSH_HOME` 或 `~/.fiwen`，因此指令加载始终读取进程 home。共享 agents 根目录同样如此解析：`$DSH_AGENTS_HOME` 或 `~/.agents`。残留的 `dshHome` 与 `agentsHome` 配置行字段会被忽略。
 
 只有确认项目根标记不存在时，项目根发现才会继续上溯。权限或 I/O 失败会停止发现，并抛出宿主或文件系统提供方的原始错误，而不会选择祖先项目。[历史根标记元数据决策](../../../.agents/notes/archived/bug-fix/2026-09-03-root-marker-metadata-failures.md)说明发现为何必须失败，而不能替换为其他根目录。
 
@@ -137,7 +137,7 @@ export interface Config {
 <system-reminder>
 The following workspace instructions may be relevant to your work. Use them as guidance when applicable. More specific instructions take precedence over broader ones. They do not override system, developer, or direct user instructions.
 
-Instructions from: ~/.dsh/AGENTS.md
+Instructions from: ~/.fiwen/AGENTS.md
 
 <user-global-instructions>
 

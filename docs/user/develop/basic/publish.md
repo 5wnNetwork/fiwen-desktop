@@ -2,9 +2,9 @@
 
 English | [中文](publish.zh.md)
 
-The previous tutorials loaded a local plugin through a `--patch` overlay. This tutorial packages it as an installable **bundle**, installs it into a **profile** with `dsh plugin add`, and explains the layer order that determines the composed configuration. It assumes the `dsh` CLI is installed. Complete [plugin configuration](./config.md) first.
+The previous tutorials loaded a local plugin through a `--patch` overlay. This tutorial packages it as an installable **bundle**, installs it into a **profile** with `fwnd plugin add`, and explains the layer order that determines the composed configuration. It assumes the `fwnd` CLI is installed. Complete [plugin configuration](./config.md) first.
 
-To use a fresh source checkout instead, complete the [run-from-source section](../../../../README.md#run-from-source), keep this tutorial's `hello-plugin` directory at the repository root, and run the remaining `dsh ...` commands from there as `pnpm dsh ...`. See [source execution](../../../../apps/cli/reference/README.md#source-execution) for build and launcher behavior.
+To use a fresh source checkout instead, complete the [run-from-source section](../../../../README.md#run-from-source), keep this tutorial's `hello-plugin` directory at the repository root, and run the remaining `fwnd ...` commands from there as `pnpm fwnd ...`. See [source execution](../../../../apps/cli/reference/README.md#source-execution) for build and launcher behavior.
 
 ## Two concepts, two manifests
 
@@ -13,7 +13,7 @@ Installation is built on two concepts. Both are described by a `package.json`, b
 - A **bundle** is an npm package that ships a configuration layer. Its manifest declares `dsh.bundle`, answering "what does this package contribute?": a patch file that inserts or overrides plugin rows.
 - A **profile** is a directory under `$DSH_HOME/profiles/<name>` describing one runnable composition. Its manifest declares `dsh.profile`, answering "which bundles compose this setup, in what order?".
 
-A bundle is what you author and distribute; a profile is what a user boots with `dsh --profile <name>`. Nothing is both.
+A bundle is what you author and distribute; a profile is what a user boots with `fwnd --profile <name>`. Nothing is both.
 
 ### The bundle manifest
 
@@ -61,7 +61,7 @@ Create `hello-plugin/cordis.patch.yml`. The patch is a YAML array like the `--pa
       name: dsh-hello-plugin
 ```
 
-`patch` also accepts an ordered list of files, for example `["./base.patch.yml", "./web.patch.yml"]`; the launcher applies them in that order as one layer, and each file's relative plugin paths resolve beside that file. A package without the `dsh.bundle` declaration still installs, but only as a plain dependency: `dsh plugin` prints a warning and activates no layer. Use that package format for a library that plugin packages import rather than a plugin users enable.
+`patch` also accepts an ordered list of files, for example `["./base.patch.yml", "./web.patch.yml"]`; the launcher applies them in that order as one layer, and each file's relative plugin paths resolve beside that file. A package without the `dsh.bundle` declaration still installs, but only as a plain dependency: `fwnd plugin` prints a warning and activates no layer. Use that package format for a library that plugin packages import rather than a plugin users enable.
 
 Declare the DSH releases the bundle supports with an `engines.dsh` SemVer range, for example `"engines": { "dsh": ">=0.2.0 <0.3.0" }`. Installation and profile startup refuse a bundle whose range the running DSH does not satisfy; without `engines.dsh`, they check its `@deepseek-ai/dsh*` peer dependency ranges instead ([rule](../../../../packages/boot/app-boot/README.md#profiles)).
 
@@ -72,17 +72,17 @@ A profile directory holds two files:
 - `package.json` — the profile's out-of-tree plugin dependencies (managed by pnpm) plus the `dsh.profile` manifest with its ordered `bundles` list.
 - `cordis.patch.yml` — the user's own patch layer, applied after every bundle layer.
 
-You never write a profile manifest by hand: `dsh --profile <name> --from-default-profile <template>` can create or reset one from a shipped application template, while `dsh plugin` creates a base-backed profile and maintains its installed bundle list. The [CLI behavior reference](../../../../apps/cli/reference/README.md#profile-boot) owns the creation rules; the next section shows the plugin path.
+You never write a profile manifest by hand: `fwnd --profile <name> --from-default-profile <template>` can create or reset one from a shipped application template, while `fwnd plugin` creates a base-backed profile and maintains its installed bundle list. The [CLI behavior reference](../../../../apps/cli/reference/README.md#profile-boot) owns the creation rules; the next section shows the plugin path.
 
 ## Install into a profile
 
-`dsh plugin --profile <name> <args...>` forwards to pnpm in the profile directory, so every pnpm verb works. From the directory that contains `hello-plugin`, install the package checkout:
+`fwnd plugin --profile <name> <args...>` forwards to pnpm in the profile directory, so every pnpm verb works. From the directory that contains `hello-plugin`, install the package checkout:
 
 ```sh
-dsh plugin --profile demo add ./hello-plugin
+fwnd plugin --profile demo add ./hello-plugin
 ```
 
-The first use initializes the profile (with `@deepseek-ai/dsh-base` as its first bundle), pnpm links the checkout, and `dsh` appends the bundle to `dsh.profile.bundles` because the package declares `dsh.bundle`:
+The first use initializes the profile (with `@deepseek-ai/dsh-base` as its first bundle), pnpm links the checkout, and `fwnd` appends the bundle to `dsh.profile.bundles` because the package declares `dsh.bundle`:
 
 ```json
 {
@@ -111,11 +111,11 @@ Linking a broad checkout does not apply peer interception to the running install
 Verify the layer without booting, then boot:
 
 ```sh
-dsh --profile demo --dump-config   # shows a "# == dsh-hello-plugin" layer
-dsh --profile demo
+fwnd --profile demo --dump-config   # shows a "# == dsh-hello-plugin" layer
+fwnd --profile demo
 ```
 
-`dsh plugin --profile demo remove dsh-hello-plugin` removes both the dependency and the layer.
+`fwnd plugin --profile demo remove dsh-hello-plugin` removes both the dependency and the layer.
 
 ## The loading order
 
@@ -163,13 +163,13 @@ On `--help`, the provider publishes no service, so those rows never activate. Lo
 Publishing to a registry is not required — users can install straight from a git host:
 
 ```sh
-dsh plugin --profile demo add github:you/hello-plugin
+fwnd plugin --profile demo add github:you/hello-plugin
 ```
 
 But a git install fetches **sources, not built artifacts**: nothing runs your `build` script, so a TypeScript package arrives without its `lib/` output and fails to load. Two things must happen, one on each side:
 
 - **The author** ships a `prepare` script — pnpm runs it after a git install — that builds the published entry points from source, self-contained: it must not assume dev-only context such as a sibling monorepo checkout. A dedicated tsdown config can transpile `src/` without project references or type checking.
-- **The user** allowlists the build. pnpm ≥10 refuses to run a git dependency's `prepare` script until it is explicitly allowed, so the first `add` fails; `dsh` points at the fix — copy the exact package key pnpm printed into the profile's `pnpm-workspace.yaml`:
+- **The user** allowlists the build. pnpm ≥10 refuses to run a git dependency's `prepare` script until it is explicitly allowed, so the first `add` fails; `fwnd` points at the fix — copy the exact package key pnpm printed into the profile's `pnpm-workspace.yaml`:
 
   ```yaml
   allowBuilds:
@@ -182,8 +182,8 @@ Treat that allowance as **permission to execute the package's code on your machi
 
 If you would rather not ask users for the allowance, distribute built artifacts instead — neither form needs any build permission:
 
-- **Publish to npm** with `lib/` built at `pnpm publish` time; `dsh plugin add your-package` then installs prebuilt code.
-- **Ship a tarball** from `pnpm pack`; users run `dsh plugin add ./hello-plugin-0.1.0.tgz`.
+- **Publish to npm** with `lib/` built at `pnpm publish` time; `fwnd plugin add your-package` then installs prebuilt code.
+- **Ship a tarball** from `pnpm pack`; users run `fwnd plugin add ./hello-plugin-0.1.0.tgz`.
 
 ## Next steps
 

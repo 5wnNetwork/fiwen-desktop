@@ -3,7 +3,7 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-settings-subagent/README.md
 /:
-  en: 91ac9c71d17a231a
+  en: 461564bfd4faff14
   zh: c0f89c3d36b51581
 /deepseek-ai-dsh-client-ui-settings-subagent:
   en: d1fc570c45a5f42e

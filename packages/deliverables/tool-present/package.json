@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-tool-present",
-  "description": "Explicit workspace file delivery declarations for the DeepSeek Harness",
+  "description": "Explicit workspace file delivery declarations for Fiwen",
   "version": "0.2.1-rc.2",
   "publishConfig": {
     "access": "public"

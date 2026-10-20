@@ -1,9 +1,9 @@
 ---
 name: dsh-speed-up-perf
-description: 'Use when investigating or optimizing DeepSeek Harness performance, designing realistic synthetic benchmarks or CI performance gates, profiling long Sessions or Web responsiveness, or turning performance PR evidence into measured behavior-preserving fixes.'
+description: 'Use when investigating or optimizing Fiwen performance, designing realistic synthetic benchmarks or CI performance gates, profiling long Sessions or Web responsiveness, or turning performance PR evidence into measured behavior-preserving fixes.'
 ---
 
-# Speed Up DeepSeek Harness
+# Speed Up Fiwen
 
 Turn a broad “make it faster” request into reproducible user-path measurements and small, evidence-backed fixes. This is guidance, not a quota or a script: survey broadly, follow measured cost, and reject attractive changes that do not improve the workload users actually run.
 
@@ -46,7 +46,7 @@ Before implementation, record a measurement card:
 | Verdict | Raw samples, chosen aggregate, calibrated absolute/ratio/memory limits, and negative control |
 | Behavior | Owning functional tests/snapshots and permitted minor differences |
 
-Measure built JavaScript under plain Node for CPU workers; source-loader overhead and module resolution are not the shipped path. Browser cases use built product assets and the supported `dsh` profile through the existing test harness. Do not add a production export solely for measurement or copy the algorithm into a “benchmark implementation.”
+Measure built JavaScript under plain Node for CPU workers; source-loader overhead and module resolution are not the shipped path. Browser cases use built product assets and the supported `fwnd` profile through the existing test harness. Do not add a production export solely for measurement or copy the algorithm into a “benchmark implementation.”
 
 Use fresh children and private temporary roots for cold/process-memory samples. Warm samples explicitly retain the intended cache; never let fixture setup secretly warm a cold scenario. Keep the same input, validations, completion condition, and reachable output on both sides. A parse-and-discard baseline is not comparable with validated retained history.
 

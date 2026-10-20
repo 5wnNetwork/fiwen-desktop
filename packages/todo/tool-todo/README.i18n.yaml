@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/todo/tool-todo/README.md
 /:
-  en: 94e53ef3423c197f
-  zh: ad579992506261fa
+  en: eb2340374666af18
+  zh: 4707f52d4ce1961b
 /deepseek-ai-dsh-tool-todo:
   en: 06114b7b88112609
   zh: a53c75adeeecf917

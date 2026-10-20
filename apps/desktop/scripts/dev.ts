@@ -60,9 +60,9 @@ async function launchElectron(): Promise<void> {
   const require = createRequire(import.meta.url)
   const electron: unknown = require('electron')
   if (typeof electron !== 'string') throw new Error('desktop development: electron executable is unavailable')
-  const mainPort = debugPort('DSH_DESKTOP_MAIN_INSPECT_PORT', 9229)
-  const rendererPort = debugPort('DSH_DESKTOP_RENDERER_DEBUG_PORT', 9222)
-  const hostPort = debugPort('DSH_DESKTOP_HOST_INSPECT_PORT', 9230)
+  const mainPort = debugPort('DSH_DESKTOP_MAIN_INSPECT_PORT', 9329)
+  const rendererPort = debugPort('DSH_DESKTOP_RENDERER_DEBUG_PORT', 9322)
+  const hostPort = debugPort('DSH_DESKTOP_HOST_INSPECT_PORT', 9330)
   const home = resolve(process.env.DSH_HOME ?? join(DEVELOPMENT_ROOT, 'home'))
   const userData = resolve(process.env.DSH_DESKTOP_USER_DATA_DIR ?? join(DEVELOPMENT_ROOT, 'electron-user-data'))
   const environment: NodeJS.ProcessEnv = {
@@ -83,6 +83,7 @@ async function launchElectron(): Promise<void> {
     return
   }
   await run(electron, [
+    `--user-data-dir=${userData}`,
     APP_ROOT,
   ], APP_ROOT, environment)
 }

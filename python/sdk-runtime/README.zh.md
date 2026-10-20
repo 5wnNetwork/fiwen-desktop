@@ -2,11 +2,11 @@
 
 [English](README.md) | 中文
 
-DeepSeek Harness Python SDK 的平台运行时 wheel 包。它把普通 `dsh` CLI（命令行界面）及其封闭的 Node 依赖树打包成原生可执行程序，因此使用 SDK 不需要系统 Node.js。本包只发布 wheel 包。
+Fiwen Python SDK 的平台运行时 wheel 包。它把普通 `fwnd` CLI（命令行界面）及其封闭的 Node 依赖树打包成原生可执行程序，因此使用 SDK 不需要系统 Node.js。本包只发布 wheel 包。
 
 ## 安装命令与产物
 
-wheel 包会安装 `dsh` 控制台命令和 `deepseek_harness_runtime` Python 模块。`dsh` 将参数转发给内置可执行程序，并要求非空 `DSH_HOME`；它不会回退到 `~/.dsh`。
+wheel 包会安装 `fwnd` 控制台命令和 `deepseek_harness_runtime` Python 模块。`fwnd` 将参数转发给内置可执行程序，并要求非空 `DSH_HOME`；它不会回退到 `~/.fiwen`。
 
 生产可执行程序位于模块的 `runtime/` 目录，命名为 `deepseek-harness-sdk-runtime-<platform>-<arch>`；Windows 使用 `.exe` 后缀。Linux 与 macOS wheel 包含目标平台原生的 `-rg` 伴随程序，Windows 包含 `-rg.exe`，macOS 还包含 `node-pty` 使用的 `-spawn-helper`。已发布目标是 Linux x64、Linux arm64、macOS arm64、macOS x64 与 Windows x64。wheel 包标签必须与载荷严格匹配；不发布 Windows arm64 wheel 包。
 
@@ -38,7 +38,7 @@ Office 操作技能通过 profile 的 shell 命令调用配置的 Node 和 Kit C
 
 仓库构建还会物化仅限开发的 `runtime/node/` 载体。它在系统 Node 22.19 或更高版本上运行 `node runtime/node/runtime-bootstrap.mjs`。系统不会自动选择它，而且 wheel 包与 sdist 均不包含它。
 
-两种载体执行相同的 `dsh` 语法与随附 profile，包括独立的 `sdk-minimal` 配置树，以及包含前端产物的完整 `web` profile。私有 `dsh-python-runtime-closure` manifest（元数据清单）定义打包依赖闭包；不存在 Python 专用 Node 应用或检入的默认 `cordis.yml`。
+两种载体执行相同的 `fwnd` 语法与随附 profile，包括独立的 `sdk-minimal` 配置树，以及包含前端产物的完整 `web` profile。私有 `dsh-python-runtime-closure` manifest（元数据清单）定义打包依赖闭包；不存在 Python 专用 Node 应用或检入的默认 `cordis.yml`。
 
 ## Python 模块 API
 
@@ -48,17 +48,17 @@ Office 操作技能通过 profile 的 shell 命令调用配置的 Node 和 Kit C
 - `download_office() -> Path` 显式下载或复用 Office sidecar 及其独立 Node。
 - `download_primary_runtime() -> Path` 显式下载或复用创作环境。
 - `resolve_office_launch_args() -> tuple[str, str]` 定位已安装的 Node 和 Kit CLI，不执行下载；资源缺失时抛出含下载指令的 `FileNotFoundError`。
-- `main()` 实现已安装的 `dsh` 控制台命令，并拒绝缺失或空白的 `DSH_HOME`。在 Windows 上，它让打包进程继承标准流，等待其结束并转发退出状态；在 POSIX 上，它替换 Python 进程。
+- `main()` 实现已安装的 `fwnd` 控制台命令，并拒绝缺失或空白的 `DSH_HOME`。在 Windows 上，它让打包进程继承标准流，等待其结束并转发退出状态；在 POSIX 上，它替换 Python 进程。
 
 不支持的平台以及缺失的可执行程序或伴随文件会抛出 `FileNotFoundError`，并指出构建与安装路径。未知运行时模式会抛出 `ValueError`。
 
 ## 打包后的 profile 解析
 
-`dsh` 在显式指定的主目录下初始化随附 profile、组合其 bundle patch，并从可执行程序的虚拟文件系统加载内置插件。运行时解析使用内存中的 generation，不创建磁盘符号链接或代理包。fallback 导入使用记录的声明包路径，包括可执行程序虚拟文件系统内的路径，因此内置配置项与外部插件 peer 共享内置的 Cordis／模块实例。原生共享库与 Windows ConPTY addon 会同其他原生 addon 一起打包；ripgrep 与 macOS PTY helper 仍是可执行伴随程序。
+`fwnd` 在显式指定的主目录下初始化随附 profile、组合其 bundle patch，并从可执行程序的虚拟文件系统加载内置插件。运行时解析使用内存中的 generation，不创建磁盘符号链接或代理包。fallback 导入使用记录的声明包路径，包括可执行程序虚拟文件系统内的路径，因此内置配置项与外部插件 peer 共享内置的 Cordis／模块实例。原生共享库与 Windows ConPTY addon 会同其他原生 addon 一起打包；ripgrep 与 macOS PTY helper 仍是可执行伴随程序。
 
 Python 与打包的 bootstrap 共享资源布局：`<cache>/<identity>/office/`、`node/bin/node[.exe]` 与 `node_modules/@deepseek-ai/libreoffice-kit/lib/cli.js`。自动发现 Office 缓存要求 `complete` 标记匹配清单 identity；显式 `DSH_OFFICE_SIDECAR` 要求 Node 与 CLI 文件存在。Python bootstrap 从显式下载或选择的 sidecar 解析 Office kit，让原生辅助程序与 URL Worker 使用真实文件系统路径。仓库构建与显式 Python 下载共用资源准备实现。kit 负责文档操作；Office smoke 从已加载技能获取 CLI 路径，并在空 PATH 下执行 capabilities 和 DOCX 转换。
 
-外部 profile 管理使用 `dsh plugin --profile <name> ...`。该命令要求 `PATH` 中存在 `pnpm`；普通 SDK／profile 运行不需要它。
+外部 profile 管理使用 `fwnd plugin --profile <name> ...`。该命令要求 `PATH` 中存在 `pnpm`；普通 SDK／profile 运行不需要它。
 
 ## 构建与分发
 

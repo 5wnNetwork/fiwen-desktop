@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-The SDK stdio application as a `dsh` profile bundle over [`dsh-base`](../base/README.md). It inherits the base's disabled module-HMR policy; its patch mounts an app-owned zero-option command provider, and starts [`dsh-sdk-jsonrpc-server`](../../sdk/server/README.md) only after that provider accepts the invocation. `dsh --profile sdk --help` therefore writes help and exits without claiming stdin or stdout. The standalone [`sdk-minimal`](../sdk-minimal/README.md) bundle reuses the same startup provider with its own profile name.
+The SDK stdio application as a `fwnd` profile bundle over [`dsh-base`](../base/README.md). It inherits the base's disabled module-HMR policy; its patch mounts an app-owned zero-option command provider, and starts [`dsh-sdk-jsonrpc-server`](../../sdk/server/README.md) only after that provider accepts the invocation. `fwnd --profile sdk --help` therefore writes help and exits without claiming stdin or stdout. The standalone [`sdk-minimal`](../sdk-minimal/README.md) bundle reuses the same startup provider with its own profile name.
 
 ## Table of Contents
 
@@ -44,7 +44,7 @@ The Python runtime exposes explicitly downloaded authoring resources and Office 
 
 #### What the model sees
 
-The profile inherits the base system prompt, including the `You are an AI agent powered by DeepSeek Harness.` identity, and adds the same model-interpolated coding persona as the Web and headless profiles. Each Session receives its current directory in required user-role context from [`dsh-working-directory`](../../session/working-directory/README.md). Default file tool schemas include `read`, `write`, and `edit`; they omit `str_replace_editor`.
+The profile inherits the base system prompt, including the `You are an AI agent powered by Fiwen.` identity, and adds the same model-interpolated coding persona as the Web and headless profiles. Each Session receives its current directory in required user-role context from [`dsh-working-directory`](../../session/working-directory/README.md). Default file tool schemas include `read`, `write`, and `edit`; they omit `str_replace_editor`.
 
 #### Token effect
 

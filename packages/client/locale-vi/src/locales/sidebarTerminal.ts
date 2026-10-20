@@ -26,7 +26,7 @@ export const vi = {
   'retry': 'Thử lại',
   'cleanupFailed': 'Không thể kết thúc terminal “{title}”: {message}',
   'missingTerminal': 'Terminal này không còn tồn tại. Hãy mở terminal mới.',
-  'inputFull': 'Bộ đệm nhập đã đầy. Kết nối lại rồi thử lại.',
+  'inputFull': 'Input buffer đã đầy. Kết nối lại rồi thử lại.',
   'attachmentEnded': 'Kết nối terminal đã kết thúc. Kết nối lại để tiếp tục.',
   'invalidOutput': 'Không thể nhận màn hình terminal. Kết nối lại để khôi phục.',
   'terminalLimit': 'Đã đạt giới hạn terminal. Hãy đóng các terminal không dùng rồi thử lại. Terminal đã thoát cũng tính vào giới hạn.',

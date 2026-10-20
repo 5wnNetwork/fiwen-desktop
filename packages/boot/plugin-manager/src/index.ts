@@ -1,4 +1,4 @@
-/** Current-profile plugin and bundle management over shared dsh plugin operations. */
+/** Current-profile plugin and bundle management over shared fwnd plugin operations. */
 import { randomUUID } from 'node:crypto'
 import { existsSync, readFileSync } from 'node:fs'
 import { readFile, rm } from 'node:fs/promises'
@@ -40,7 +40,7 @@ export { InvalidInstallSpecError, parseInstallSpec, type ParsedInstallSpec } fro
 
 /** The pnpm executable, registries, and limits for diagnostics, lookups and connection checks. */
 export interface Config {
-  /** The pnpm executable name or path; resolved through `PATH` like the `dsh plugin` command. */
+  /** The pnpm executable name or path; resolved through `PATH` like the `fwnd plugin` command. */
   pnpmCommand?: string
   /** Maximum retained package-operation diagnostic bytes. */
   outputBytes?: number
@@ -178,7 +178,7 @@ function specPackageName(spec: string, dependencies: Readonly<Record<string, str
 /** The package name a local directory declares, or `undefined` without a readable manifest. */
 function packageName(dir: string): string | undefined {
   try {
-    return readProfileManifest('dsh', dir).name
+    return readProfileManifest('fwnd', dir).name
   } catch (_error) {
     // pnpm reports the unreadable directory itself.
     return undefined
@@ -290,7 +290,7 @@ export class PluginManager extends TypertRemoteService {
    */
   @Remote
   async listPlugins(): Promise<PluginInfo[]> {
-    const rows = flatten(composeEntries([readProfilePatches('dsh', this.profile)]))
+    const rows = flatten(composeEntries([readProfilePatches('fwnd', this.profile)]))
     const snapshot = await readPluginInventory(this.ctx)
     return snapshot.entries.map((entry) => {
       const actual = [...this.ctx.loader.entries()].find(row => row.id === entry.entryId)
@@ -314,7 +314,7 @@ export class PluginManager extends TypertRemoteService {
    */
   @Remote
   listBundles(): Promise<BundleInfo[]> {
-    const manifest = readProfileManifest('dsh', this.profile.dir)
+    const manifest = readProfileManifest('fwnd', this.profile.dir)
     const exemptions = readProfileVersionExemptions(this.profile.dir)
     const selected = bundleSelection(manifest)
     const recorded = manifest.dependencies ?? {}
@@ -364,7 +364,7 @@ export class PluginManager extends TypertRemoteService {
         version = info.version
         const compatibility = evaluatePluginCompatibility(info, exemptions)
         if (compatibility !== undefined && !compatibility.exempted) throw new ManagementFailure('incompatible-version', [incompatiblePlugin(compatibility)])
-        const dir = resolveBundleDir('dsh', name, this.profile.installAnchor, this.profile.dir)
+        const dir = resolveBundleDir('fwnd', name, this.profile.installAnchor, this.profile.dir)
         const meta = offered?.meta ?? readPluginMeta(info.name ?? name, pathToFileURL(join(dir, 'package.json')).href)
         bundles.push({ name, official, availability, ...target, ...(version === undefined ? {} : { version }),
           ...(info.description === undefined || info.description === '' ? {} : { description: info.description }),
@@ -414,7 +414,7 @@ export class PluginManager extends TypertRemoteService {
       if (!(error instanceof InvalidInstallSpecError)) throw error
       return refused('invalid-spec', error.reason)
     }
-    const manifest = readProfileManifest('dsh', this.profile.dir)
+    const manifest = readProfileManifest('fwnd', this.profile.dir)
     const installation = JSON.parse(readFileSync(this.profile.installAnchor, 'utf8')) as InstallationManifest
     const known = new Set([
       ...bundleSelection(manifest), ...Object.keys(manifest.dependencies ?? {}), ...Object.keys(installation.dependencies ?? {}),
@@ -515,7 +515,7 @@ export class PluginManager extends TypertRemoteService {
   }
 
   /**
-   * Install a package using the same pnpm implementation as dsh plugin. GitHub
+   * Install a package using the same pnpm implementation as fwnd plugin. GitHub
    * repositories get a connection check bounded by githubConnectionTimeoutMs before pnpm starts;
    * only network failures or timeouts stop installation, while pnpm owns authentication and transport fallback. A run
    * that fails, is cancelled, or adds a package without a bundle patch restores
@@ -537,7 +537,7 @@ export class PluginManager extends TypertRemoteService {
     const result = this.change(async (result) => {
       if (spec.trim() === '' || spec.startsWith('-')) throw new ManagementFailure('invalid-spec')
       if (stopped()) throw new InstallCancelledError()
-      const before = readProfileManifest('dsh', this.profile.dir).dependencies ?? {}
+      const before = readProfileManifest('fwnd', this.profile.dir).dependencies ?? {}
       // With HMR, an installed package is removed before another version is installed, so its plugins stop first.
       const known = specPackageName(spec, before, this.profile.dir)
       if (this.ownerContext.get('hmr') !== undefined && known !== undefined && Object.hasOwn(before, known)) {
@@ -608,7 +608,7 @@ export class PluginManager extends TypertRemoteService {
           }
           throw new Error(run.output)
         }
-        const after = readProfileManifest('dsh', this.profile.dir).dependencies ?? {}
+        const after = readProfileManifest('fwnd', this.profile.dir).dependencies ?? {}
         const installed = Object.keys(after).filter(name => before[name] !== after[name])
         // Without HMR a repeated installation can leave the saved dependency as it was.
         if (installed.length === 0) {
@@ -618,12 +618,12 @@ export class PluginManager extends TypertRemoteService {
         const target = installed[0]
         if (installed.length !== 1 || target === undefined) throw new ManagementFailure('ambiguous-install')
         name = target
-        const dir = resolveBundleDir('dsh', name, this.profile.installAnchor, this.profile.dir)
+        const dir = resolveBundleDir('fwnd', name, this.profile.installAnchor, this.profile.dir)
         const manifest = bundleManifest(name, this.profile.dir, this.profile.installAnchor)
         if (manifest?.dsh?.bundle === undefined) throw new ManagementFailure('not-bundle')
         const compatibility = evaluatePluginCompatibility(manifest, readProfileVersionExemptions(this.profile.dir))
         if (compatibility !== undefined && !compatibility.exempted) throw new ManagementFailure('incompatible-version', [incompatiblePlugin(compatibility)])
-        for (const file of bundlePatchPaths(dir, manifest.dsh.bundle)) loadOverlayPatches('dsh', file)
+        for (const file of bundlePatchPaths(dir, manifest.dsh.bundle)) loadOverlayPatches('fwnd', file)
         version = manifest.version
         this.installedFrom.set(name, used)
       } catch (error) {
@@ -642,7 +642,7 @@ export class PluginManager extends TypertRemoteService {
         // Without HMR the replaced package's plugins keep running until the restart the result already reports.
         if (Object.hasOwn(before, name) && this.ownerContext.get('hmr') === undefined) return
         // A selected bundle's own rows must start.
-        const selected = bundleSelection(readProfileManifest('dsh', this.profile.dir)).includes(name)
+        const selected = bundleSelection(readProfileManifest('fwnd', this.profile.dir)).includes(name)
         Object.assign(result, await this.publishAndReload(selected ? this.bundleRows(name).map(row => row.id) : []))
       })
     }, { stage: 'install', target: spec, enabled: options?.enabled !== false }, 'install')
@@ -677,7 +677,7 @@ export class PluginManager extends TypertRemoteService {
     return { status: 'cancelled' }
   }
 
-  /** Unload and remove a profile-owned bundle dependency through dsh plugin's pnpm path; a selected name no
+  /** Unload and remove a profile-owned bundle dependency through fwnd plugin's pnpm path; a selected name no
    * dependency holds is only deselected.
    * @param name Installed dependency or selected bundle name.
    * @returns Removal diagnostics and the remaining profile state.
@@ -722,8 +722,8 @@ export class PluginManager extends TypertRemoteService {
     const bundle = info.dsh?.bundle
     /* v8 ignore next -- bundleManifest answers only manifests that declare a patch */
     if (bundle === undefined) return { rows: [], overrides: [] }
-    const dir = resolveBundleDir('dsh', name, this.profile.installAnchor, this.profile.dir)
-    const patches: PatchOptions[] = bundlePatchPaths(dir, bundle).flatMap(file => loadOverlayPatches('dsh', file))
+    const dir = resolveBundleDir('fwnd', name, this.profile.installAnchor, this.profile.dir)
+    const patches: PatchOptions[] = bundlePatchPaths(dir, bundle).flatMap(file => loadOverlayPatches('fwnd', file))
     // One entry per row id: the Loader keeps a single entry for an id, whichever layer declared it last.
     const live = new Map<string, { entryId: PluginEntryId; baseUrl: string | undefined }>()
     for (const entry of this.ctx.loader.entries()) {
@@ -806,7 +806,7 @@ export class PluginManager extends TypertRemoteService {
   }
 
   private async selectBundle(name: string, enabled: boolean): Promise<void> {
-    const manifest = readProfileManifest('dsh', this.profile.dir)
+    const manifest = readProfileManifest('fwnd', this.profile.dir)
     const previous = bundleSelection(manifest)
     if (enabled || !previous.includes(name)) {
       const metadata = bundleManifest(name, this.profile.dir, this.profile.installAnchor)
@@ -830,8 +830,8 @@ export class PluginManager extends TypertRemoteService {
   private bundleRows(name: string): EntryOptions[] {
     const info = bundleManifest(name, this.profile.dir, this.profile.installAnchor)
     if (info?.dsh?.bundle === undefined) return []
-    const dir = resolveBundleDir('dsh', name, this.profile.installAnchor, this.profile.dir)
-    return flatten(composeEntries([bundlePatchPaths(dir, info.dsh.bundle).flatMap(file => loadOverlayPatches('dsh', file))]))
+    const dir = resolveBundleDir('fwnd', name, this.profile.installAnchor, this.profile.dir)
+    return flatten(composeEntries([bundlePatchPaths(dir, info.dsh.bundle).flatMap(file => loadOverlayPatches('fwnd', file))]))
   }
 
   private protectsManager(name: string): boolean {
@@ -857,7 +857,7 @@ export class PluginManager extends TypertRemoteService {
    * current table. A publication that needs a restart waits for the restart the result already reports.
    */
   private async refreshPackages(): Promise<void> {
-    const selected = bundleSelection(readProfileManifest('dsh', this.profile.dir))
+    const selected = bundleSelection(readProfileManifest('fwnd', this.profile.dir))
     if (this.profile.startedBundles.some(name => !selected.includes(name))) return
     try {
       const packages = this.ownerContext.get('pluginPackages')
@@ -887,7 +887,7 @@ export class PluginManager extends TypertRemoteService {
     const hmr = this.ownerContext.get('hmr')
     if (hmr === undefined) {
       // Startup-only profiles recompose at restart; the saved patches still have to compose.
-      composeEntries([readProfilePatches('dsh', this.profile)])
+      composeEntries([readProfilePatches('fwnd', this.profile)])
       return { warnings: [] }
     }
     const { warnings, pending, restartReason } = await hmr.reconcileProfile(requiredIds)

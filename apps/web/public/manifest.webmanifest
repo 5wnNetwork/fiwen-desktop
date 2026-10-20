@@ -1,6 +1,6 @@
 {
-  "name": "DeepSeek Harness",
-  "short_name": "DSH",
+  "name": "Fiwen",
+  "short_name": "Fiwen",
   "start_url": "./",
   "scope": "./",
   "display": "fullscreen",

@@ -1,4 +1,4 @@
-"""Locate and execute the bundled dsh CLI shipped with the Python SDK runtime.
+"""Locate and execute the bundled fwnd CLI shipped with the Python SDK runtime.
 
 Two runtime carriers coexist under ``runtime/``, both injected by the repo's
 ``scripts/build-exe-for-python-sdk.ts`` build (neither is checked into git):
@@ -14,8 +14,8 @@ Two runtime carriers coexist under ``runtime/``, both injected by the repo's
   system Node >= 22.19. It is the current checkout's source build, never
   selected automatically, and excluded from wheel/sdist distributions.
 
-Both carriers execute the same dsh command grammar. The Python SDK selects the
-``sdk`` profile and requires an explicit Harness home; the installed ``dsh``
+Both carriers execute the same fwnd command grammar. The Python SDK selects the
+``sdk`` profile and requires an explicit Harness home; the installed ``fwnd``
 console command requires ``DSH_HOME`` for the same reason.
 """
 
@@ -113,7 +113,7 @@ def resolve_bundled_launch_args(mode: str | None = None) -> tuple[str, ...]:
     if selected == "node":
         return _node_launch_args()
     raise ValueError(
-        f"unsupported DeepSeek Harness runtime mode {selected!r}: expected 'exe' or 'node' "
+        f"unsupported Fiwen runtime mode {selected!r}: expected 'exe' or 'node' "
         f"(explicit argument or ${RUNTIME_MODE_ENV_VAR})"
     )
 
@@ -127,7 +127,7 @@ def _current_platform_tag() -> str:
         or (plat == "win" and arch != "x64")
     ):
         raise FileNotFoundError(
-            "no bundled DeepSeek Harness SDK runtime exists for this platform "
+            "no bundled Fiwen SDK runtime exists for this platform "
             f"(sys.platform={sys.platform!r}, machine={platform.machine()!r}); supported: "
             "Linux x64/arm64, macOS x64/arm64, and Windows x64. " + _EXE_ACQUISITION_HINT
         )
@@ -197,8 +197,8 @@ def main() -> None:
     """Launch the CLI with explicit DSH_HOME; wait on Windows, replace the process on POSIX."""
     if not os.environ.get("DSH_HOME", "").strip():
         print(
-            "dsh: the Python runtime command requires an explicit DSH_HOME; "
-            "it never uses ~/.dsh implicitly",
+            "fwnd: the Python runtime command requires an explicit DSH_HOME; "
+            "it never uses ~/.fiwen implicitly",
             file=sys.stderr,
         )
         raise SystemExit(2)

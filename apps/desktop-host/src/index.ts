@@ -20,8 +20,8 @@ async function main(): Promise<void> {
   const projectDir = process.argv[3] as string
   installOfficeEngineResolution(runtimeDir)
   const installAnchor = join(runtimeDir, 'node_modules', '@deepseek-ai', 'dsh', 'package.json')
-  const profile = loadProfileDirectory('dsh', projectDir, installAnchor)
-  reportSkippedBundles('dsh', profile)
+  const profile = loadProfileDirectory('fwnd', projectDir, installAnchor)
+  reportSkippedBundles('fwnd', profile)
   const application = runProfile({
     environment: loadLayeredEnv('dsh'),
     profile: 'desktop',

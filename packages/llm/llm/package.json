@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh-llm",
-  "description": "Provider-neutral LLM service interface for the DeepSeek Harness",
+  "description": "Provider-neutral LLM service interface for Fiwen",
   "version": "0.2.1-rc.2",
   "publishConfig": {
     "access": "public"

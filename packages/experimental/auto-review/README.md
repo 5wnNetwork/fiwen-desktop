@@ -32,7 +32,7 @@ The review environment records the Session's current working directory for the p
 From this source checkout, install the package into the Web profile through the existing CLI:
 
 ```sh
-pnpm dsh plugin --profile web add ./packages/experimental/auto-review
+pnpm fwnd plugin --profile web add ./packages/experimental/auto-review
 ```
 
 The CLI initializes the profile when needed and appends this package's declared patch after the base and Web layers. Reconciliation activates the patch as a profile layer; a package without `dsh.bundle.patch` is only an installed dependency. Select `Auto review` with its `EXP` badge in the composer menu or `/permission` picker and confirm the current-session risk dialog. An explicit `/permission auto` command switches directly. General settings and future-session defaults do not offer Auto.
@@ -40,7 +40,7 @@ The CLI initializes the profile when needed and appends this package's declared 
 Remove the layer through the same CLI:
 
 ```sh
-pnpm dsh plugin --profile web remove @deepseek-ai/dsh-experimental-auto-review
+pnpm fwnd plugin --profile web remove @deepseek-ai/dsh-experimental-auto-review
 ```
 
 ### What you get

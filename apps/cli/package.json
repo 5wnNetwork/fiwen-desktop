@@ -1,6 +1,6 @@
 {
   "name": "@deepseek-ai/dsh",
-  "description": "dsh CLI: profile launch, plugin management, and configuration inspection",
+  "description": "fwnd CLI: profile launch, plugin management, and configuration inspection",
   "version": "0.2.1-rc.2",
   "publishConfig": {
     "access": "public"
@@ -12,7 +12,7 @@
   },
   "type": "module",
   "bin": {
-    "dsh": "lib/bin.js"
+    "fwnd": "lib/bin.js"
   },
   "files": [
     "lib/*.js",

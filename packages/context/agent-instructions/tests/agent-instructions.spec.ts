@@ -690,9 +690,9 @@ describe('workspace context instruction discovery', () => {
     const root = await tempRepo()
     const emptyHome = await tempRepo()
     // Isolate the default-home fallback: blank DSH_HOME is treated as unset, and
-    // the home dirs point at an empty dir so the default ~/.dsh holds no global
+    // the home dirs point at an empty dir so the default ~/.fiwen holds no global
     // scope. Windows homedir() reads USERPROFILE (not HOME), so both must be
-    // stubbed or a real ~/.dsh/AGENTS.md would otherwise leak in.
+    // stubbed or a real ~/.fiwen/AGENTS.md would otherwise leak in.
     vi.stubEnv('DSH_HOME', '')
     vi.stubEnv('HOME', emptyHome)
     if (process.platform === 'win32') vi.stubEnv('USERPROFILE', emptyHome)
@@ -823,7 +823,7 @@ describe('workspace context instruction discovery', () => {
     }
   })
 
-  it('labels the default DSH home as ~/.dsh when HOME points at the configured default', async () => {
+  it('labels the default DSH home as ~/.fiwen when HOME points at the configured default', async () => {
     const root = await tempRepo()
     const home = await tempRepo()
     try {
@@ -836,7 +836,7 @@ describe('workspace context instruction discovery', () => {
       const isolated = await import('@deepseek-ai/dsh-agent-instructions')
       const files = await isolated.discoverBaselineInstructionFiles({ cwd: root })
 
-      expect(files.map(file => file.displayPath)).toEqual(['~/.dsh/AGENTS.md'])
+      expect(files.map(file => file.displayPath)).toEqual(['~/.fiwen/AGENTS.md'])
     } finally {
       vi.unstubAllEnvs()
       vi.doUnmock('node:os')
@@ -846,7 +846,7 @@ describe('workspace context instruction discovery', () => {
     }
   })
 
-  it('expands a ~/.dsh DSH_HOME to the operating-system home directory', async () => {
+  it('expands a ~/.fiwen DSH_HOME to the operating-system home directory', async () => {
     const root = await tempRepo()
     const home = await tempRepo()
     try {
@@ -855,10 +855,10 @@ describe('workspace context instruction discovery', () => {
       vi.resetModules()
       vi.doMock('node:os', () => ({ homedir: () => home }))
       const isolated = await import('@deepseek-ai/dsh-agent-instructions')
-      pinHarnessHome('~/.dsh')
+      pinHarnessHome('~/.fiwen')
       const files = await isolated.discoverBaselineInstructionFiles({ cwd: root })
 
-      expect(files).toEqual([{ absolutePath: join(home, '.dsh/AGENTS.md'), displayPath: '~/.dsh/AGENTS.md' }])
+      expect(files).toEqual([{ absolutePath: join(home, '.dsh/AGENTS.md'), displayPath: '~/.fiwen/AGENTS.md' }])
     } finally {
       vi.unstubAllEnvs()
       vi.doUnmock('node:os')
@@ -3484,7 +3484,7 @@ describe('workspace context request injection', () => {
     }
   })
 
-  it('labels a custom DSH_HOME as $DSH_HOME instead of pretending it is ~/.dsh', async () => {
+  it('labels a custom DSH_HOME as $DSH_HOME instead of pretending it is ~/.fiwen', async () => {
     const root = await tempRepo()
     const home = await tempRepo()
     try {

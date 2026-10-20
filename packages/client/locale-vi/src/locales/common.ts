@@ -33,7 +33,7 @@ export const vi = {
   'collapse': 'Thu gọn',
   'expand': 'Mở rộng',
   'back': 'Quay lại',
-  'brand.localBuild': 'Bản dựng DSH cục bộ',
+  'brand.localBuild': 'FiwenDesktop (Test Build)',
   'workspace.defaultName': 'Workspace mặc định',
   'unknown': 'Không rõ',
   'none': 'Không có',

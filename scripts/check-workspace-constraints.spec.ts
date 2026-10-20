@@ -217,14 +217,14 @@ describe('experimental workspace constraints', () => {
     const installation = { dir: 'apps/cli', manifest: { name: '@deepseek-ai/dsh', dependencies: listed } } satisfies WorkspaceManifest
     expect(checkExperimentalDependencyIsolation([experimental, installation], ['@deepseek-ai/dsh-experimental-prototype'])).toEqual([])
     expect(checkExperimentalDependencyIsolation([experimental, installation], [])).toEqual([
-      '@deepseek-ai/dsh: dependencies.@deepseek-ai/dsh-experimental-prototype must not reference an experimental package',
+      '@deepseek-ai/fwnd: dependencies.@deepseek-ai/dsh-experimental-prototype must not reference an experimental package',
     ])
     // Only a plain dependency edge is offered; a peer would make the bundle a requirement of every consumer.
     expect(checkExperimentalDependencyIsolation([experimental, {
       dir: 'apps/cli',
       manifest: { name: '@deepseek-ai/dsh', peerDependencies: listed },
     }], ['@deepseek-ai/dsh-experimental-prototype'])).toEqual([
-      '@deepseek-ai/dsh: peerDependencies.@deepseek-ai/dsh-experimental-prototype must not reference an experimental package',
+      '@deepseek-ai/fwnd: peerDependencies.@deepseek-ai/dsh-experimental-prototype must not reference an experimental package',
     ])
   })
 
@@ -267,7 +267,7 @@ describe('dsh family version coherence', () => {
     expect(checkDshFamilyVersion(
       { name: '@deepseek-ai/dsh', version: '0.1.2-alpha.5' },
       '0.1.2-rc.1',
-    )).toBe('@deepseek-ai/dsh: package.json version must match root version 0.1.2-rc.1')
+    )).toBe('@deepseek-ai/fwnd: package.json version must match root version 0.1.2-rc.1')
   })
 
   it('accepts a manifest carrying the shared version', () => {
@@ -399,7 +399,7 @@ it('publishes CLI runtime declarations and rejects a payload that omits them', (
   const manifest = JSON.parse(readFileSync(new URL('../apps/cli/package.json', import.meta.url), 'utf8')) as WorkspaceManifest['manifest']
   expect(checkWorkspaceManifest({ dir: 'apps/cli', manifest })).toEqual([])
   expect(checkWorkspaceManifest({ dir: 'apps/cli', manifest: { ...manifest, files: ['lib/*.js'] } }))
-    .toEqual([expect.stringContaining('@deepseek-ai/dsh: package.json files must be ["lib/*.js","lib/types/*.d.ts"]')])
+    .toEqual([expect.stringContaining('@deepseek-ai/fwnd: package.json files must be ["lib/*.js","lib/types/*.d.ts"]')])
 })
 
 it('requires the shared Web injection entry in the published payload', () => {

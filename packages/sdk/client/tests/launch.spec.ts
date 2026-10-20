@@ -1,4 +1,4 @@
-/** Public dsh launch resolution for the TypeScript SDK. */
+/** Public fwnd launch resolution for the TypeScript SDK. */
 
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -18,12 +18,12 @@ afterEach(() => {
   for (const path of cleanups.splice(0)) rmSync(path, { recursive: true, force: true })
 })
 
-function manifestPair(dsh: object, client: object): { dshUrl: string; clientUrl: string; root: string } {
+function manifestPair(fwnd: object, client: object): { dshUrl: string; clientUrl: string; root: string } {
   const root = mkdtempSync(join(tmpdir(), 'dsh-sdk-manifests-'))
   cleanups.push(root)
   const dshPath = join(root, 'dsh-package.json')
   const clientPath = join(root, 'client-package.json')
-  writeFileSync(dshPath, JSON.stringify(dsh))
+  writeFileSync(dshPath, JSON.stringify(fwnd))
   writeFileSync(clientPath, JSON.stringify(client))
   return {
     dshUrl: pathToFileURL(dshPath).href,
@@ -32,8 +32,8 @@ function manifestPair(dsh: object, client: object): { dshUrl: string; clientUrl:
   }
 }
 
-describe('SDK dsh launch resolution', () => {
-  it('resolves the same-version installed dsh entry by default', () => {
+describe('SDK fwnd launch resolution', () => {
+  it('resolves the same-version installed fwnd entry by default', () => {
     const bin = installedDshBin()
     expect(bin.endsWith(join('apps', 'cli', 'lib', 'bin.js'))).toBe(true)
     const launch = resolveDshLaunch()
@@ -46,13 +46,13 @@ describe('SDK dsh launch resolution', () => {
         '--patch', resolve(bin, '..', '..', 'src/sdk-source.cordis.patch.yml'),
       ])
     expect(launch.initializeTimeoutMs).toBe(DEFAULT_INITIALIZE_TIMEOUT_MS)
-    expect(launch.description).toBe('dsh profile "sdk"')
+    expect(launch.description).toBe('fwnd profile "sdk"')
   })
 
   it('makes every filesystem input absolute before spawn and preserves patch order', () => {
     const caller = resolve('/tmp', 'sdk-launch-caller')
     const launch = resolveDshLaunch({
-      dshBin: './bin/dsh',
+      dshBin: './bin/fwnd',
       profile: 'custom-sdk',
       patches: ['./first.yml', '../second.yml'],
       dshHome: './home',
@@ -67,13 +67,13 @@ describe('SDK dsh launch resolution', () => {
     expect(launch).toMatchObject({
       command: process.execPath,
       args: [
-        join(caller, 'bin/dsh'),
+        join(caller, 'bin/fwnd'),
         '--profile', 'custom-sdk',
         '--patch', join(caller, 'first.yml'),
         '--patch', resolve(caller, '../second.yml'),
       ],
       cwd: join(caller, 'worker'),
-      description: 'dsh profile "custom-sdk"',
+      description: 'fwnd profile "custom-sdk"',
       initializeTimeoutMs: 123,
       requestTimeoutMs: 456,
       shutdownTimeoutMs: 789,
@@ -131,11 +131,11 @@ describe('SDK dsh launch resolution', () => {
 
   it('reads explicit and inherited environments when the child starts', () => {
     const explicit: NodeJS.ProcessEnv = { MARKER: 'before' }
-    const explicitLaunch = resolveDshLaunch({ dshBin: '/bin/dsh', env: explicit })
+    const explicitLaunch = resolveDshLaunch({ dshBin: '/bin/fwnd', env: explicit })
     explicit.MARKER = 'after'
     expect(explicitLaunch.environment().MARKER).toBe('after')
 
-    const inheritedLaunch = resolveDshLaunch({ dshBin: '/bin/dsh' })
+    const inheritedLaunch = resolveDshLaunch({ dshBin: '/bin/fwnd' })
     process.env.DSH_SDK_LATE_ENV_TEST = 'late'
     try {
       expect(inheritedLaunch.environment().DSH_SDK_LATE_ENV_TEST).toBe('late')
@@ -159,11 +159,11 @@ describe('SDK dsh launch resolution', () => {
   })
 
   it.each([null, {}, ''])(
-    'rejects a manifest without a usable dsh executable (%j)',
+    'rejects a manifest without a usable fwnd executable (%j)',
     (bin) => {
       const pair = manifestPair({ version: '1.0.0', bin }, { version: '1.0.0' })
       expect(() => resolveDshBinFromManifests(pair.dshUrl, pair.clientUrl))
-        .toThrow('declares no dsh executable')
+        .toThrow('declares no fwnd executable')
     },
   )
 })
