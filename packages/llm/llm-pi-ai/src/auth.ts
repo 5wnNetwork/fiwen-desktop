@@ -17,6 +17,7 @@ import {
   credentialKey, credentialKeyId, credentialKeyScope, credentialRef, isCredentialKeySegment, isCredentialRefName,
 } from '@deepseek-ai/dsh-credentials'
 import type { CredentialKey, CredentialProvider, CredentialRecord } from '@deepseek-ai/dsh-credentials'
+import { accountSlotOf, resolveRecordKey, SELECTION_SLOT } from '@deepseek-ai/dsh-authorization'
 import { launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
 import { LlmError } from '@deepseek-ai/dsh-llm'
 
@@ -135,30 +136,50 @@ function writableStore(ctx: Context): CredentialProvider {
  * record, so reads answer "nothing stored" and a delete has nothing to remove;
  * only `modify` refuses it, because a write that cannot land must not report
  * that it did.
+ *
+ * One provider id can hold several OAuth accounts: the authorization seam
+ * stores them as `<id>--<account>` records plus a selection pointer, and a
+ * bare provider id resolves through {@link resolveRecordKey} so requests use
+ * the selected account — including `modify`, which is where pi-ai's locked
+ * token refresh writes, so a rotated refresh token lands on the account it
+ * came from. An id that already names an account record addresses it
+ * directly, which is how a sign-in flow commits a fresh account.
  * @param ctx - the plugin context carrying the optional `ctx.credentials`.
  * @returns the store to hand `createModels()`.
  */
 export function credentialStoreFrom(ctx: Context): CredentialStore {
+  const targetFor = async (credentials: CredentialProvider, providerId: string): Promise<CredentialKey> =>
+    resolveRecordKey(credentials, recordKeyFor(providerId))
   return {
     async read(providerId) {
       const credentials = ctx.get('credentials')
       if (credentials === undefined) return undefined
       if (!isCredentialKeySegment(providerId)) return undefined
-      return toPiCredential(await credentials.readRecord(recordKeyFor(providerId)))
+      return toPiCredential(await credentials.readRecord(await targetFor(credentials, providerId)))
     },
     async list(): Promise<readonly CredentialInfo[]> {
       const stored = await ctx.get('credentials')?.listRecords() ?? []
-      const mine: CredentialInfo[] = []
+      const mine = new Map<string, CredentialInfo>()
       for (const entry of stored) {
         // Records another plugin owns are not this collection's to report:
         // their payloads are written in a format pi-ai never agreed to.
         if (credentialKeyScope(entry.key) !== RECORD_SCOPE) continue
-        mine.push({
-          providerId: credentialKeyId(entry.key),
-          type: entry.kind === 'api-key' ? 'api_key' : 'oauth',
-        })
+        const id = credentialKeyId(entry.key)
+        // Account records fold into their base provider's entry — pi-ai's
+        // "which providers hold a credential" question is about the provider,
+        // and the selection pointer is not a credential at all.
+        const slot = accountSlotOf(id)
+        if (slot === SELECTION_SLOT) continue
+        const providerId = slot === undefined ? id : id.slice(0, id.indexOf('--'))
+        const known = mine.get(providerId)
+        if (known === undefined || known.type === 'api_key') {
+          mine.set(providerId, {
+            providerId,
+            type: entry.kind === 'api-key' ? 'api_key' : 'oauth',
+          })
+        }
       }
-      return mine
+      return [...mine.values()]
     },
     async modify(providerId, mutate) {
       if (!isCredentialKeySegment(providerId)) {
@@ -169,7 +190,17 @@ export function credentialStoreFrom(ctx: Context): CredentialStore {
           'UNSTORABLE_PROVIDER_ID',
         )
       }
-      const stored = await writableStore(ctx).modifyRecord(recordKeyFor(providerId), async (current) => {
+      const credentials = writableStore(ctx)
+      const base = recordKeyFor(providerId)
+      const target = await resolveRecordKey(credentials, base)
+      const stored = await credentials.modifyRecord(target, async (current) => {
+        // A resolved account record deleted while this read-modify-write was
+        // queued must not be resurrected by the landing write. The base key
+        // is exempt: it is where a first credential legitimately begins absent.
+        /* v8 ignore next -- only a store whose RMW interleaves a delete between
+           resolution and landing reaches this; an in-process serialized store
+           cannot. */
+        if (current === undefined && target !== base) return undefined
         const next = await mutate(toPiCredential(current))
         return next === undefined ? undefined : toRecord(next)
       })
@@ -180,7 +211,8 @@ export function credentialStoreFrom(ctx: Context): CredentialStore {
     // escape the `ModelsError` wrapper every other storage failure gets.
     async delete(providerId) {
       if (!isCredentialKeySegment(providerId)) return
-      await writableStore(ctx).deleteRecord(recordKeyFor(providerId))
+      const credentials = writableStore(ctx)
+      await credentials.deleteRecord(await targetFor(credentials, providerId))
     },
   }
 }

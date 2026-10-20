@@ -6,7 +6,7 @@ import Schema from '@deepseek-ai/schemastery'
 import { Context } from '@deepseek-ai/cordis'
 import { bindSnapshotSelector, RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
 import type {
-  CredentialInfo, RemoteResult, SettingsNamespaceView,
+  AuthorizationAccountView, AuthorizationEntryView, CredentialInfo, RemoteResult, SettingsNamespaceView,
 } from '@deepseek-ai/dsh-api-remotes/client'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import {
@@ -228,6 +228,20 @@ function scriptedFace(overrides: {
       set,
       unset,
     },
+    authorization: {
+      list: vi.fn((): Promise<RemoteResult<AuthorizationEntryView[]>> => Promise.resolve(remoteOk([]))),
+      begin: vi.fn(() => Promise.resolve(remoteOk({ status: 'authorized' }))),
+      answer: vi.fn(() => Promise.resolve(remoteOk(true))),
+      decline: vi.fn(() => Promise.resolve(remoteOk(true))),
+      cancel: vi.fn(() => Promise.resolve(remoteOk(undefined))),
+      signOut: vi.fn(() => Promise.resolve(remoteOk(undefined))),
+      listAccounts: vi.fn((): Promise<RemoteResult<AuthorizationAccountView[]>> => Promise.resolve(remoteOk([]))),
+      selectAccount: vi.fn(() => Promise.resolve(remoteOk(undefined))),
+      quota: vi.fn(() => Promise.resolve(remoteOk(undefined))),
+    },
+    // The forwarded-event subscription seat; this spec emits no events, so
+    // the disposer is the only part that must exist.
+    $on: vi.fn(() => vi.fn()),
   }
   return { face, update, mutate, set, unset }
 }
@@ -369,6 +383,72 @@ describe('ModelsSection', () => {
     const row = within(edit.closest('li')!)
     expect(row.getByText(en.keyFallbackUnchecked)).toBeTruthy()
     expect(row.queryByText(en.keyFallbackMissing.replace('{hint}', 'OPENAI_API_KEY'))).toBeNull()
+  })
+
+  it('marks a grant-signed row configured and offers subscription sign-in in its editor', async () => {
+    const scripted = scriptedFace()
+    scripted.face.authorization.list.mockResolvedValue(remoteOk([{
+      key: 'llm-pi-ai/anthropic' as never, label: 'Claude Pro/Max',
+      methods: [{ id: 'oauth', label: 'Sign in with Claude' }], inFlight: false, configured: true,
+    }]))
+    // A configured flow lists its stored records — here just the base record
+    // the lone sign-in wrote.
+    scripted.face.authorization.listAccounts.mockResolvedValue(remoteOk([
+      { key: 'llm-pi-ai/anthropic' as never, account: '', selected: true },
+    ]))
+    // Give anthropic a stored profile so the joined row is configured.
+    const piAi = wireNamespaces().find(view => view.ns === 'llm-pi-ai')!
+    const providers = { ...(piAi.value as { providers: object }).providers, anthropic: {} }
+    scripted.face.settings.describe.mockImplementation(() => Promise.resolve(remoteOk({
+      writable: true, hasDocument: false,
+      namespaces: wireNamespaces().map(view => view.ns !== 'llm-pi-ai' ? view : { ...view, value: { providers }, user: { providers } }),
+    })))
+    const { renderSlot } = await mountFace(scripted)
+    const row = within(screen.getByRole('button', { name: 'Edit anthropic' }).closest('li')!)
+    expect(row.getByLabelText(en.credentialConfigured)).toBeTruthy()
+    const seat = renderSlot.mock.calls.find(call => (call[1] as { provider?: { provider?: string } })?.provider?.provider === 'anthropic')
+    expect(seat?.[1]).toMatchObject({ configured: true, keyConfigured: true })
+    expect(seat?.[2]).toMatchObject({ entryKey: 'llm-pi-ai' })
+    fireEvent.click(row.getByRole('button', { name: 'Edit anthropic' }))
+    const editor = row.getByText(en.subscription).closest('div')!
+    // The joined account list puts sign-out inside the expanded rows and
+    // turns the sign-in button into the add-account control.
+    fireEvent.click(within(editor).getByRole('button', { name: en.accountManage }))
+    expect(within(editor).getByRole('button', { name: en.accountAdd })).toBeTruthy()
+    expect(within(editor).getByRole('button', { name: en.signOut })).toBeTruthy()
+  })
+
+  it('shows no credential dot on an env-less OAuth route no flow has claimed', async () => {
+    const scripted = scriptedFace()
+    scripted.face.llm.listConfigurableProviders.mockResolvedValue(remoteOk([
+      { provider: 'openai-codex', displayName: 'Codex', settingsNs: 'llm-pi-ai',
+        settingsPath: ['providers', 'openai-codex'], defaultBaseURL: 'https://chatgpt.com/backend-api',
+        baseURLEnv: [], nativeAuth: { env: [], oauth: true } },
+      { provider: 'plain', displayName: 'plain', settingsNs: 'llm-plain', settingsPath: ['profiles', 'plain'] },
+    ]))
+    const piAi = wireNamespaces().find(view => view.ns === 'llm-pi-ai')!
+    const providers = { ...(piAi.value as { providers: object }).providers, 'openai-codex': {} }
+    scripted.face.settings.describe.mockImplementation(() => Promise.resolve(remoteOk({
+      writable: true, hasDocument: false,
+      namespaces: wireNamespaces().map(view => view.ns !== 'llm-pi-ai' ? view : { ...view, value: { providers }, user: { providers } }),
+    })))
+    await mountFace(scripted)
+    const row = within(screen.getByText('Codex').closest('li')!)
+    // No env var to check and no flow to grant it: neither dot applies.
+    expect(row.queryByLabelText(en.credentialMissing)).toBeNull()
+    expect(row.queryByLabelText(en.credentialConfigured)).toBeNull()
+  })
+
+  it('offers subscription sign-in on a dormant catalog card before any profile exists', async () => {
+    const scripted = scriptedFace()
+    scripted.face.authorization.list.mockResolvedValue(remoteOk([{
+      key: 'llm-pi-ai/anthropic' as never, label: 'Claude Pro/Max',
+      methods: [{ id: 'oauth', label: 'Sign in with Claude' }], inFlight: false, configured: false,
+    }]))
+    await mountFace(scripted)
+    fireEvent.click(screen.getByRole('button', { name: en.add }))
+    fireEvent.change(screen.getByLabelText(en.provider), { target: { value: 'anthropic' } })
+    expect(screen.getByRole('button', { name: 'Sign in with Claude' })).toBeTruthy()
   })
 
   it('waits for the current snapshot when a setup surface remounts during refresh', async () => {

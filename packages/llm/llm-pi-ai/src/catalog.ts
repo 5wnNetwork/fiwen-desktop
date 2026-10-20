@@ -14,6 +14,7 @@
 
 import { builtinProviders, getAllBuiltinModels, getBuiltinModels } from '@earendil-works/pi-ai/providers/all'
 import type { BuiltinProvider } from '@earendil-works/pi-ai/providers/all'
+import { ANTIGRAVITY_PROVIDER_ID, antigravityProvider } from './antigravity.ts'
 import type {
   AnthropicMessagesCompat,
   Api,
@@ -185,7 +186,12 @@ function servesChat(provider: Provider): boolean {
  * @returns the catalog provider index, in catalog order.
  */
 function catalogProviders(): Map<string, Provider> {
+  // The index is pi-ai's installed catalog plus this package's own providers:
+  // Antigravity is a Google subscription surface pi-ai does not ship (its
+  // `google` provider is api-key only), so it is implemented here against the
+  // same `Provider` contract.
   providerIndex ??= new Map(builtinProviders().filter(servesChat).map(provider => [provider.id, provider]))
+    .set(ANTIGRAVITY_PROVIDER_ID, antigravityProvider())
   return providerIndex
 }
 
@@ -215,8 +221,13 @@ export function catalogProviderIds(): readonly string[] {
  * @returns catalog models by id; empty for a route {@link catalogProvider} does not return.
  */
 export function catalogModels(provider: string): Map<string, Model<Api>> {
-  if (!catalogProviders().has(provider)) return new Map()
-  const models = getBuiltinModels(provider as BuiltinProvider) as Model<Api>[]
+  const installed = catalogProviders().get(provider)
+  if (installed === undefined) return new Map()
+  // A provider this package adds owns its model list; pi-ai's builtin table
+  // does not know it.
+  const models = getBuiltinModels(provider as BuiltinProvider).length > 0
+    ? getBuiltinModels(provider as BuiltinProvider) as Model<Api>[]
+    : [...installed.getModels()]
   return new Map(models.map(model => [model.id, model]))
 }
 

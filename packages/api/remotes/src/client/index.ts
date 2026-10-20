@@ -79,6 +79,7 @@ export type { ApiRemoteForwardedEvent } from '../types.ts'
 // The owner packages' client-safe `./types` exports supply the `Events`
 // signatures `$on` hands to a listener, so a consumer reads the very
 // declaration the Host emits rather than a flattened restatement of it.
+export type {} from '@deepseek-ai/dsh-authorization/types'
 export type {} from '@deepseek-ai/dsh-commands/types'
 export type {} from '@deepseek-ai/dsh-cordis-host-runner/types'
 export type {} from '@deepseek-ai/dsh-credentials/types'
@@ -142,7 +143,19 @@ export type {
   RequestRunOutcome,
 } from '@deepseek-ai/dsh-cordis-host-runner/types'
 // Credential state vocabulary for the credentials namespace (values never ride it).
-export type { CredentialInfo } from '@deepseek-ai/dsh-credentials/types'
+export type { CredentialInfo, CredentialKey } from '@deepseek-ai/dsh-credentials/types'
+// Authorization-conversation vocabulary for the authorization namespace; grant
+// material never crosses it — prompt answers are the only values that travel.
+export type {
+  AuthorizationAccountView, AuthorizationEntry, AuthorizationMethod, AuthorizationNotice,
+  AuthorizationNoticeEvent, AuthorizationOutcome, AuthorizationPromptEvent, AuthorizationPromptOption,
+  AuthorizationPromptView, AuthorizationPromptWithdrawnEvent, AuthorizationQuota,
+  AuthorizationQuotaWindow, AuthorizationSettlement, AuthorizationStatus,
+} from '@deepseek-ai/dsh-authorization/types'
+// Flow/record views for the same namespace (the seam keeps its own types).
+export type {
+  AuthorizationDescribeView, AuthorizationEntryView,
+} from '@deepseek-ai/dsh-api-settings-controller/types'
 // Redacted namespace vocabulary for the settings namespace (secrets never ride
 // it). It travels with its seam, whose `./types` the Client face already reads.
 export type {

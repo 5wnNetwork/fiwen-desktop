@@ -10,9 +10,11 @@
 import type { AuthEvent, AuthPrompt, AuthType, Provider } from '@earendil-works/pi-ai'
 import type { Context } from '@deepseek-ai/cordis'
 import type { AuthorizationMethod, AuthorizationPrompt, AuthorizationSession } from '@deepseek-ai/dsh-authorization'
+import { accountRecordId } from '@deepseek-ai/dsh-authorization'
 import { isCredentialKeySegment } from '@deepseek-ai/dsh-credentials'
 import { catalogProvider, catalogProviderIds } from './catalog.ts'
 import { recordKeyFor } from './auth.ts'
+import { describeGrant, quotaProbe } from './quota.ts'
 import type { PiAiAuthInjection } from './adapter.ts'
 import { createModels } from './models.ts'
 
@@ -146,22 +148,33 @@ export function registerPiAiFlows(ctx: Context, auth: PiAiAuthInjection): void {
         providerId)
       continue
     }
+    const quota = quotaProbe(provider)
     ctx.authorization.registerFlow({
       key: recordKeyFor(providerId),
       label: provider.name,
       methods: [first, ...rest],
+      describeRecord: record => describeGrant(providerId, record),
+      ...quota === undefined ? {} : { quota },
       async run(session) {
         // A collection of its own, holding only the provider being signed
         // into: login is not serving requests, and the credential it produces
         // lands in the shared store either way.
         const models = createModels(auth)
-        models.setProvider(provider)
+        // An account attempt commits a distinct record: the provider clones
+        // under its account-suffixed id so the `store.modify` pi-ai performs
+        // lands on `<id>--<account>` — the key the seam watches this attempt
+        // commit. The account slot is a credential-key segment (the seam
+        // validated it), so the suffixed id stays inside the record grammar.
+        const loginProvider = session.account === undefined
+          ? provider
+          : { ...provider, id: accountRecordId(providerId, session.account) }
+        models.setProvider(loginProvider)
         // Total over the two ids declared above, and the seam only ever hands
         // back one a flow declared.
         const type: AuthType = session.method === 'oauth' ? 'oauth' : 'api_key'
         // pi-ai persists what the login returns through that same store, which
         // is what makes it the single writer of this record.
-        await models.login(providerId, type, {
+        await models.login(loginProvider.id, type, {
           signal: session.signal,
           notify: (event) => { relay(event, session) },
           prompt: prompt => session.prompt(restate(prompt)),

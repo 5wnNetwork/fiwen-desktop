@@ -27,34 +27,153 @@
  */
 
 import { Context, Service } from '@deepseek-ai/cordis'
-import type { CredentialKey, CredentialRecord } from '@deepseek-ai/dsh-credentials'
+import type { CredentialKey, CredentialProvider, CredentialRecord } from '@deepseek-ai/dsh-credentials'
+import { credentialKey, credentialKeyId, credentialKeyScope, isCredentialKeySegment } from '@deepseek-ai/dsh-credentials'
 import { HarnessError } from '@deepseek-ai/dsh-llm'
 
 import type {
-  AuthorizationEntry, AuthorizationMethod, AuthorizationNotice, AuthorizationOutcome, AuthorizationPrompt,
-  AuthorizationSettlement,
+  AuthorizationAccountView, AuthorizationEntry, AuthorizationMethod, AuthorizationNotice, AuthorizationOutcome,
+  AuthorizationPrompt, AuthorizationQuota, AuthorizationSettlement,
 } from './types.ts'
 
 export type {
-  AuthorizationEntry, AuthorizationMethod, AuthorizationNotice, AuthorizationOutcome, AuthorizationPrompt,
-  AuthorizationPromptOption, AuthorizationSettlement, AuthorizationStatus,
+  AuthorizationAccountView, AuthorizationEntry, AuthorizationMethod, AuthorizationNotice, AuthorizationOutcome,
+  AuthorizationPrompt, AuthorizationPromptOption, AuthorizationQuota, AuthorizationQuotaWindow,
+  AuthorizationSettlement, AuthorizationStatus,
 } from './types.ts'
+
+/**
+ * The separator between a record id and its account slot. A flow that admits
+ * several accounts writes the base record at its own key and each account at
+ * `<id>--<slot>`; the slot is a credential-key segment on its own.
+ */
+export const ACCOUNT_SEPARATOR = '--'
+
+/** The reserved slot name whose record carries the selected account: `{ account: slot }`. */
+export const SELECTION_SLOT = 'selected'
+
+/**
+ * The record id a flow's account slot writes under.
+ * @param id - the flow key's id segment.
+ * @param account - the account slot.
+ * @returns `<id>--<account>`.
+ */
+export function accountRecordId(id: string, account: string): string {
+  return `${id}${ACCOUNT_SEPARATOR}${account}`
+}
+
+/**
+ * The account slot of a record id a flow wrote, when it names one.
+ * @param id - a record id under a flow's scope.
+ * @returns the slot after the first `--`, or `undefined` for the base record.
+ */
+export function accountSlotOf(id: string): string | undefined {
+  const at = id.indexOf(ACCOUNT_SEPARATOR)
+  return at === -1 ? undefined : id.slice(at + ACCOUNT_SEPARATOR.length)
+}
+
+/**
+ * The flow's own key for a record key it or one of its accounts wrote.
+ * @param key - a record key, possibly an account key.
+ * @returns the flow's registration key.
+ */
+export function flowKeyOf(key: CredentialKey): CredentialKey {
+  const id = credentialKeyId(key)
+  const at = id.indexOf(ACCOUNT_SEPARATOR)
+  if (at === -1) return key
+  return credentialKey(credentialKeyScope(key), id.slice(0, at))
+}
+
+/**
+ * The record key a flow's selected-account pointer writes under.
+ * @param key - the flow's record key.
+ * @returns `<key id>--selected` under the same scope.
+ */
+export function selectionKeyFor(key: CredentialKey): CredentialKey {
+  return credentialKey(credentialKeyScope(key), accountRecordId(credentialKeyId(key), SELECTION_SLOT))
+}
+
+/**
+ * The account slot a selection pointer names, read off its stored record. The
+ * pointer is a grant record carrying `{ account }` — metadata, never a
+ * credential — and anything else reads as "no selection".
+ * @param record - the record stored at {@link selectionKeyFor}'s key.
+ * @returns the selected slot — `''` selects the base record — or `undefined`.
+ */
+export function accountSelectionOf(record: CredentialRecord | undefined): string | undefined {
+  if (record?.kind !== 'grant') return undefined
+  if (typeof record.payload !== 'object' || record.payload === null) return undefined
+  const account = (record.payload as { account?: unknown }).account
+  return typeof account === 'string' ? account : undefined
+}
+
+/**
+ * Every stored account slot for `key` — `''` for the base record, each `--`
+ * suffix otherwise. The selection pointer shares the prefix but is not an
+ * account, and a record id that cannot carry a slot name is not one either.
+ * @param credentials - the record plane to enumerate.
+ * @param key - a flow's record key.
+ * @returns the slots currently stored, in enumeration order.
+ */
+async function storedAccountSlots(credentials: CredentialProvider, key: CredentialKey): Promise<string[]> {
+  const scope = credentialKeyScope(key)
+  const id = credentialKeyId(key)
+  const prefix = `${id}${ACCOUNT_SEPARATOR}`
+  const slots: string[] = []
+  for (const entry of await credentials.listRecords()) {
+    if (credentialKeyScope(entry.key) !== scope) continue
+    const entryId = credentialKeyId(entry.key)
+    if (entryId === id) slots.push('')
+    else if (entryId.startsWith(prefix)) {
+      const slot = entryId.slice(prefix.length)
+      if (slot !== SELECTION_SLOT && isCredentialKeySegment(slot)) slots.push(slot)
+    }
+  }
+  return slots
+}
+
+/**
+ * The account slot requests for `key` resolve to: the pointer's account when
+ * its record is still stored, else the base record's when one is stored,
+ * else the first remaining account — a deleted selection never strands the
+ * provider while another account stands.
+ * @param credentials - the record plane to read.
+ * @param key - a flow's record key.
+ * @param stored - the slots known to be stored, when the caller already enumerated them.
+ * @returns the resolving slot, or `undefined` when nothing is stored.
+ */
+async function selectedAccountSlot(
+  credentials: CredentialProvider, key: CredentialKey, stored?: readonly string[],
+): Promise<string | undefined> {
+  const pointer = accountSelectionOf(await credentials.readRecord(selectionKeyFor(key)))
+  const slots = stored !== undefined ? stored : await storedAccountSlots(credentials, key)
+  if (pointer !== undefined && slots.includes(pointer)) return pointer
+  if (slots.includes('')) return ''
+  return slots.find(slot => slot !== '')
+}
+
+/**
+ * The record key that serves requests for `key` under account selection. A
+ * key that already names an account record — slot suffix included —
+ * addresses itself; a base key resolves through the pointer with the same
+ * fallback {@link AuthorizationService.listAccounts} reports, so the record
+ * a surface shows as selected is the record a request reads. Nothing stored
+ * still answers `key` itself, so a first write creates the base record.
+ * @param credentials - the record plane to resolve against.
+ * @param key - the record key a request asks for.
+ * @returns the record key to read or write.
+ */
+export async function resolveRecordKey(credentials: CredentialProvider, key: CredentialKey): Promise<CredentialKey> {
+  const id = credentialKeyId(key)
+  if (accountSlotOf(id) !== undefined) return key
+  const slot = await selectedAccountSlot(credentials, key)
+  if (slot === undefined || slot === '') return key
+  return credentialKey(credentialKeyScope(key), accountRecordId(id, slot))
+}
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
     authorization: AuthorizationService
-  }
-
-  interface Events {
-    /**
-     * One authorization attempt has finished and released its key. Fires for
-     * every terminal outcome, failures included, so a surface watching a key it
-     * did not start (a second browser tab) learns the attempt is over.
-     * @mode emit
-     * @param key - the credential record the finished attempt was authorizing.
-     * @param settlement - how it ended, including the `failed` case its caller sees as a thrown error.
-     */
-    'authorization/settled'(key: CredentialKey, settlement: AuthorizationSettlement): void
   }
 }
 
@@ -90,6 +209,12 @@ export class AuthorizationDeclinedError extends AuthorizationError {
 export interface AuthorizationSession {
   /** The method id the caller picked, always one this flow declared. */
   readonly method: string
+  /**
+   * The account slot this attempt writes, when the caller named one. The
+   * record the attempt must commit is the flow key's id suffixed
+   * `--<account>`; absent means the flow's own base record.
+   */
+  readonly account?: string
   /** Aborted when the caller withdraws or `cancel()` is called for this key. */
   readonly signal: AbortSignal
   /**
@@ -140,6 +265,27 @@ export interface AuthorizationFlow {
    * @throws when the attempt fails or the human declines.
    */
   run(session: AuthorizationSession): Promise<void>
+  /**
+   * Read a human-facing account label off a record this flow wrote, when the
+   * flow's own credential format carries one (an email, an account name). The
+   * payload is opaque to the seam; only the flow that wrote it may read it.
+   * @param record - a stored record under this flow's key or an account key.
+   * @returns the label, or undefined when the format carries none.
+   */
+  describeRecord?(record: CredentialRecord): { label?: string }
+  /**
+   * Answer this provider's quota for one stored credential. The flow owns the
+   * upstream probe: it may refresh an expired access token and write the
+   * rotated credential back through `persist` before asking, and must never
+   * surface token material in the returned view.
+   * @param input - the stored payload, its persist-back callback, and the caller's signal.
+   * @returns the normalized quota windows, or `undefined` when this flow offers no probe.
+   */
+  quota?(input: {
+    payload: unknown
+    signal: AbortSignal
+    persist: (payload: unknown) => Promise<void>
+  }): Promise<AuthorizationQuota | undefined>
 }
 
 /**
@@ -168,6 +314,12 @@ export interface AuthorizationInteraction {
 export interface AuthorizationRequest {
   /** The credential record to authorize; a flow must be registered for it. */
   key: CredentialKey
+  /**
+   * The account slot to authorize into, for a flow that admits several
+   * accounts. The attempt's commit must then land on the record keyed
+   * `<flow key id>--<account>`; absent means the flow's own base record.
+   */
+  account?: string
   /** Which of the flow's methods to run. Defaults to the flow's first. */
   method?: string
   /** The surface that will render this attempt's notices and prompts. */
@@ -253,6 +405,152 @@ export class AuthorizationService extends Service {
   }
 
   /**
+   * Every account slot a flow has stored, for a surface offering account
+   * management. The base record — one authorized before accounts existed —
+   * reports the empty slot; the `--selected` pointer itself never appears.
+   * `selected` reflects the same resolution a request would use: the pointer's
+   * account when its record is stored, else the base record's fallback.
+   * @param key - the flow's record key.
+   * @returns one view per stored account record, base record first.
+   * @throws {AuthorizationError} code `NO_FLOW` when nothing claims the key.
+   */
+  async listAccounts(key: CredentialKey): Promise<readonly AuthorizationAccountView[]> {
+    const flow = this.flows.get(key)
+    if (flow === undefined) {
+      throw new AuthorizationError(`no authorization flow is registered for "${key}"`, 'NO_FLOW')
+    }
+    const scope = credentialKeyScope(key)
+    const id = credentialKeyId(key)
+    const prefix = `${id}${ACCOUNT_SEPARATOR}`
+    const entries: Array<{ key: CredentialKey; account: string }> = []
+    for (const entry of await this.ctx.credentials.listRecords()) {
+      if (credentialKeyScope(entry.key) !== scope) continue
+      const entryId = credentialKeyId(entry.key)
+      if (entryId === id) {
+        entries.push({ key: entry.key, account: '' })
+      } else if (entryId.startsWith(prefix)) {
+        const account = entryId.slice(prefix.length)
+        // The pointer record shares the prefix but is not an account.
+        if (account !== SELECTION_SLOT && isCredentialKeySegment(account)) {
+          entries.push({ key: entry.key, account })
+        }
+      }
+    }
+    const selected = await this.selectedAccount(key, entries.map(entry => entry.account))
+    const views: AuthorizationAccountView[] = []
+    for (const entry of entries) {
+      const record = await this.ctx.credentials.readRecord(entry.key)
+      if (record === undefined) continue
+      const label = flow.describeRecord?.(record).label
+      views.push({
+        key: entry.key,
+        account: entry.account,
+        ...label === undefined ? {} : { label },
+        selected: entry.account === selected,
+      })
+    }
+    return views
+  }
+
+  /**
+   * Choose which stored account a flow's requests resolve to. The pointer is
+   * a record inside the flow's own key space, so resolution stays in the
+   * owning plugin's store and the write goes through the same event stream.
+   * @param key - the flow's record key.
+   * @param account - the slot to select; `''` selects the base record.
+   * @throws {AuthorizationError} code `NO_FLOW` when nothing claims the key,
+   *   `INVALID_ACCOUNT` when the slot is not a credential-key segment, or
+   *   `UNKNOWN_ACCOUNT` when no record is stored under it.
+   */
+  async selectAccount(key: CredentialKey, account: string): Promise<void> {
+    const flow = this.flows.get(key)
+    if (flow === undefined) {
+      throw new AuthorizationError(`no authorization flow is registered for "${key}"`, 'NO_FLOW')
+    }
+    if (account !== '' && (!isCredentialKeySegment(account) || account === SELECTION_SLOT)) {
+      throw new AuthorizationError(
+        `account "${account}" is not a credential-key segment`, 'INVALID_ACCOUNT')
+    }
+    const target = account === '' ? key : this.commitKey(flow, account)
+    const stored = await this.ctx.credentials.describeRecord(target)
+    if (!stored.configured) {
+      throw new AuthorizationError(`no account "${account}" is stored for "${key}"`, 'UNKNOWN_ACCOUNT')
+    }
+    await this.writeSelection(key, account)
+  }
+
+  /**
+   * Ask a flow for one stored account's quota. The probed account defaults to
+   * the selected one — the same resolution a request would use — and a flow
+   * that refreshes its token to answer writes the rotated credential back to
+   * that same record through the supplied persist callback.
+   * @param key - the flow's record key.
+   * @param account - the slot to probe; `''` is the base record, absent resolves the selection.
+   * @param signal - aborts the probe.
+   * @returns the normalized quota, or `undefined` when the flow offers no
+   *   probe or no grant record is stored under the resolved slot.
+   * @throws {AuthorizationError} code `NO_FLOW` when nothing claims the key,
+   *   or `INVALID_ACCOUNT` when the named slot is not a credential-key segment.
+   */
+  async quota(key: CredentialKey, account?: string, signal?: AbortSignal): Promise<AuthorizationQuota | undefined> {
+    const flow = this.flows.get(key)
+    if (flow === undefined) {
+      throw new AuthorizationError(`no authorization flow is registered for "${key}"`, 'NO_FLOW')
+    }
+    if (flow.quota === undefined) return undefined
+    if (account !== undefined && account !== ''
+      && (!isCredentialKeySegment(account) || account === SELECTION_SLOT)) {
+      throw new AuthorizationError(
+        `account "${account}" is not a credential-key segment`, 'INVALID_ACCOUNT')
+    }
+    const resolved = account ?? await this.selectedAccount(key)
+    if (resolved === undefined) return undefined
+    const target = resolved === '' ? key : this.commitKey(flow, resolved)
+    const record = await this.ctx.credentials.readRecord(target)
+    if (record?.kind !== 'grant') return undefined
+    const { payload } = record
+    return flow.quota({
+      payload,
+      signal: signal ?? new AbortController().signal,
+      // Persist only over an existing grant: an account deleted while its
+      // probe was in flight must not be resurrected by the refresh landing.
+      persist: async (replacement) => {
+        await this.ctx.credentials.modifyRecord(target, current => Promise.resolve(
+          current?.kind === 'grant' ? { kind: 'grant', payload: replacement } : current))
+      },
+    })
+  }
+
+  /**
+   * The account slot a flow's requests currently resolve to: the pointer's
+   * account when its record is still stored, else the base record's when one
+   * is stored, else the first remaining account — the same fallback the
+   * credential-store redirect applies, so a deleted selection never strands
+   * the provider while another account stands.
+   * @param key - the flow's record key.
+   * @param stored - the account slots known to be stored, when the caller already enumerated them.
+   * @returns the resolving slot, or `undefined` when nothing is stored.
+   */
+  private async selectedAccount(key: CredentialKey, stored?: readonly string[]): Promise<string | undefined> {
+    return selectedAccountSlot(this.ctx.credentials, key, stored)
+  }
+
+  /**
+   * Write the selected-account pointer for `flowKey`. This service is the
+   * pointer's only writer: it is the code whose write fires the record update
+   * the surfaces refresh on, and a pointer written anywhere else would move
+   * the credential-store redirect without that signal.
+   * @param flowKey - the flow's record key.
+   * @param account - the account slot to select; `''` selects the base record.
+   */
+  private async writeSelection(flowKey: CredentialKey, account: string): Promise<void> {
+    await this.ctx.credentials.modifyRecord(selectionKeyFor(flowKey), () => Promise.resolve({
+      kind: 'grant',
+      payload: { account },
+    }))
+  }
+
+  /**
    * Withdraw the attempt running for a key, if any. Separate from the
    * request's own signal because a request/response transport answers a Cancel
    * button on a second call, with no handle on the first one's signal.
@@ -286,6 +584,13 @@ export class AuthorizationService extends Service {
     if (flow === undefined) {
       throw new AuthorizationError(`no authorization flow is registered for "${key}"`, 'NO_FLOW')
     }
+    // The slot joins the flow's record id as one more key segment, so it must
+    // be a segment itself — and never the reserved selection pointer's name.
+    if (request.account !== undefined
+      && (!isCredentialKeySegment(request.account) || request.account === SELECTION_SLOT)) {
+      throw new AuthorizationError(
+        `account "${request.account}" is not a credential-key segment`, 'INVALID_ACCOUNT')
+    }
     const method = request.method ?? flow.methods[0].id
     if (!flow.methods.some(candidate => candidate.id === method)) {
       throw new AuthorizationError(
@@ -300,7 +605,9 @@ export class AuthorizationService extends Service {
     // before its first await, and one that does not would hang holding the key.
     // Validation still runs first, so a caller naming a key or method that does
     // not exist hears about it whether or not it also gave up.
-    if (request.signal?.aborted === true) return { status: 'cancelled' }
+    if (request.signal?.aborted === true) {
+      return { status: 'cancelled', key: this.commitKey(flow, request.account) }
+    }
     const controller = new AbortController()
     const withdraw = (): void => {
       const running = this.running.get(key)
@@ -310,7 +617,7 @@ export class AuthorizationService extends Service {
     this.running.set(key, { controller, committing: false })
     let settlement: AuthorizationSettlement = 'failed'
     try {
-      const outcome = await this.attempt(flow, method, controller.signal, request.interaction)
+      const outcome = await this.attempt(flow, method, controller.signal, request.interaction, request.account)
       settlement = outcome.status
       return outcome
     } finally {
@@ -320,6 +627,18 @@ export class AuthorizationService extends Service {
       // next attempt is not refused by the one that just finished.
       this.settle(key, settlement)
     }
+  }
+
+  /**
+   * The record one attempt must commit: the flow's own key, or its account
+   * slot's key when the request named one.
+   * @param flow - the running flow.
+   * @param account - the request's account slot.
+   * @returns the record the seam's commit check watches.
+   */
+  private commitKey(flow: AuthorizationFlow, account: string | undefined): CredentialKey {
+    if (account === undefined) return flow.key
+    return credentialKey(credentialKeyScope(flow.key), accountRecordId(credentialKeyId(flow.key), account))
   }
 
   /* jscpd:ignore-start -- deliberate symmetry with the credentials seam's
@@ -363,7 +682,12 @@ export class AuthorizationService extends Service {
     method: string,
     signal: AbortSignal,
     interaction: AuthorizationInteraction,
+    account: string | undefined,
   ): Promise<AuthorizationOutcome> {
+    // The commit may land on the flow's account slot rather than its own key:
+    // the watcher's subject is the record the attempt must produce, which is
+    // the account record, while the attempt slot stays keyed on the flow.
+    const commit = this.commitKey(flow, account)
     // Withdrawal settles the attempt whether or not the flow reacts to it. A
     // flow is supposed to stop when its signal fires, but one that does not
     // would otherwise hold the key for the life of the process, and a wedged
@@ -384,11 +708,12 @@ export class AuthorizationService extends Service {
     // as freshly authorized.
     const observed = { declined: false, committed: false }
     const unwatch = this.ctx.on('credentials/record-updated', (key: CredentialKey) => {
-      if (key === flow.key) observed.committed = true
+      if (key === commit) observed.committed = true
     })
     try {
       const running = flow.run({
         method,
+        ...account === undefined ? {} : { account },
         signal,
         commit: async (record) => {
           signal.throwIfAborted()
@@ -397,7 +722,7 @@ export class AuthorizationService extends Service {
             throw new AuthorizationError('authorization attempt is no longer active', 'CANCELLED')
           }
           attempt.committing = true
-          await this.ctx.credentials.modifyRecord(flow.key, () => Promise.resolve(record))
+          await this.ctx.credentials.modifyRecord(commit, () => Promise.resolve(record))
         },
         notify: (notice) => {
           try {
@@ -420,13 +745,13 @@ export class AuthorizationService extends Service {
           // Nothing awaits the orphan any more, so its eventual failure has to be
           // marked handled or it would take down the process.
           void running.catch(() => { this.ctx.logger.debug('authorization: withdrawn flow failed after the fact') })
-          return { status: 'cancelled' }
+          return { status: 'cancelled', key: commit }
         }
       } catch (error) {
         // A withdrawn attempt and a declined prompt are outcomes, not
         // failures: the human said no, or closed the page. Anything else is
         // the flow failing and belongs to the caller, cause chain intact.
-        if (signal.aborted || observed.declined) return { status: 'cancelled' }
+        if (signal.aborted || observed.declined) return { status: 'cancelled', key: commit }
         throw error
       }
     } finally {
@@ -437,13 +762,19 @@ export class AuthorizationService extends Service {
         `authorization flow for "${flow.key}" resolved without committing a credential record in this attempt`,
         'NOT_COMMITTED')
     }
-    const stored = await this.ctx.credentials.describeRecord(flow.key)
+    const stored = await this.ctx.credentials.describeRecord(commit)
     if (!stored.configured) {
       throw new AuthorizationError(
         `authorization flow for "${flow.key}" deleted its credential record instead of committing one`,
         'NOT_COMMITTED')
     }
-    return { status: 'authorized' }
+    // A freshly authorized account becomes the selected one: the human who
+    // just completed sign-in is the account they mean to use, and a surface
+    // would otherwise have to find the new slot and name it back.
+    if (account !== undefined) {
+      await this.writeSelection(flow.key, account)
+    }
+    return { status: 'authorized', key: commit }
   }
 }
 

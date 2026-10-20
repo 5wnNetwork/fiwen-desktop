@@ -1,5 +1,5 @@
 ---
-description: "settings 与凭据配置界面的 Host Remote owner，涵盖脱敏读取、写入、凭据引用与原生文档打开。"
+description: "settings 与凭据配置界面的 Host Remote owner，涵盖脱敏读取、写入、凭据引用、交互式授权尝试与原生文档打开。"
 kind: "package-reference"
 ---
 # Settings Controller
@@ -8,7 +8,7 @@ kind: "package-reference"
 
 ## 概述
 
-`@deepseek-ai/dsh-api-settings-controller` 为浏览器配置界面提供生成的 `ctx.remote.settings` 与 `ctx.remote.credentials` namespace。它返回脱敏的 settings 与凭据元数据，支持 settings 与凭据写入而不返回机密值，并在 Host 桌面打开由提供方持有的 settings 或 Agent preset 位置。提供方缺失时，namespace 仍会注册，并返回可操作的配置错误。
+`@deepseek-ai/dsh-api-settings-controller` 为浏览器配置界面提供生成的 `ctx.remote.settings`、`ctx.remote.credentials` 与 `ctx.remote.authorization` namespace。它返回脱敏的 settings 与凭据元数据，支持 settings 与凭据写入而不返回机密值，把交互式提供方登录尝试中继给发起它的界面，并在 Host 桌面打开由提供方持有的 settings 或 Agent preset 位置。提供方缺失时，namespace 仍会注册，并返回可操作的配置错误。
 
 ## 目录
 
@@ -30,6 +30,8 @@ kind: "package-reference"
 `settings.describe()` 返回部署信息，以及在 `redactSecrets: true` 下读取的所有 namespace。`settings.update`、`settings.replace` 与 `settings.mutate` 暴露 settings 服务的三种写入操作，并返回该 namespace 的新脱敏视图；陈旧写入使用 `settings-conflict`，其他提供方拒绝使用 `settings-rejected`。
 
 `settings.openSettingsDocument()` 准备提供方持有的文档，并用原生文本编辑器打开；该方法不接受浏览器提供的文件系统目标。
+
+`authorization.list()` 投影授权服务已注册的流程——标签、方法、进行中与已配置状态——不携带凭据材料。`begin(key, method, signal)` 对每个 key 启动一次尝试，并解析为 `{ status: 'authorized' | 'cancelled' }`；`notice`、`prompt`、`prompt-withdrawn` 与 `settled` 事件中继尝试的进度，使发起界面可以渲染 URL、设备码与提问。`answer(promptId, value)`、`decline(promptId)`、`cancel(key)` 与 `signOut(key)` 作用于进行中的尝试或其已存储的授权；缺少授权或凭据服务时返回 `gateway-internal`，流程与存储拒绝报告为 `authorization-rejected`，details 中只携带凭据 key。授权值与 prompt signal 绝不跨越 wire。
 
 -----
 

@@ -108,6 +108,19 @@ function api(overrides: {
   providers?: () => Promise<RpcResponse<{ providers: typeof DIRECTORY }>>
   describeSettings?: () => Promise<RemoteAnswer<{ writable: boolean; hasDocument: boolean; namespaces: typeof NAMESPACES }>>
   describeCredentials?: (refs: readonly string[]) => Promise<RemoteAnswer<Record<string, unknown>>>
+  listAuthorization?: () => Promise<RemoteAnswer<readonly {
+    key: string
+    label: string
+    methods: readonly { id: string; label: string }[]
+    inFlight: boolean
+    configured: boolean
+  }[]>>
+  listAccounts?: (key: string) => Promise<RemoteAnswer<readonly {
+    key: string
+    account: string
+    label?: string
+    selected: boolean
+  }[]>>
 } = {}) {
   const seenRefs: string[][] = []
   const providers = overrides.providers ?? (() => Promise.resolve(ok({ providers: DIRECTORY })))
@@ -154,6 +167,10 @@ function api(overrides: {
       },
       set: () => Promise.resolve(remoteOk(undefined)),
       unset: () => Promise.resolve(remoteOk(undefined)),
+    },
+    authorization: {
+      list: overrides.listAuthorization ?? (() => Promise.resolve(remoteOk([]))),
+      listAccounts: overrides.listAccounts ?? (() => Promise.resolve(remoteOk([]))),
     },
   }
   // The page plugin's context, scripted down to the namespaces it reaches.
@@ -204,6 +221,61 @@ describe('ModelsSettingsStore', () => {
     expect(byProvider.get('anthropic')?.apiKeyEnv).toBeUndefined()
     expect(byProvider.get('ghost')).toMatchObject({ configured: false, removable: false })
     expect(state.namespaces.get('llm-pi-ai')?.ns).toBe('llm-pi-ai')
+  })
+
+  it('joins sign-in flows by record address and degrades them with the credential read', async () => {
+    const oauthFlow = {
+      key: 'llm-pi-ai/anthropic', label: 'Claude Pro/Max',
+      methods: [{ id: 'oauth', label: 'Sign in with Claude' }], inFlight: false, configured: true,
+    }
+    const { ctx, mirror } = api({ listAuthorization: () => Promise.resolve(remoteOk([oauthFlow])) })
+    const store = new ModelsSettingsStore(ctx, settingsSchema, mirror)
+    await store.load()
+    const state = store.store.getSnapshot()
+    expect(state.credentialError).toBeNull()
+    const anthropic = state.rows.find(row => row.entry.provider === 'anthropic')
+    expect(anthropic?.authorization).toMatchObject({ key: 'llm-pi-ai/anthropic', configured: true })
+    // Rows whose address no flow claims join nothing.
+    expect(state.rows.find(row => row.entry.provider === 'openai')?.authorization).toBeUndefined()
+
+    const broken = api({ listAuthorization: () => Promise.resolve(remoteFail('no authorization service')) })
+    const degraded = new ModelsSettingsStore(broken.ctx, settingsSchema, broken.mirror)
+    await degraded.load()
+    const state2 = degraded.store.getSnapshot()
+    expect(state2.status).toBe('ready')
+    expect(state2.credentialError).toBe('no authorization service')
+    expect(state2.rows.every(row => row.authorization === undefined)).toBe(true)
+  })
+
+  it('keeps a joined flow when its account list read is refused', async () => {
+    const oauthFlow = {
+      key: 'llm-pi-ai/anthropic', label: 'Claude Pro/Max',
+      methods: [{ id: 'oauth', label: 'Sign in with Claude' }], inFlight: false, configured: true,
+    }
+    const { ctx, mirror } = api({
+      listAuthorization: () => Promise.resolve(remoteOk([oauthFlow])),
+      listAccounts: () => Promise.resolve(remoteFail('account namespace unavailable')),
+    })
+    const store = new ModelsSettingsStore(ctx, settingsSchema, mirror)
+    await store.load()
+    const state = store.store.getSnapshot()
+    expect(state.status).toBe('ready')
+    const anthropic = state.rows.find(row => row.entry.provider === 'anthropic')
+    expect(anthropic?.authorization?.key).toBe('llm-pi-ai/anthropic')
+    expect(anthropic?.accounts).toBeUndefined()
+  })
+
+  it('counts an environment-less route usable only while its grant record is stored', () => {
+    const entry = {
+      provider: 'openai-codex', displayName: 'Codex', settingsNs: 'llm-pi-ai',
+      settingsPath: ['providers', 'openai-codex'], active: true,
+      nativeAuth: { env: [], oauth: true },
+    }
+    const flow = { configured: false } as never
+    const row = { entry, configured: true, removable: false, apiKeyEnv: undefined, credential: undefined }
+    expect(providerUsable(row)).toBe(true)
+    expect(providerUsable({ ...row, authorization: flow })).toBe(false)
+    expect(providerUsable({ ...row, authorization: { configured: true } as never })).toBe(true)
   })
 
   it('degrades the credential badge, not the page, when the credential domain fails', async () => {

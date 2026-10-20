@@ -1,5 +1,5 @@
 ---
-description: "Host Remote owner for settings and credential configuration surfaces, including redacted reads, writes, credential references, and native document opening."
+description: "Host Remote owner for settings and credential configuration surfaces, including redacted reads, writes, credential references, interactive authorization attempts, and native document opening."
 kind: "package-reference"
 ---
 # Settings Controller
@@ -8,7 +8,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-`@deepseek-ai/dsh-api-settings-controller` exposes generated `ctx.remote.settings` and `ctx.remote.credentials` namespaces for browser configuration surfaces. It returns redacted settings and credential metadata, supports settings and credential writes without returning secret values, and opens provider-owned settings or Agent preset locations on the Host desktop. When a provider is absent, the namespace remains registered and returns an actionable configuration error.
+`@deepseek-ai/dsh-api-settings-controller` exposes generated `ctx.remote.settings`, `ctx.remote.credentials`, and `ctx.remote.authorization` namespaces for browser configuration surfaces. It returns redacted settings and credential metadata, supports settings and credential writes without returning secret values, relays interactive provider sign-in attempts to the surface that started them, and opens provider-owned settings or Agent preset locations on the Host desktop. When a provider is absent, the namespace remains registered and returns an actionable configuration error.
 
 ## Table of Contents
 
@@ -30,6 +30,8 @@ Mount this package as a Loader entry in a profile that serves browser configurat
 `settings.describe()` returns deployment facts and every namespace under `redactSecrets: true`. `settings.update`, `settings.replace`, and `settings.mutate` expose the settings service's three write operations and return the namespace's new redacted view; stale writes use `settings-conflict` and other provider refusals use `settings-rejected`.
 
 `settings.openSettingsDocument()` prepares the provider-owned document and opens it with the native text editor; it accepts no browser-supplied filesystem target.
+
+`authorization.list()` projects the authorization service's registered flows — label, methods, in-flight, and configured state — without credential material. `begin(key, method, signal)` starts one attempt per key and resolves `{ status: 'authorized' | 'cancelled' }`; `notice`, `prompt`, `prompt-withdrawn`, and `settled` events relay the attempt's progress so the starting surface can render URLs, device codes, and questions. `answer(promptId, value)`, `decline(promptId)`, `cancel(key)`, and `signOut(key)` act on a live attempt or its stored grant; a missing authorization or credential service answers `gateway-internal`, while flow and store refusals report `authorization-rejected` carrying only the credential key in details. Grant values and prompt signals never cross the wire.
 
 -----
 

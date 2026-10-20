@@ -4,13 +4,24 @@ import type { Provider } from '@earendil-works/pi-ai'
 import type { LlmConfigurableProvider } from '@deepseek-ai/dsh-llm'
 import { PROVIDER_DATA } from './provider-data.generated.ts'
 
+type ProviderData = Pick<LlmConfigurableProvider, 'defaultBaseURL' | 'baseURLEnv'> & { env: readonly string[] }
+
+/**
+ * Display metadata for providers this plugin registers outside pi-ai's
+ * catalog, so the generated table — which covers only pi-ai's builtins —
+ * stays regenerable without them.
+ */
+const SUPPLEMENTAL_DATA: Record<string, ProviderData> = {
+  antigravity: { env: [], defaultBaseURL: 'https://daily-cloudcode-pa.googleapis.com' },
+}
+
 /**
  * Return generated display metadata without executing authentication.
  * @param provider - Installed catalog provider, possibly from a newer consumer dependency.
  * @returns Known metadata, or only a fixed public endpoint for an unrecorded provider.
  */
 export function providerDefaultsOf(provider: Provider): Pick<LlmConfigurableProvider, 'nativeAuth' | 'defaultBaseURL' | 'baseURLEnv'> {
-  const data = PROVIDER_DATA[provider.id]
+  const data = PROVIDER_DATA[provider.id] ?? SUPPLEMENTAL_DATA[provider.id]
   // A consumer can install a newer pi-ai within the dependency range. An
   // unrecorded provider remains configurable without guessed auth metadata.
   if (data === undefined) return provider.baseUrl && !provider.baseUrl.includes('{') ? { defaultBaseURL: provider.baseUrl } : {}

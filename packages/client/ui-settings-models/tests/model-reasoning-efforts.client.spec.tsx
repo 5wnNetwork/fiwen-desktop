@@ -244,6 +244,14 @@ describe('reasoning levels in the model list', () => {
     storeCredential: vi.fn(),
     removeCredential: vi.fn(),
     writeSettings: vi.fn(),
+    beginAuthorization: vi.fn(),
+    answerAuthorizationPrompt: vi.fn(),
+    declineAuthorizationPrompt: vi.fn(),
+    cancelAuthorization: vi.fn(),
+    signOutAuthorization: vi.fn(),
+
+    selectAuthorizationAccount: vi.fn(),
+    authorizationQuota: vi.fn(),
   }
 
   /** Render the list over local state, reporting every write. */

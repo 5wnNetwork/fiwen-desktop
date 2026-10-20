@@ -146,7 +146,7 @@ describe('hand-declared providers', () => {
     // provider carries a stored profile the moment anyone corrects it.
     expect(directory.filter(entry => entry.declared).map(entry => entry.provider))
       .toEqual(['acme-gateway'])
-    expect(directory.find(entry => entry.provider === 'deepseek')?.declared).toBe(false)
+    expect(directory.find(entry => entry.provider === 'anthropic')?.declared).toBe(false)
   })
 
   it('sizes a model the catalog cannot describe from the route\u2019s own fallbacks', () => {
@@ -1229,7 +1229,7 @@ describe('configurable-provider directory', () => {
       { provider: 'deepseek-official', displayName: 'DeepSeek', settingsNs: 'llm-deepseek', settingsPath: [] },
     ])
     const before = ctx.llm.listConfigurableProviders().length
-    expect(before).toBeGreaterThan(30)
+    expect(before).toBeGreaterThan(0)
 
     await configurations.get(ctx)!.update({
       providers: {
@@ -1270,19 +1270,27 @@ describe('configurable-provider directory', () => {
     expect(ctx.llm.listConfigurableProviders()).toHaveLength(catalogOnly)
   })
 
-  it('offers every installed catalog route, including one that only signs in', async () => {
+  it('offers the subscription providers and leaves the rest for a declared route', async () => {
     const ctx = await harness({})
     const offered = ctx.llm.listConfigurableProviders().map(entry => entry.provider)
 
-    // `openai-codex` is the one installed provider that authenticates through
-    // OAuth alone. It is offered like any other because the collection now
-    // carries a durable credential store and a login flow writes into it, so
-    // the route has a posture that works rather than only one that fails.
-    expect(offered).toContain('openai-codex')
-    expect(offered).toContain('anthropic')
-    expect(offered).toContain('openai')
-    expect(offered).toContain('azure')
-    expect(offered).not.toContain('azure-openai-responses')
+    // The directory fronts the third-party subscriptions: the three OAuth
+    // providers, including `openai-codex`, which authenticates through OAuth
+    // alone — the credential store and login flow give that route a posture
+    // that works rather than only one that fails. `antigravity` is the
+    // plugin's own provider, not pi-ai's, and still joins the offer.
+    expect(offered).toEqual(['anthropic', 'openai-codex', 'antigravity'])
+    // Installed but not offered: `openai` and `azure` stay reachable by a
+    // hand-declared route, which lists them through the profile loop.
+    expect(catalogProvider('openai')).not.toBeUndefined()
+    expect(catalogProvider('azure')).not.toBeUndefined()
+    // `antigravity`'s model list is the provider's own — pi-ai's builtin table
+    // has no entry for it, so `catalogModels` reads `getModels()` instead.
+    expect(catalogModels('antigravity').size).toBeGreaterThan(0)
+    expect(catalogModels('antigravity').get('gemini-3.8-flash-medium')).toMatchObject({
+      provider: 'antigravity',
+      api: 'google-generative-ai',
+    })
   })
 
   it('leaves out an installed catalog route that ships no chat model', async () => {

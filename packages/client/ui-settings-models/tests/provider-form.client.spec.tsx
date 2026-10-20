@@ -118,6 +118,12 @@ function scriptedFace(options: {
   const mutate = options.mutate ?? vi.fn(() => Promise.resolve(remoteOk(namespace)))
   const set = options.set ?? vi.fn(() => Promise.resolve(remoteOk(undefined)))
   const face = {
+    // The operations the page binds once per face; the sign-in surface's
+    // subscriptions stay inert in this suite.
+    $on: vi.fn(() => () => {}),
+    authorization: {
+      list: vi.fn(() => Promise.resolve(remoteOk([]))),
+    },
     llm: {
       listProviders: vi.fn(() => Promise.resolve(ok(
         Object.keys(providers).map(provider => ({ id: provider, name: provider })),

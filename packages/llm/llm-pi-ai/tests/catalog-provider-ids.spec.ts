@@ -20,7 +20,9 @@ import { catalogModels, catalogProvider, catalogProviderIds } from '../src/catal
 
 describe('catalog provider ids', () => {
   it('drops a provider that lists only non-chat models and keeps one that lists none', () => {
-    expect(catalogProviderIds()).toEqual(['chat-provider', 'uncataloged-provider'])
+    // `antigravity` is this package's own provider beside pi-ai's catalog; it
+    // is not mocked away because it does not come through `builtinProviders`.
+    expect(catalogProviderIds()).toEqual(['chat-provider', 'uncataloged-provider', 'antigravity'])
   })
 
   it('answers no catalog provider or models for the provider it drops', () => {

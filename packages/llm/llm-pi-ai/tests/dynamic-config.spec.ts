@@ -155,19 +155,19 @@ describe('request-level dynamic profiles', () => {
     const ctx = await boot(dir, {})
 
     expect(ctx.llm.listProviders()).toEqual([])
-    // Dormant ≠ invisible: every installed catalog provider is configurable
+    // Dormant ≠ invisible: the offered catalog providers are configurable
     // before any route exists, each addressed inside the providers dict and
     // described by the endpoint and environment variables it uses unconfigured.
     const directory = ctx.llm.listConfigurableProviders()
-    expect(directory.length).toBeGreaterThan(30)
+    expect(directory.map(entry => entry.provider)).toEqual(['anthropic', 'openai-codex', 'antigravity'])
     expect(directory).toContainEqual({
-      provider: 'openai',
-      displayName: 'openai',
+      provider: 'antigravity',
+      displayName: 'antigravity',
       settingsNs: 'llm-pi-ai',
-      settingsPath: ['providers', 'openai'],
+      settingsPath: ['providers', 'antigravity'],
       declared: false,
-      defaultBaseURL: 'https://api.openai.com/v1',
-      nativeAuth: { env: ['OPENAI_API_KEY'], oauth: true },
+      defaultBaseURL: 'https://daily-cloudcode-pa.googleapis.com',
+      nativeAuth: { env: [], oauth: true },
     })
     await configurations.get(ctx)!.update({
       providers: { deepseek: { apiKeyEnv: 'PI_DYNAMIC_KEY', baseURL: server.url } },

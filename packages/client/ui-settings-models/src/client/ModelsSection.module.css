@@ -829,3 +829,127 @@ select.input {
   line-height: 20px;
   text-align: center;
 }
+
+.signInRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.signInAttempt {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.signInLog {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.signInCode {
+  display: inline-flex;
+  align-self: flex-start;
+  padding: 4px 10px;
+  border-radius: var(--dsw-radius-md);
+  background: var(--dsw-alias-bg-layer-1);
+  font-family: var(--ds-font-family-code);
+  font-size: 14px;
+  letter-spacing: 0.08em;
+  color: var(--dsw-alias-label-primary);
+  user-select: all;
+}
+
+.signInPrompt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.signInPrompt .input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.signInOptions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Stored OAuth accounts of one provider: a radio picks the account requests
+   resolve to, and each row keeps its own quota and sign-out controls. */
+.accountList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.accountRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+}
+
+.accountSelector {
+  display: inline-flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  cursor: pointer;
+}
+
+.accountSelector input[type='radio'] {
+  flex: none;
+  margin: 0;
+  accent-color: var(--dsw-alias-brand-primary);
+}
+
+.accountSelector input[type='radio']:disabled {
+  cursor: default;
+}
+
+.accountLabel {
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 20px;
+  color: var(--dsw-alias-label-primary);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quotaChips {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+
+.quotaPlan,
+.quotaChip {
+  padding: 1px 6px;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: var(--dsw-radius-xs);
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.quotaPlan {
+  border: none;
+  background: var(--dsw-alias-bg-layer-1);
+  color: var(--dsw-alias-label-secondary);
+}
+
+.quotaFailed {
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--dsw-alias-state-error-primary);
+}

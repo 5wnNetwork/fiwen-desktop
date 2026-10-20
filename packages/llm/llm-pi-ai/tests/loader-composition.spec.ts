@@ -92,15 +92,19 @@ describe('llm-pi-ai real dormant composition', () => {
     const server = await mockServer([{ events: textEvents }])
     const { ctx, settingsPath } = await loadComposition()
 
-    // The shipped posture: the adapter exists, no route does.
+    // The shipped posture: the adapter exists, no route does, and the
+    // directory offers exactly the subscription providers.
     expect(ctx.llm.listProviders()).toEqual([])
     const directory = ctx.llm.listConfigurableProviders()
-    expect(directory.find(entry => entry.provider === 'azure')).toMatchObject({
-      nativeAuth: { env: ['AZURE_OPENAI_API_KEY'], oauth: false },
-      baseURLEnv: ['AZURE_OPENAI_BASE_URL', 'AZURE_OPENAI_RESOURCE_NAME'],
+    expect(directory.map(entry => entry.provider)).toEqual(['anthropic', 'openai-codex', 'antigravity'])
+    const anthropicEntry = directory.find(entry => entry.provider === 'anthropic')
+    expect(anthropicEntry?.nativeAuth?.oauth).toBe(true)
+    expect(anthropicEntry?.nativeAuth?.env).toContain('ANTHROPIC_API_KEY')
+    expect(anthropicEntry?.defaultBaseURL).toBe('https://api.anthropic.com')
+    expect(directory.find(entry => entry.provider === 'antigravity')).toMatchObject({
+      nativeAuth: { env: [], oauth: true },
+      defaultBaseURL: 'https://daily-cloudcode-pa.googleapis.com',
     })
-    expect(directory.find(entry => entry.provider === 'radius')?.defaultBaseURL).toBe('https://radius.pi.dev/v1')
-    expect(directory.find(entry => entry.provider === 'opencode')?.defaultBaseURL).toBeUndefined()
 
     // Exactly what the web Models page leaves on disk.
     await writeFile(settingsPath, [

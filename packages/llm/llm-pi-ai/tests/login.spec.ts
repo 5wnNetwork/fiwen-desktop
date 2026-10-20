@@ -6,6 +6,7 @@ import { Context } from '@deepseek-ai/cordis'
 import AuthorizationService from '@deepseek-ai/dsh-authorization'
 import type { AuthorizationInteraction, AuthorizationNotice, AuthorizationPrompt } from '@deepseek-ai/dsh-authorization'
 import LocalCredentialProvider from '@deepseek-ai/dsh-credentials-local'
+import { credentialKey } from '@deepseek-ai/dsh-credentials'
 import type { CredentialKey } from '@deepseek-ai/dsh-credentials'
 import type { AuthEvent, AuthInteraction, AuthPrompt, AuthType, Credential } from '@earendil-works/pi-ai'
 
@@ -59,7 +60,7 @@ function surface(answer = 'typed'): AuthorizationInteraction & {
 async function attempt(
   ctx: Context,
   converse: (interaction: AuthInteraction) => Promise<void>,
-  request: { key?: CredentialKey; method?: string } = {},
+  request: { key?: CredentialKey; method?: string; account?: string } = {},
 ): Promise<ReturnType<typeof surface>> {
   const ui = surface()
   login.mockImplementation(async (providerId: string, _type: AuthType, interaction: AuthInteraction) => {
@@ -68,11 +69,14 @@ async function attempt(
     await credentialStoreFrom(ctx).modify(providerId, () => Promise.resolve(granted))
     return granted
   })
+  const key = request.key ?? CODEX
+  const commit = request.account === undefined ? key : credentialKey('llm-pi-ai', `${key.split('/')[1]}--${request.account}`)
   await expect(ctx.authorization.begin({
-    key: request.key ?? CODEX,
+    key,
     interaction: ui,
     ...request.method === undefined ? {} : { method: request.method },
-  })).resolves.toEqual({ status: 'authorized' })
+    ...request.account === undefined ? {} : { account: request.account },
+  })).resolves.toEqual({ status: 'authorized', key: commit })
   return ui
 }
 
@@ -198,7 +202,34 @@ describe('pi-ai login flows', () => {
       key: CODEX,
       interaction: surface(),
       signal: controller.signal,
-    })).resolves.toEqual({ status: 'cancelled' })
+    })).resolves.toEqual({ status: 'cancelled', key: CODEX })
     expect(seen?.aborted).toBe(true)
+  })
+
+  it('commits an account attempt to its suffixed record and selects it', async () => {
+    const ctx = await harness()
+
+    // The seam hands the attempt `account`; the flow clones the provider under
+    // the suffixed id so pi-ai's own store write lands on the account record.
+    await attempt(ctx, () => Promise.resolve(), { key: recordKeyFor('anthropic'), account: 'acct-9' })
+    expect(login).toHaveBeenLastCalledWith('anthropic--acct-9', 'oauth', expect.anything())
+
+    const accountKey = credentialKey('llm-pi-ai', 'anthropic--acct-9')
+    await expect(ctx.credentials.readRecord(accountKey)).resolves.toEqual({
+      kind: 'grant',
+      payload: { type: 'oauth', access: 'at', refresh: 'rt', expires: 1 },
+    })
+    // A fresh account becomes the selected one, and the bare id serves it.
+    await expect(ctx.credentials.readRecord(credentialKey('llm-pi-ai', 'anthropic--selected')))
+      .resolves.toEqual({ kind: 'grant', payload: { account: 'acct-9' } })
+    await expect(credentialStoreFrom(ctx).read('anthropic')).resolves.toMatchObject({ access: 'at' })
+  })
+
+  it('lists accounts with labels and reports quota through the flow', async () => {
+    const ctx = await harness()
+    await attempt(ctx, () => Promise.resolve(), { key: recordKeyFor('anthropic'), account: 'acct-9' })
+
+    const accounts = await ctx.authorization.listAccounts(recordKeyFor('anthropic'))
+    expect(accounts).toEqual([{ key: credentialKey('llm-pi-ai', 'anthropic--acct-9'), account: 'acct-9', selected: true }])
   })
 })

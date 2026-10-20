@@ -47,7 +47,10 @@ const NS = 'settings.models'
 export type {
   ModelsSettingsState, ProviderDirectoryEntry, ProviderRow,
 } from './store.ts'
-export type { ModelDiscoveryOutcome, ModelsOperations, SettingsWriteOutcome } from './operations.ts'
+export type {
+  AuthorizationHandlers, AuthorizationOutcomeView,
+  ModelDiscoveryOutcome, ModelsOperations, SettingsWriteOutcome,
+} from './operations.ts'
 
 /**
  * Refetch the page snapshot only after its first load: an unopened Models
@@ -65,8 +68,8 @@ export function refreshIfLoaded(controller: ModelsSettingsStore): void {
  * constrained; registration depends on each slot through `slots.inject()`.
  */
 export const inject = [
-  'slots', 'locale', 'remote', 'remote.credentials', 'remote.llm', 'remote.settings', 'remote.session',
-  'configForms', 'settingsSchema',
+  'slots', 'locale', 'remote', 'remote.authorization', 'remote.credentials', 'remote.llm', 'remote.settings',
+  'remote.session', 'configForms', 'settingsSchema',
 ]
 
 /**
@@ -124,6 +127,9 @@ export function apply(ctx: ClientContext): void {
       ctx.remote.$on('settings/document-updated', () => { refreshModels() }),
       ctx.remote.$on('credentials/record-updated', refreshModels),
       ctx.remote.$on('credentials/reference-updated', refreshModels),
+      // A settlement flips a flow's inFlight flag; a commit inside it fires
+      // the record update above on its own.
+      ctx.remote.$on('authorization/settled', refreshModels),
       ctx.remote.$on('llm/adapters-updated', refreshModels),
       ctx.on('connection/reset', refreshModels),
     ]

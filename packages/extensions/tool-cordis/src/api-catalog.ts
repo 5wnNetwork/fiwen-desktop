@@ -549,6 +549,58 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'authorizationController',
+    summary: 'Host service backing the generated `ctx.remote.authorization` namespace.',
+    description: 'Host service backing the generated `ctx.remote.authorization` namespace. It turns the seam\'s request-scoped AuthorizationInteraction into the wire conversation: each `begin` relays the flow\'s notices and prompts as `authorization/notice` / `authorization/prompt` events, and `answer` / `decline` resolve the pending prompt the surface names by its minted id. Single-flight per key stays with the seam — a second `begin` while one runs fails as `authorization/rejected`, and `cancel` is how a surface whose own request is still open withdraws it.',
+    methods: [
+      {
+        signature: '@Remote async list(): Promise<AuthorizationEntryView[]>',
+        description: 'Every registered flow with its stored-credential state, for a surface listing what can be authorized.',
+        parameters: [],
+        returns: 'one view per flow, in registration order.',
+        throws: ['RemoteError when no authorization or credential service is mounted.'],
+      },
+      {
+        signature: '@Remote async describe(key: string): Promise<AuthorizationDescribeView>',
+        description: 'One record\'s flow and stored-credential state. The `configured` half answers independently of `entry` on purpose: a stored grant whose flow\'s plugin is gone is still a credential the surface can let the user sign out.',
+        parameters: [{ name: 'key', description: 'the credential record to describe; malformed keys reject as `gateway/bad-request`.' }],
+        returns: 'the key, its flow view when registered, and its stored state.',
+        throws: ['RemoteError when the request is invalid or a required service is absent.'],
+      },
+      {
+        signature: '@Remote async begin(key: string, method: string | undefined, signal: AbortSignal): Promise<AuthorizationOutcome>',
+        description: 'Run one attempt to authorize a key, returning when it settles. The call stays open for the whole conversation: notices and prompts arrive as the forwarded events while it runs, the caller\'s own signal withdrawing the attempt when the connection drops or the caller cancels it.',
+        parameters: [{ name: 'key', description: 'the credential record to authorize.' }, { name: 'method', description: 'which of the flow\'s methods to run; `undefined` runs its first.' }, { name: 'signal', description: 'caller lifetime; aborting withdraws the attempt.' }],
+        returns: '`authorized` once the record is committed, `cancelled` when the human declined or withdrew.',
+        throws: ['RemoteError `authorization/rejected` when no flow claims the key, the method is unknown, an attempt is already running, or the flow fails.'],
+      },
+      {
+        signature: '@Remote answer(promptId: string, value: string): boolean',
+        description: 'Deliver the human\'s answer to a waiting prompt.',
+        parameters: [{ name: 'promptId', description: 'the handle from `authorization/prompt`.' }, { name: 'value', description: 'the typed text, or the chosen option\'s id.' }],
+        returns: 'whether a prompt was still waiting for the id; `false` means it settled or was withdrawn first, which is an outcome, not a failure.',
+      },
+      {
+        signature: '@Remote decline(promptId: string): boolean',
+        description: 'Tell a waiting prompt the human declined it.',
+        parameters: [{ name: 'promptId', description: 'the handle from `authorization/prompt`.' }],
+        returns: 'whether a prompt was still waiting for the id.',
+      },
+      {
+        signature: '@Remote cancel(key: string): void',
+        description: 'Withdraw the attempt running for a key. The request/response transport answers a Cancel control on a second call, which has no handle on the first call\'s signal.',
+        parameters: [{ name: 'key', description: 'the credential record whose attempt should stop.' }],
+        throws: ['RemoteError when the request is invalid or no authorization service is mounted.'],
+      },
+      {
+        signature: '@Remote async signOut(key: string): Promise<void>',
+        description: 'Remove one stored credential record — the surface\'s "sign out". Removing an absent record is a no-op.',
+        parameters: [{ name: 'key', description: 'the credential record to remove.' }],
+        throws: ['RemoteError when the request is invalid, no credential service is mounted, or the store refuses.'],
+      },
+    ],
+  },
+  {
     key: 'browserUse',
     summary: 'Owns one optional provider registration in the shared browser-use service.',
     description: 'Owns one optional provider registration in the shared browser-use service.',
@@ -4166,6 +4218,30 @@ export const EVENT_API: readonly EventApiEntry[] = [
     parameters: [{ name: 'req', description: 'pending approval request.' }],
   },
   {
+    name: 'authorization/notice',
+    mode: 'emit',
+    signature: '\'authorization/notice\'(event: AuthorizationNoticeEvent): void',
+    summary: 'Progress or an instruction from a running attempt, relayed to the surface that started it.',
+    description: 'Progress or an instruction from a running attempt, relayed to the surface that started it. Broadcast rather than private: other surfaces may watch, and only the prompt channel carries an answer handle.',
+    parameters: [{ name: 'event', description: 'the key and the reported notice.' }],
+  },
+  {
+    name: 'authorization/prompt',
+    mode: 'emit',
+    signature: '\'authorization/prompt\'(event: AuthorizationPromptEvent): void',
+    summary: 'A running attempt is waiting on the human who started it.',
+    description: 'A running attempt is waiting on the human who started it. The `promptId` it carries is the answer handle — generated per prompt and never reused — so the surface that started the attempt answers exactly the question it rendered.',
+    parameters: [{ name: 'event', description: 'the key, the answer handle, and the question.' }],
+  },
+  {
+    name: 'authorization/prompt-withdrawn',
+    mode: 'emit',
+    signature: '\'authorization/prompt-withdrawn\'(event: AuthorizationPromptWithdrawnEvent): void',
+    summary: 'A surfaced prompt closed without an answer — the flow retired the question itself (a browser callback won the race against the typed code).',
+    description: 'A surfaced prompt closed without an answer — the flow retired the question itself (a browser callback won the race against the typed code). The owning surface dismisses it rather than answering.',
+    parameters: [{ name: 'event', description: 'the key and the closed prompt\'s handle.' }],
+  },
+  {
     name: 'authorization/settled',
     mode: 'emit',
     signature: '\'authorization/settled\'(key: CredentialKey, settlement: AuthorizationSettlement): void',
@@ -4902,8 +4978,16 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type AttachmentId = Branded<\'AttachmentId\'>;',
   },
   {
+    name: 'AuthorizationDescribeView',
+    declaration: 'export interface AuthorizationDescribeView {\n    readonly key: CredentialKey;\n    readonly entry?: AuthorizationEntryView;\n    readonly configured: boolean;\n}',
+  },
+  {
     name: 'AuthorizationEntry',
     declaration: 'export interface AuthorizationEntry {\n    key: CredentialKey;\n    label: string;\n    methods: readonly AuthorizationMethod[];\n    inFlight: boolean;\n}',
+  },
+  {
+    name: 'AuthorizationEntryView',
+    declaration: 'export interface AuthorizationEntryView extends AuthorizationEntry {\n    readonly configured: boolean;\n}',
   },
   {
     name: 'AuthorizationFlow',
@@ -4922,16 +5006,32 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface AuthorizationNotice {\n    message: string;\n    url?: string;\n    code?: string;\n}',
   },
   {
+    name: 'AuthorizationNoticeEvent',
+    declaration: 'export interface AuthorizationNoticeEvent {\n    key: CredentialKey;\n    notice: AuthorizationNotice;\n}',
+  },
+  {
     name: 'AuthorizationOutcome',
     declaration: 'export interface AuthorizationOutcome {\n    status: AuthorizationStatus;\n}',
   },
   {
     name: 'AuthorizationPrompt',
-    declaration: 'export type AuthorizationPrompt = {\n    signal?: AbortSignal;\n} & ({\n    kind: \'text\';\n    message: string;\n    placeholder?: string;\n} | {\n    kind: \'secret\';\n    message: string;\n    placeholder?: string;\n} | {\n    kind: \'select\';\n    message: string;\n    options: readonly AuthorizationPromptOption[];\n});',
+    declaration: 'export type AuthorizationPrompt = {\n    signal?: AbortSignal;\n} & AuthorizationPromptView;',
+  },
+  {
+    name: 'AuthorizationPromptEvent',
+    declaration: 'export interface AuthorizationPromptEvent {\n    key: CredentialKey;\n    promptId: string;\n    prompt: AuthorizationPromptView;\n}',
   },
   {
     name: 'AuthorizationPromptOption',
     declaration: 'export interface AuthorizationPromptOption {\n    id: string;\n    label: string;\n    description?: string;\n}',
+  },
+  {
+    name: 'AuthorizationPromptView',
+    declaration: 'export type AuthorizationPromptView = {\n    kind: \'text\';\n    message: string;\n    placeholder?: string;\n} | {\n    kind: \'secret\';\n    message: string;\n    placeholder?: string;\n} | {\n    kind: \'select\';\n    message: string;\n    options: readonly AuthorizationPromptOption[];\n};',
+  },
+  {
+    name: 'AuthorizationPromptWithdrawnEvent',
+    declaration: 'export interface AuthorizationPromptWithdrawnEvent {\n    key: CredentialKey;\n    promptId: string;\n}',
   },
   {
     name: 'AuthorizationRequest',

@@ -91,6 +91,10 @@ function harness(options: {
     return Promise.resolve(remoteOk(undefined))
   })
   const face = {
+    $on: vi.fn(() => () => {}),
+    authorization: {
+      list: () => Promise.resolve(remoteOk([])),
+    },
     llm: {
       listProviders: () => {
         if (options.providersFailure !== undefined) return Promise.resolve(remoteFail(options.providersFailure))
@@ -135,8 +139,12 @@ function harness(options: {
       set,
     },
   }
-  // The page plugin's context, scripted down to the namespaces it reaches.
-  const ctx = { remote: { ...face, session: { initializeDefaultModel: async () => ({ ok: true, value: undefined }) } } } as never
+  // The page plugin's context, scripted down to the namespaces it reaches —
+  // `effect` runs its body at once, as the plugin fiber does in production.
+  const ctx = {
+    remote: { ...face, session: { initializeDefaultModel: async () => ({ ok: true, value: undefined }) } },
+    effect: (run: () => void) => { run() },
+  } as never
   const operations = createModelsOperations(ctx)
   const controller = new ModelsSettingsStore(ctx, settingsSchema, new SettingsDescribeMirror(ctx))
   const openSection = vi.fn()

@@ -8,6 +8,7 @@
 
 import type {} from '@deepseek-ai/dsh-api-session-controller/remote-events'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type {} from '@deepseek-ai/dsh-authorization/types'
 import type {} from '@deepseek-ai/dsh-deepseek-account/types'
 import type {} from '@deepseek-ai/dsh-permission-presets/types'
 import type {} from '@deepseek-ai/dsh-plugin-manager/types'
@@ -36,6 +37,10 @@ export const API_REMOTE_FORWARDED_EVENTS = [
   { event: 'deepseek-account/model-sign-in-required', mode: 'emit' },
   { event: 'credentials/record-updated', mode: 'emit' },
   { event: 'credentials/reference-updated', mode: 'emit' },
+  { event: 'authorization/notice', mode: 'emit' },
+  { event: 'authorization/prompt', mode: 'emit' },
+  { event: 'authorization/prompt-withdrawn', mode: 'emit' },
+  { event: 'authorization/settled', mode: 'emit' },
   { event: 'goal/activation-changed', mode: 'emit' },
   { event: 'cordis/request-run', mode: 'emit' },
   { event: 'cordis/request-run-resolved', mode: 'emit' },

@@ -1,0 +1,40 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/bundle/fiwen/README.md
+/:
+  en: ca3e9c54d9f518ab
+  zh: bceccd72420d31fb
+/deepseek-ai-dsh-fiwen:
+  en: 7b3bf2a9e0d735ad
+  zh: ba2016555cfa9853
+/deepseek-ai-dsh-fiwen/summary:
+  en: cde1b6c13a5acb5d
+  zh: b92ee612b1707f99
+/deepseek-ai-dsh-fiwen/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: f9eec6518f31908c
+/deepseek-ai-dsh-fiwen/use-this-package:
+  en: 669c22e810b618fb
+  zh: cafdf4c8e895b7c1
+/deepseek-ai-dsh-fiwen/use-this-package/what-you-get:
+  en: bc1c9c2a556b29a0
+  zh: 73819bc9149d3c30
+/deepseek-ai-dsh-fiwen/understand-the-implementation:
+  en: 43f13111cba3d6ac
+  zh: 0214cc7757592d80
+/deepseek-ai-dsh-fiwen/further-exploration:
+  en: 5a22b179c39a0bb2
+  zh: 457dee5911604105
+/deepseek-ai-dsh-fiwen/model-experience:
+  en: d4952da59ffc642f
+  zh: f6aadeb996067538
+/deepseek-ai-dsh-fiwen/model-experience/kv-cache-effect:
+  en: 3fb0789852417771
+  zh: 4eb477cb7f2f0873
+/deepseek-ai-dsh-fiwen/known-limitations-and-deferred-work:
+  en: 5c639725ccb50e87
+  zh: ba15f4e34233d7f1
+/deepseek-ai-dsh-fiwen/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: e88aeb617ffb74ea

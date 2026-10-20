@@ -249,6 +249,12 @@ interface LlmFailure {
    * selected occurrences in an `image/offload` event and retries the step.
    */
   readonly offloadImages?: number
+  /**
+   * With code `PLAN_REQUIRED`/`ACCOUNT_PLAN_REQUIRED`: the display name of the
+   * lowest subscription plan that admits the model, supplied by the provider
+   * for the upgrade surface.
+   */
+  readonly requiredPlan?: string
 }
 ```
 

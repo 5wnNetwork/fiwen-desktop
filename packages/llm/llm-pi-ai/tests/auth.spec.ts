@@ -198,6 +198,98 @@ describe('pi-ai credential store over harness records', () => {
   })
 })
 
+describe('account-record redirect', () => {
+  const account = { type: 'oauth' as const, access: 'at', refresh: 'rt', expires: 1 }
+
+  /** Store an account record under `provider--slot` directly, as a sign-in does. */
+  async function grant(ctx: Context, providerId: string, slot: string, access: string): Promise<void> {
+    await ctx.credentials.modifyRecord(credentialKey('llm-pi-ai', `${providerId}--${slot}`), () =>
+      Promise.resolve({ kind: 'grant', payload: { ...account, access } }))
+  }
+
+  /** Point the provider's selection at `slot`, as `selectAccount` writes it. */
+  async function select(ctx: Context, providerId: string, slot: string): Promise<void> {
+    await ctx.credentials.modifyRecord(credentialKey('llm-pi-ai', `${providerId}--selected`), () =>
+      Promise.resolve({ kind: 'grant', payload: { account: slot } }))
+  }
+
+  it('serves the selected account on the bare provider id', async () => {
+    const ctx = await stored()
+    const store = credentialStoreFrom(ctx)
+    await grant(ctx, 'anthropic', 'acct-1', 'at-first')
+    await grant(ctx, 'anthropic', 'acct-2', 'at-second')
+    await select(ctx, 'anthropic', 'acct-2')
+
+    await expect(store.read('anthropic')).resolves.toMatchObject({ access: 'at-second' })
+    // An account-suffixed id addresses itself regardless of the pointer — the
+    // path a sign-in flow's own commit takes.
+    await expect(store.read('anthropic--acct-1')).resolves.toMatchObject({ access: 'at-first' })
+  })
+
+  it('lands a refresh write on the account the pointer names, not the base record', async () => {
+    const ctx = await stored()
+    const store = credentialStoreFrom(ctx)
+    await grant(ctx, 'openai-codex', 'acct-1', 'old')
+    await select(ctx, 'openai-codex', 'acct-1')
+
+    // pi-ai refreshes inside modify(): the rotated token must land back on the
+    // account record it came from.
+    await store.modify('openai-codex', current =>
+      Promise.resolve({ ...current!, access: 'rotated' }))
+
+    await expect(ctx.credentials.readRecord(credentialKey('llm-pi-ai', 'openai-codex--acct-1')))
+      .resolves.toMatchObject({ payload: { access: 'rotated' } })
+    await expect(ctx.credentials.readRecord(CODEX)).resolves.toBeUndefined()
+  })
+
+  it('falls back when the pointed account is gone, and never strands the provider', async () => {
+    const ctx = await stored()
+    const store = credentialStoreFrom(ctx)
+    await grant(ctx, 'anthropic', 'acct-1', 'at-a')
+    await grant(ctx, 'anthropic', 'acct-2', 'at-b')
+    await select(ctx, 'anthropic', 'acct-1')
+    // The pointer target disappears out from under it (signed out elsewhere).
+    await ctx.credentials.deleteRecord(credentialKey('llm-pi-ai', 'anthropic--acct-1'))
+
+    await expect(store.read('anthropic')).resolves.toMatchObject({ access: 'at-b' })
+  })
+
+  it('answers the base record when no accounts exist yet', async () => {
+    const ctx = await stored()
+    const store = credentialStoreFrom(ctx)
+    await store.modify('anthropic', () => Promise.resolve(account))
+
+    await expect(store.read('anthropic')).resolves.toMatchObject({ access: 'at' })
+  })
+
+  it('folds account records into the provider\'s single list entry', async () => {
+    const ctx = await stored()
+    const store = credentialStoreFrom(ctx)
+    await grant(ctx, 'anthropic', 'acct-1', 'a')
+    await grant(ctx, 'anthropic', 'acct-2', 'b')
+    await select(ctx, 'anthropic', 'acct-1')
+    await store.modify('cloudflare', () => Promise.resolve({ type: 'api_key', key: 'k' }))
+
+    // The pointer record is not a credential, and the two accounts are one
+    // provider from pi-ai's "who is signed in" point of view.
+    await expect(store.list()).resolves.toEqual([
+      { providerId: 'anthropic', type: 'oauth' },
+      { providerId: 'cloudflare', type: 'api_key' },
+    ])
+  })
+
+  it('lets a first sign-in create an account record through its suffixed id', async () => {
+    const ctx = await stored()
+    const store = credentialStoreFrom(ctx)
+
+    await store.modify('anthropic--acct-1', () => Promise.resolve(account))
+
+    await expect(store.read('anthropic--acct-1')).resolves.toMatchObject({ access: 'at' })
+    await expect(ctx.credentials.readRecord(credentialKey('llm-pi-ai', 'anthropic')))
+      .resolves.toBeUndefined()
+  })
+})
+
 describe('pi-ai ambient auth context', () => {
   beforeEach(() => {
     vi.stubEnv('PI_AUTH_AMBIENT', 'from-environment')

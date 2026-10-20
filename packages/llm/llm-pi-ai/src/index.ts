@@ -115,7 +115,15 @@ function registrationFacts(profiles: ReadonlyMap<string, ResolvedPiAiProviderPro
 }
 
 /**
- * The configurable-provider directory: every installed catalog route, plus
+ * The catalog providers the directory offers to sign-in-driven surfaces.
+ * These are the third-party subscriptions the product fronts; every other
+ * installed provider stays usable through a hand-declared route without
+ * being offered here.
+ */
+const OFFERED_PROVIDERS: ReadonlySet<string> = new Set(['anthropic', 'openai-codex', 'antigravity'])
+
+/**
+ * The configurable-provider directory: the offered catalog routes, plus
  * every route the current profiles declare. A hand-declared route has no
  * catalog entry, so without this union it would have no settings address and
  * configuration surfaces could neither show nor edit it. A catalog route also
@@ -145,7 +153,15 @@ function directoryEntries(
       ...error === undefined ? {} : { error },
     })
   }
-  for (const provider of catalogProviderIds()) declare(provider, provider)
+  for (const provider of catalogProviderIds()) {
+    // The directory is where configuration surfaces offer catalog routes;
+    // only the subscription providers are offered from it. Every other
+    // installed provider still works when a route declares it by name — the
+    // profile loop below always grants that route its settings address —
+    // but it is not offered as a pick from this surface.
+    if (!OFFERED_PROVIDERS.has(provider)) continue
+    declare(provider, provider)
+  }
   for (const [provider, profile] of profiles) declare(provider, profile.displayName, profile.catalogError)
   return [...entries.values()]
 }

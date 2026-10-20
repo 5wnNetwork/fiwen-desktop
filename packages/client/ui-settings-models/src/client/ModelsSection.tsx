@@ -134,6 +134,8 @@ function renderProviderEditor({ target, row, ...props }: ProviderEditorRenderPro
       {...target.nativeAuth === undefined ? {} : { nativeAuth: target.nativeAuth }}
       {...row.credential === undefined ? {} : { credential: row.credential }}
       {...row.credentialChecks === undefined ? {} : { credentialChecks: row.credentialChecks }}
+      {...row.authorization === undefined ? {} : { authorization: row.authorization }}
+      {...row.accounts === undefined ? {} : { accounts: row.accounts }}
       {...props}
     />
   )
@@ -194,7 +196,7 @@ export function needsSetup(row: ProviderRow, anyUsable: boolean): boolean {
 function keyConfiguredOf(row: ProviderRow): boolean {
   return row.apiKeyEnv !== undefined
     ? row.credential?.configured === true
-    : row.derivedCredential?.configured === true
+    : row.derivedCredential?.configured === true || row.authorization?.configured === true
 }
 
 function targetOf(row: ProviderRow): EditorTarget {
@@ -456,10 +458,15 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
             )
           }
           const open = !addOpen && editing?.provider === row.entry.provider
-          const credentialConfigured = row.credential?.configured === true
+          // A committed grant record is credential-configured the same as a
+          // stored key; missing tracks the row's own credential path — the
+          // named reference, or the record an environment-less route signs in
+          // through.
+          const credentialConfigured = row.credential?.configured === true || row.authorization?.configured === true
           const credentialMissing = !credentialConfigured
-            && row.apiKeyEnv !== undefined
-            && row.credential?.configured === false
+            && (row.apiKeyEnv !== undefined
+              ? row.credential?.configured === false
+              : row.entry.nativeAuth?.env.length === 0 && row.authorization !== undefined)
           return (
             <li key={row.entry.provider} className={styles['rowCard']}>
               <div className={styles['rowHead']}>
@@ -648,6 +655,8 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
                       {...draft.target.baseURLEnv === undefined ? {} : { baseURLEnv: draft.target.baseURLEnv }}
                       {...draft.target.nativeAuth === undefined ? {} : { nativeAuth: draft.target.nativeAuth }}
                       {...addRow?.credentialChecks === undefined ? {} : { credentialChecks: addRow.credentialChecks }}
+                      {...addRow?.authorization === undefined ? {} : { authorization: addRow.authorization }}
+                      {...addRow?.accounts === undefined ? {} : { accounts: addRow.accounts }}
                       t={t}
                       readOnly={!state.writable}
                       onClose={(changed) => { closeEditor(changed, draft.target) }}

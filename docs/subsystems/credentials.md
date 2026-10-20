@@ -131,6 +131,81 @@ async begin(request: AuthorizationRequest): Promise<AuthorizationOutcome>
 
 Source: [`packages/credentials/authorization/src/index.ts`](../../packages/credentials/authorization/src/index.ts)
 
+<a id="ctxauthorizationcontroller--authorizationcontroller"></a>
+
+### `ctx.authorizationController` — `AuthorizationController`
+
+Host service backing the generated `ctx.remote.authorization` namespace. It turns the seam's request-scoped AuthorizationInteraction into the wire conversation: each `begin` relays the flow's notices and prompts as `authorization/notice` / `authorization/prompt` events, and `answer` / `decline` resolve the pending prompt the surface names by its minted id. Single-flight per key stays with the seam — a second `begin` while one runs fails as `authorization/rejected`, and `cancel` is how a surface whose own request is still open withdraws it.
+
+```ts cordis-catalog
+/**
+ * Every registered flow with its stored-credential state, for a surface
+ * listing what can be authorized.
+ * @returns one view per flow, in registration order.
+ * @throws RemoteError when no authorization or credential service is mounted.
+ */
+@Remote async list(): Promise<AuthorizationEntryView[]>
+
+/**
+ * One record's flow and stored-credential state. The `configured` half
+ * answers independently of `entry` on purpose: a stored grant whose flow's
+ * plugin is gone is still a credential the surface can let the user sign out.
+ * @param key - the credential record to describe; malformed keys reject as `gateway/bad-request`.
+ * @returns the key, its flow view when registered, and its stored state.
+ * @throws RemoteError when the request is invalid or a required service is absent.
+ */
+@Remote async describe(key: string): Promise<AuthorizationDescribeView>
+
+/**
+ * Run one attempt to authorize a key, returning when it settles. The call
+ * stays open for the whole conversation: notices and prompts arrive as the
+ * forwarded events while it runs, the caller's own signal withdrawing the
+ * attempt when the connection drops or the caller cancels it.
+ * @param key - the credential record to authorize.
+ * @param method - which of the flow's methods to run; `undefined` runs its first.
+ * @param signal - caller lifetime; aborting withdraws the attempt.
+ * @returns `authorized` once the record is committed, `cancelled` when the human declined or withdrew.
+ * @throws RemoteError `authorization/rejected` when no flow claims the key, the method is
+ *   unknown, an attempt is already running, or the flow fails.
+ */
+@Remote async begin(key: string, method: string | undefined, signal: AbortSignal): Promise<AuthorizationOutcome>
+
+/**
+ * Deliver the human's answer to a waiting prompt.
+ * @param promptId - the handle from `authorization/prompt`.
+ * @param value - the typed text, or the chosen option's id.
+ * @returns whether a prompt was still waiting for the id; `false` means it
+ *   settled or was withdrawn first, which is an outcome, not a failure.
+ */
+@Remote answer(promptId: string, value: string): boolean
+
+/**
+ * Tell a waiting prompt the human declined it.
+ * @param promptId - the handle from `authorization/prompt`.
+ * @returns whether a prompt was still waiting for the id.
+ */
+@Remote decline(promptId: string): boolean
+
+/**
+ * Withdraw the attempt running for a key. The request/response transport
+ * answers a Cancel control on a second call, which has no handle on the
+ * first call's signal.
+ * @param key - the credential record whose attempt should stop.
+ * @throws RemoteError when the request is invalid or no authorization service is mounted.
+ */
+@Remote cancel(key: string): void
+
+/**
+ * Remove one stored credential record — the surface's "sign out". Removing
+ * an absent record is a no-op.
+ * @param key - the credential record to remove.
+ * @throws RemoteError when the request is invalid, no credential service is mounted, or the store refuses.
+ */
+@Remote async signOut(key: string): Promise<void>
+```
+
+Source: [`packages/api/settings-controller/src/authorization.ts`](../../packages/api/settings-controller/src/authorization.ts)
+
 <a id="ctxcredentials--credentialprovider-abstract-seam"></a>
 
 ### `ctx.credentials` — `CredentialProvider` (abstract seam)
@@ -371,6 +446,64 @@ Source: [`packages/credentials/deepseek-account/src/index.ts`](../../packages/cr
 
 ### `authorization/*` events
 
+<a id="authorizationnotice--emit"></a>
+
+#### `authorization/notice` — emit
+
+Progress or an instruction from a running attempt, relayed to the surface that started it. Broadcast rather than private: other surfaces may watch, and only the prompt channel carries an answer handle.
+
+```ts cordis-catalog
+/**
+ * Progress or an instruction from a running attempt, relayed to the
+ * surface that started it. Broadcast rather than private: other surfaces
+ * may watch, and only the prompt channel carries an answer handle.
+ * @mode emit
+ * @param event - the key and the reported notice.
+ */
+'authorization/notice'(event: AuthorizationNoticeEvent): void
+```
+
+Source: [`packages/credentials/authorization/src/types.ts`](../../packages/credentials/authorization/src/types.ts)
+
+<a id="authorizationprompt--emit"></a>
+
+#### `authorization/prompt` — emit
+
+A running attempt is waiting on the human who started it. The `promptId` it carries is the answer handle — generated per prompt and never reused — so the surface that started the attempt answers exactly the question it rendered.
+
+```ts cordis-catalog
+/**
+ * A running attempt is waiting on the human who started it. The
+ * `promptId` it carries is the answer handle — generated per prompt and
+ * never reused — so the surface that started the attempt answers exactly
+ * the question it rendered.
+ * @mode emit
+ * @param event - the key, the answer handle, and the question.
+ */
+'authorization/prompt'(event: AuthorizationPromptEvent): void
+```
+
+Source: [`packages/credentials/authorization/src/types.ts`](../../packages/credentials/authorization/src/types.ts)
+
+<a id="authorizationprompt-withdrawn--emit"></a>
+
+#### `authorization/prompt-withdrawn` — emit
+
+A surfaced prompt closed without an answer — the flow retired the question itself (a browser callback won the race against the typed code). The owning surface dismisses it rather than answering.
+
+```ts cordis-catalog
+/**
+ * A surfaced prompt closed without an answer — the flow retired the
+ * question itself (a browser callback won the race against the typed
+ * code). The owning surface dismisses it rather than answering.
+ * @mode emit
+ * @param event - the key and the closed prompt's handle.
+ */
+'authorization/prompt-withdrawn'(event: AuthorizationPromptWithdrawnEvent): void
+```
+
+Source: [`packages/credentials/authorization/src/types.ts`](../../packages/credentials/authorization/src/types.ts)
+
 <a id="authorizationsettled--emit"></a>
 
 #### `authorization/settled` — emit
@@ -389,7 +522,7 @@ One authorization attempt has finished and released its key. Fires for every ter
 'authorization/settled'(key: CredentialKey, settlement: AuthorizationSettlement): void
 ```
 
-Source: [`packages/credentials/authorization/src/index.ts`](../../packages/credentials/authorization/src/index.ts)
+Source: [`packages/credentials/authorization/src/types.ts`](../../packages/credentials/authorization/src/types.ts)
 
 <a id="credentials-events"></a>
 

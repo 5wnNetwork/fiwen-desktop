@@ -25,6 +25,9 @@
       "path": "../../client/file-upload/tsconfig.client.json"
     },
     {
+      "path": "../../credentials/authorization"
+    },
+    {
       "path": "../../credentials/credentials"
     },
     {
