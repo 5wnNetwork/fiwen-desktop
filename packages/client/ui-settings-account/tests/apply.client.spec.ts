@@ -108,7 +108,7 @@ it('shares account actions across seats and publishes dialog ownership', async (
   expect(theme.getTheme().themes.map(candidate => candidate.id)).toEqual(['light', 'dark'])
   await actions.refreshAccount()
   expect(c.mock.remote.account.getProfile).not.toHaveBeenCalled()
-  expect(actions.formatWalletBalance('12.5', 'credits')).toBe(formatBalance('12.5', 'credits'))
+  expect(actions.formatWalletBalance('12.5', 'VND')).toBe(formatBalance('12.5', 'VND'))
   expect(actions.formatPlanDate('2026-01-15')).toBe(new Intl.DateTimeFormat('en', { dateStyle: 'medium' }).format(new Date('2026-01-15')))
   expect(actions.formatPlanResetIn(new Date(Date.now() + 3_600_000).toISOString())).toBeTruthy()
   const listener = vi.fn()

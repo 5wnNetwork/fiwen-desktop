@@ -1,7 +1,7 @@
 import { Context } from '@deepseek-ai/cordis'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { RemoteError, TestRemote } from '@deepseek-ai/dsh-client-test-runtime'
-import type { MarketInstalledView, MarketItemView, MarketSearchQuery } from '@deepseek-ai/dsh-api-remotes/client'
+import type { MarketCatalogResult, MarketInstalledView, MarketItemDetail, MarketItemView, MarketSearchQuery } from '@deepseek-ai/dsh-api-remotes/client'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { MarketController, PAGE_SIZE } from '../src/client/market-store.ts'
 
@@ -27,11 +27,11 @@ function setup() {
   onTestFinished(() => ctx.fiber.dispose())
   ctx.provide('locale', new LocaleRuntime(ctx))
   const market = {
-    catalog: vi.fn((_query: MarketSearchQuery) => ok(page([item('a')]))),
-    detail: vi.fn((id: string) => ok({ ...item(id), description: { en: 'about' } })),
-    installItem: vi.fn((id: string) => ok({ id, kind: 'skill' as const, version: '1.0.0', installedAt: '2026-01-01T00:00:00Z' })),
-    uninstallItem: vi.fn((_id: string) => ok(true)),
-    installed: vi.fn(() => ok([])),
+    catalog: vi.fn((_query: MarketSearchQuery): Promise<Answer<MarketCatalogResult>> => ok(page([item('a')]))),
+    detail: vi.fn((id: string): Promise<Answer<MarketItemDetail>> => ok({ ...item(id), description: { en: 'about' } })),
+    installItem: vi.fn((id: string): Promise<Answer<MarketInstalledView>> => ok({ id, kind: 'skill', version: '1.0.0', installedAt: '2026-01-01T00:00:00Z' })),
+    uninstallItem: vi.fn((_id: string): Promise<Answer<boolean>> => ok(true)),
+    installed: vi.fn((): Promise<Answer<MarketInstalledView[]>> => ok([])),
   }
   new TestRemote(ctx, { market })
   const controller = new MarketController(ctx)
@@ -145,25 +145,24 @@ describe('MarketController', () => {
 
   it('ignores a stale catalog read once a newer query starts', async () => {
     const { face, market, snapshot } = setup()
-    let release: ((answer: Answer<ReturnType<typeof page>>) => void) | undefined
-    const first = new Promise<Answer<ReturnType<typeof page>>>((resolve) => { release = resolve })
-    market.catalog.mockImplementationOnce(() => first)
+    const first = Promise.withResolvers<Answer<ReturnType<typeof page>>>()
+    market.catalog.mockImplementationOnce(() => first.promise)
     face.ensure()
     face.search({ sort: 'newest' })
     await vi.waitFor(() => { expect(snapshot().status).toBe('ready') })
-    release?.(ok(page([item('stale')])))
-    await first
+    first.resolve(ok(page([item('stale')])))
+    await first.promise
     expect(snapshot().answered).toMatchObject({ sort: 'newest' })
     expect(snapshot().items.map(entry => entry.id)).toEqual(['a'])
   })
 
   it('ignores more() while loading and refresh() before the first answer', async () => {
     const { face, market, snapshot } = setup()
-    let release: ((answer: Answer<ReturnType<typeof page>>) => void) | undefined
-    market.catalog.mockImplementationOnce(() => new Promise<Answer<ReturnType<typeof page>>>((resolve) => { release = resolve }))
+    const stalled = Promise.withResolvers<Answer<ReturnType<typeof page>>>()
+    market.catalog.mockImplementationOnce(() => stalled.promise)
     face.ensure()
     face.more()
-    release?.(ok(page([item('a')])))
+    stalled.resolve(ok(page([item('a')])))
     await vi.waitFor(() => { expect(snapshot().status).toBe('ready') })
     expect(market.catalog).toHaveBeenCalledOnce()
     const { face: fresh, market: other } = setup()

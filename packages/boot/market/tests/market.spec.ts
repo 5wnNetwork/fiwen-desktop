@@ -150,7 +150,7 @@ it('installs an MCP payload as a profile patch row', async () => {
 })
 
 it('refuses installs without a token and reports conflicts and profile absence', async () => {
-  const { market } = await mount({ token: undefined })
+  const { market } = await mount()
   serve(() => json({}, 401))
   await expect(failure(market.installItem('x'))).resolves.toMatchObject({ code: 'market/auth-required' })
 })

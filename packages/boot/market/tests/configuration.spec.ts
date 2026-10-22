@@ -63,7 +63,7 @@ it('mounts through a bundle patch, installs an MCP row the Loader picks up, and 
       root.provide('profileContext', profile)
       Object.assign(root.loader.builtins, { account: StubAccount, market: Market })
     })
-    const market = ctx.get('market')
+    const market = ctx.get('market')!
     expect(market).toBeInstanceOf(Market)
     expect(mounts()).toEqual(['base'])
     await market.installItem('notes')

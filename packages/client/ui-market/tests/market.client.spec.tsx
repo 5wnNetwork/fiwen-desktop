@@ -37,7 +37,7 @@ function renderTab(state: Partial<MarketState> = {}, dictionary: Record<MarketLo
   const locale = createSnapshotStore<LocaleSnapshot>({ active: language, locales: [], revision: 0 })
   const actions = {
     ensure: vi.fn(), search: vi.fn(), more: vi.fn(), refresh: vi.fn(), retry: vi.fn(),
-    install: vi.fn(), uninstall: vi.fn(), detail: vi.fn(() => Promise.resolve(null)),
+    install: vi.fn(), uninstall: vi.fn(), detail: vi.fn((): Promise<MarketItemDetail | null> => Promise.resolve(null)),
   }
   const props = {
     t: translator(dictionary), ...actions,

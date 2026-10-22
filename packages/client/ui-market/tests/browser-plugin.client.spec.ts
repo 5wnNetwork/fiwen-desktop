@@ -32,7 +32,7 @@ it('contributes Marketplace to the Plugins page, follows Host changes, and withd
   remote.emit('market/changed', [])
   ctx.emit('connection/reset')
   expect(market.installed).not.toHaveBeenCalled()
-  const face = entry!.inject!() as MarketFace
+  const face = (entry!.inject!() as object) as MarketFace
   expect(face.resolveText({ en: 'English' })).toBe('English')
   face.ensure()
   await vi.waitFor(() => { expect(face.hooks.market.getSnapshot().status).toBe('ready') })
