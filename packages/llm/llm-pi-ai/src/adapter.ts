@@ -191,7 +191,9 @@ function resolveReasoningLevel(
  * effort — so a provider whose own default is to think would keep thinking with
  * `off` selected. Omitting `reasoning` entirely is the seam's way of saying the
  * capability is unavailable, which leaves the surface offering only the
- * provider's default.
+ * provider's default. The same withholding applies to a model spelling a
+ * single level: its level is the model's identity, and a provider-default
+ * row beside it would ask the user to choose between two identical requests.
  * @param model - the resolved model descriptor.
  * @param defaultLevel - the profile's configured effort, already validated.
  * @returns the `reasoning` field, or an empty object when none can be offered.
@@ -202,6 +204,7 @@ function reasoningInfo(
 ): Pick<LlmResolvedModelInfo, 'reasoning'> | Record<string, never> {
   if (!model.reasoning) return {}
   const levels = getSupportedThinkingLevels(model)
+  if (levels.length <= 1) return {}
   return {
     reasoning: {
       efforts: levels.map(level => ({

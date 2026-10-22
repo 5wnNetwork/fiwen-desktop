@@ -66,11 +66,11 @@ function sectionOperations(account: AccountSnapshot, pages: PlatformPages): Acco
     openPlatformPage: pages.open,
     refreshAccount: async () => {},
     formatWalletBalance: (balance, currency) => formatBalance(balance, currency),
-    formatPlanDate: (iso: string) => `d:${iso}`, formatPlanReset: (iso: string) => `r:${iso}`, formatPlanPoints: (points: string) => points,
+    formatPlanDate: (iso: string) => `d:${iso}`, formatPlanResetIn: (iso: string) => `r:${iso}`,
     avatarFailed: () => {},
     bonusNoticeShown: () => {}, bonusNoticeDismissed: () => {},
     hasRunningAccountTasks: async () => false,
-    contactUs: () => {}, showLogin: () => {}, setOnboarding: () => {},
+    showLogin: () => {}, setOnboarding: () => {},
     start: async () => {}, cancel: async () => {}, signOut: async () => {},
   }
 }
@@ -123,7 +123,9 @@ async function bench() {
   runtime.ctx.uiSession.provide = (next) => { descriptor ??= next; return provide(next) }
   await runtime.mount({ inject: [...injectChat], apply: applyChat })
   if (descriptor === undefined) throw new Error('ui-chat did not provide its standard source')
-  const accountSnapshot = createSnapshotStore<AccountSnapshot>({ view: storedView, details: undefined, avatar: undefined, failed: false })
+  const accountSnapshot = createSnapshotStore<AccountSnapshot>({
+    view: storedView, details: { balance: { status: 'failed' } }, avatar: undefined, failed: false,
+  })
   const account = {
     getSnapshot: () => accountSnapshot.getSnapshot(),
     subscribe: (listener: () => void) => accountSnapshot.subscribe(listener),
@@ -196,9 +198,9 @@ async function fail(runtime: SlotTestRuntime, seq: number, code: string): Promis
 function settingsTopUp() {
   return screen.getAllByRole('link', { name: en.topUp }).at(-1)!
 }
-/** The account settings card's usage link, which requests the shared page. */
+/** The settings card's failed-balance link, which requests the shared usage page. */
 function settingsUsage() {
-  return screen.getAllByRole('link', { name: en.usage }).at(-1)!
+  return screen.getAllByRole('link', { name: en.balanceUnavailable }).at(-1)!
 }
 
 describe('shared Platform page ownership', () => {

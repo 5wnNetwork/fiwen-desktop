@@ -55,10 +55,35 @@
     apiKeyEnv: DEEPSEEK_API_KEY
     baseURL: !!js "`${process.env.FIWEN_ORIGIN ?? 'https://desktop.5wn.net'}/v1/tools`"
 
-# Telemetry exports to the Fiwen OTLP intake; the env seams still win.
+# The feedback feature is not part of the product: no Like/Dislike strip or
+# feedback dialog, no /feedback command, and no feedback Session events or
+# remotes. The session-log-export header's feedback item hides itself when
+# the surface is absent.
+- id: command-feedback
+  disabled: true
+
+- id: message-feedback
+  disabled: true
+
+- id: ui-message-feedback
+  disabled: true
+
+# Session-log upload is not part of the product: the `dsh_session_log`
+# request extension would embed session events into account-API traffic, and
+# the companion settings row presents the toggle. Both surfaces are removed;
+# session logs never leave the device through this path either.
+- id: session-log-deepseek
+  disabled: true
+
+- id: ui-settings-session-log
+  disabled: true
+
+# Telemetry exports to the Fiwen OTLP intake; the env seams still win. The
+# FEEDBACK_ONLY gate can never pass with no feedback surface, so the session
+# log stays local outright.
 - id: session-telemetry-otel
   config:
-    mode: !!js process.env.DSH_TELEMETRY_MODE || 'FEEDBACK_ONLY'
+    mode: !!js process.env.DSH_TELEMETRY_MODE || 'DISABLED'
     shutdownTimeoutMillis: 3000
     maxRequestBytes: 4000000
     exporter:
@@ -101,3 +126,16 @@
     # mark and localized product name.
     - id: ui-brand-fiwen
       name: '@deepseek-ai/dsh-client-ui-brand-fiwen'
+
+    # The Fiwen marketplace Host service: browses the curated catalog on the
+    # Fiwen origin and installs skill and MCP items locally; installs are
+    # authenticated by the account token.
+    - id: market
+      name: '@deepseek-ai/dsh-market'
+      config:
+        origin: !!js process.env.FIWEN_ORIGIN ?? 'https://desktop.5wn.net'
+
+    # The Marketplace tab on the Plugins page: browse, search, and install
+    # the catalog the market service serves.
+    - id: ui-market
+      name: '@deepseek-ai/dsh-client-ui-market'

@@ -203,7 +203,7 @@ describe('hand-declared providers', () => {
       // The route value is a fallback, never an override: a catalog model
       // keeps what the catalog records even under a narrower route default,
       // exactly as it keeps its own contextWindow.
-      'anthropic': { defaultInput: ['text'] },
+      'anthropic': { defaultInput: ['text'], models: [{ id: vision.id }] },
     })
     const inputOf = (route: string, id: string): readonly string[] | undefined =>
       resolved.get(route)?.piProvider?.getModels().find(model => model.id === id)?.input
@@ -220,6 +220,8 @@ describe('hand-declared providers', () => {
     // The resolver-level cases above cannot see a break between the settings
     // document and `LlmModelInfo`, so each rung is asserted once more through
     // a written section, the plugin's own registration, and `ctx.llm`.
+    const vision = getBuiltinModels('anthropic').find(model => model.input.includes('image'))
+    if (vision === undefined) throw new Error('the installed catalog ships no anthropic vision model')
     const ctx = await bootWithSettings({})
     await configurations.get(ctx)!.update({
       providers: {
@@ -234,7 +236,7 @@ describe('hand-declared providers', () => {
           defaultInput: ['text', 'image'],
           models: [{ id: 'bare' }, { id: 'deaf', input: ['text'] }],
         },
-        'anthropic': { defaultInput: ['text'] },
+        'anthropic': { defaultInput: ['text'], models: [{ id: vision.id }] },
       },
     })
 
@@ -247,8 +249,6 @@ describe('hand-declared providers', () => {
 
     // A catalog vision model keeps what the catalog records even under a
     // narrower route default: the route value is a fallback, not an override.
-    const vision = getBuiltinModels('anthropic').find(model => model.input.includes('image'))
-    if (vision === undefined) throw new Error('the installed catalog ships no anthropic vision model')
     expect((await ctx.llm.resolveModelInfo('anthropic', vision.id)).inputModalities).toEqual(vision.input)
   })
 
@@ -651,7 +651,7 @@ describe('catalog routes with per-model configuration', () => {
     // declares an api-key method. `openai-codex` ships OAuth alone, so without
     // the harness method beside it the route refuses its own configured key as
     // `Provider is not configured` before any request goes out.
-    const resolved = resolveProfiles({ 'openai-codex': { apiKeyEnv: 'CODEX_TOKEN' } })
+    const resolved = resolveProfiles({ 'openai-codex': { apiKeyEnv: 'CODEX_TOKEN', models: [{ id: 'gpt-5.5' }] } })
     const provider = resolved.get('openai-codex')?.piProvider
     expect(provider?.auth.oauth).toBeDefined()
     const models = createModels()
@@ -836,6 +836,147 @@ describe('modelOverrides', () => {
     expect(() => resolveProfiles({
       deepseek: { modelOverrides: { [deepseekModel().id]: smuggled } },
     })).toThrow(/sets "id", which is the dict key/)
+  })
+})
+
+describe('subscription routes', () => {
+  it('serves nothing until its configuration names models', () => {
+    // A subscription provider's installed catalog is the discovery candidate
+    // list, not a default: an untouched profile is a signed-in account with
+    // no adopted models yet, not an error.
+    const resolved = resolveProfiles({ anthropic: {} })
+    const profile = resolved.get('anthropic')
+    expect(profile?.piProvider?.getModels()).toEqual([])
+    expect(profile?.catalogError).toBeUndefined()
+    expect([...profile!.modelErrors.keys()]).toEqual([])
+
+    // The asymmetry is the point of the subscription set: a plain catalog
+    // route still serves the whole installed catalog untouched.
+    expect(resolveProfiles({ deepseek: {} }).get('deepseek')?.piProvider?.getModels().length)
+      .toBe(getBuiltinModels('deepseek').length)
+  })
+
+  it('serves exactly the models its configuration adopts', () => {
+    const resolved = resolveProfiles({
+      anthropic: { models: [{ id: 'claude-sonnet-5-5' }] },
+      'openai-codex': { models: [{ id: 'gpt-5.5' }, { id: 'gpt-6-astra' }] },
+    })
+    expect(resolved.get('anthropic')?.piProvider?.getModels().map(model => model.id)).toEqual(['claude-sonnet-5-5'])
+    expect(resolved.get('openai-codex')?.piProvider?.getModels().map(model => model.id))
+      .toEqual(['gpt-5.5', 'gpt-6-astra'])
+
+    // Adopted catalog entries keep everything the catalog knows: protocol,
+    // endpoint, capacities, and the reasoning-level map.
+    const adopted = resolved.get('openai-codex')?.piProvider?.getModels()[0]
+    const catalog = catalogModels('openai-codex').get('gpt-5.5')
+    expect(adopted).toMatchObject({
+      api: catalog!.api,
+      baseUrl: catalog!.baseUrl,
+      contextWindow: catalog!.contextWindow,
+      reasoning: catalog!.reasoning,
+    })
+  })
+
+  it('serves an adopted model the installed catalog does not describe, sized by the route', () => {
+    // Subscription catalogs lag upstream releases; the declared entry is how
+    // a newly shipped model is adopted before the catalog catches up.
+    const resolved = resolveProfiles({
+      anthropic: { models: [{ id: 'claude-next-1', contextWindow: 400_000, maxTokens: 128_000 }] },
+    })
+    const model = resolved.get('anthropic')?.piProvider?.getModels()[0]
+    // The route's shared protocol and endpoint still answer for it.
+    expect(model).toMatchObject({
+      api: 'anthropic-messages',
+      contextWindow: 400_000,
+      maxTokens: 128_000,
+    })
+  })
+
+  it('refuses modelOverrides on a subscription route, strictly on write and as a diagnostic on read', () => {
+    // There is no served catalog for an override to customize — the override
+    // would sit beside nothing and change nothing.
+    expect(() => resolveProfiles({
+      anthropic: { modelOverrides: { 'claude-sonnet-5-5': { maxTokens: 4096 } } },
+    })).toThrow(/subscription route serves only its models list/)
+
+    const resolved = resolveProfiles({
+      anthropic: { modelOverrides: { 'claude-sonnet-5-5': { maxTokens: 4096 } } },
+    }, 'deferred')
+    const profile = resolved.get('anthropic')
+    expect(profile?.piProvider?.getModels()).toEqual([])
+    expect(profile?.modelErrors.get('claude-sonnet-5-5')).toContain('serves only its models list')
+  })
+
+  it('names its product label by default and keeps a configured displayName', () => {
+    const resolved = resolveProfiles({
+      anthropic: {},
+      'openai-codex': {},
+      antigravity: {},
+      deepseek: {},
+    })
+    expect(resolved.get('anthropic')?.displayName).toBe('Claude')
+    expect(resolved.get('openai-codex')?.displayName).toBe('ChatGPT')
+    expect(resolved.get('antigravity')?.displayName).toBe('Gemini')
+    // A non-subscription route keeps the route-key default.
+    expect(resolved.get('deepseek')?.displayName).toBe('deepseek')
+    // The profile field still wins over the label.
+    expect(resolveProfiles({ anthropic: { displayName: 'My Claude' } }).get('anthropic')?.displayName)
+      .toBe('My Claude')
+  })
+
+  it('offers the label through the directory entry the route resolves under', async () => {
+    const ctx = await harness({ providers: { anthropic: {} } })
+    expect(ctx.llm.listProviders()).toEqual([{ id: 'anthropic', name: 'Claude' }])
+    expect(ctx.llm.listConfigurableProviders().find(entry => entry.provider === 'anthropic'))
+      .toMatchObject({ displayName: 'Claude', declared: false })
+  })
+
+  it('lets an adopted Antigravity model keep its tier dispatch spellings', () => {
+    const resolved = resolveProfiles({
+      antigravity: { models: [{ id: 'gemini-3.8-flash' }] },
+    })
+    const model = resolved.get('antigravity')?.piProvider?.getModels()[0]
+    expect(model).toMatchObject({
+      reasoning: true,
+      upstreamId: 'gemini-3.8-flash-high(high)',
+      upstreamIds: { low: 'gemini-3.8-flash-low(low)', medium: 'gemini-3.8-flash-medium(medium)', high: 'gemini-3.8-flash-high(high)' },
+    })
+    expect(getSupportedThinkingLevels(model!)).toEqual(['low', 'medium', 'high'])
+  })
+
+  it('narrows a tiered model to the efforts a profile declares, and refuses a level it cannot spell', () => {
+    const narrowed = resolveProfiles({
+      antigravity: { models: [{ id: 'gemini-3.8-flash', reasoningEfforts: { low: 'low', high: 'high' } }] },
+    })
+    const model = narrowed.get('antigravity')?.piProvider?.getModels()[0]
+    expect(getSupportedThinkingLevels(model!)).toEqual(['low', 'high'])
+
+    // A level the installed entry has no wire name for would silently serve
+    // the default tier, so declaring one is refused where it is written.
+    expect(() => resolveProfiles({
+      antigravity: { models: [{ id: 'gemini-3.8-flash', reasoningEfforts: { low: 'low', xhigh: 'ultra' } }] },
+    })).toThrow(/reasoningEfforts\.xhigh offers a level the installed entry cannot spell/)
+    // `off` is a level like the rest here: no wire name exists for it.
+    expect(() => resolveProfiles({
+      antigravity: { models: [{ id: 'gemini-3.8-flash', reasoningEfforts: { off: null, low: 'low' } }] },
+    })).toThrow(/reasoningEfforts\.off offers a level/)
+  })
+
+  it('serves a single-level thinking model with exactly its spelled tier', () => {
+    const resolved = resolveProfiles({
+      antigravity: { models: [{ id: 'claude-sonnet-4-6' }] },
+    })
+    const model = resolved.get('antigravity')?.piProvider?.getModels()[0]
+    expect(model).toMatchObject({
+      reasoning: true,
+      upstreamIds: { low: 'claude-sonnet-4-6' },
+    })
+    expect(getSupportedThinkingLevels(model!)).toEqual(['low'])
+
+    // Declaring a level beside the one spelled tier is refused the same way.
+    expect(() => resolveProfiles({
+      antigravity: { models: [{ id: 'claude-sonnet-4-6', reasoningEfforts: { low: 'low', high: 'high' } }] },
+    })).toThrow(/reasoningEfforts\.high offers a level the installed entry cannot spell/)
   })
 })
 
@@ -1123,7 +1264,14 @@ describe('compat switches', () => {
     // pi-ai types azure-openai-responses and openai-codex-responses with the
     // same OpenAIResponsesCompat, so a switch settable on one is settable on all.
     for (const route of ['azure', 'openai-codex']) {
-      const models = modelsOf({ [route]: { compat: { supportsDeveloperRole: false } } }, route)
+      // The subscription route serves only the models it lists; the
+      // assertions below need one that speaks the Responses protocol.
+      const models = modelsOf({
+        [route]: {
+          compat: { supportsDeveloperRole: false },
+          ...route === 'openai-codex' ? { models: [{ id: 'gpt-5.5' }] } : {},
+        },
+      }, route)
       const model = [...models.values()].find(model => model.api === (route === 'azure' ? 'azure-openai-responses' : 'openai-codex-responses'))
       expect(model).toBeDefined()
       expect(model?.compat).toMatchObject({ supportsDeveloperRole: false })
@@ -1287,9 +1435,10 @@ describe('configurable-provider directory', () => {
     // `antigravity`'s model list is the provider's own — pi-ai's builtin table
     // has no entry for it, so `catalogModels` reads `getModels()` instead.
     expect(catalogModels('antigravity').size).toBeGreaterThan(0)
-    expect(catalogModels('antigravity').get('gemini-3.8-flash-medium')).toMatchObject({
+    expect(catalogModels('antigravity').get('gemini-3.8-flash')).toMatchObject({
       provider: 'antigravity',
       api: 'google-generative-ai',
+      reasoning: true,
     })
   })
 
@@ -1316,7 +1465,7 @@ describe('configurable-provider directory', () => {
 
     expect(ctx.llm.listConfigurableProviders()).toContainEqual({
       provider: 'openai-codex',
-      displayName: 'openai-codex',
+      displayName: 'ChatGPT',
       settingsNs: 'llm-pi-ai',
       settingsPath: ['providers', 'openai-codex'],
       declared: false,

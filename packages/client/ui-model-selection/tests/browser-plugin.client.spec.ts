@@ -69,7 +69,7 @@ async function bench(locale: 'zh' | 'en' = 'zh') {
   const ctx = new Context()
   let defaultSelection: ModelSelection = { provider: 'deepseek-official', model: 'deepseek-v4-flash' }
   let selected = defaultSelection
-  const calls = { models: 0, select: 0 }
+  const calls = { models: 0, select: 0, selectAccount: 0 }
   const projections = new Map<SessionId, SnapshotStore<ModelSelectionProjection | undefined>>()
   // Whether the Host advertises available models for the current route.
   let routable = true
@@ -104,8 +104,38 @@ async function bench(locale: 'zh' | 'en' = 'zh') {
       return Promise.resolve({ ok: true as const, value: { selected } })
     },
   }
-  const remote = Object.assign(new TestRemote(ctx), { session: sessionRemote })
+  const authFlows: Array<{
+    key: string
+    label: string
+    methods: Array<{ id: string; label: string }>
+    inFlight: boolean
+    configured: boolean
+  }> = []
+  const accountRows = new Map<string, Array<{
+    key: string
+    account: string
+    label?: string
+    selected: boolean
+  }>>()
+  const authorizationRemote = {
+    list: () => Promise.resolve({ ok: true as const, value: authFlows }),
+    listAccounts: (key: string) => Promise.resolve({ ok: true as const, value: accountRows.get(key) ?? [] }),
+    selectAccount: (key: string, account: string) => {
+      calls.selectAccount += 1
+      const rows = accountRows.get(key)
+      if (rows === undefined || !rows.some(row => row.account === account)) {
+        return Promise.resolve({
+          ok: false as const,
+          error: new RemoteError('authorization/rejected', `no account ${account} stored under ${key}`, { key }),
+        })
+      }
+      accountRows.set(key, rows.map(row => ({ ...row, selected: row.account === account })))
+      return Promise.resolve({ ok: true as const, value: undefined })
+    },
+  }
+  const remote = Object.assign(new TestRemote(ctx), { session: sessionRemote, authorization: authorizationRemote })
   ctx.reflect.provide('remote.session', sessionRemote)
+  ctx.reflect.provide('remote.authorization', authorizationRemote)
   const blocks = new Map<SessionId, { reason: string } | undefined>()
   ctx.provide('conversation', {
     blocks: {
@@ -198,6 +228,13 @@ async function bench(locale: 'zh' | 'en' = 'zh') {
     setCatalogFailure: (next: boolean) => { catalogFailure = next },
     setRoutable: (next: boolean) => { routable = next },
     blockOf: (key: string) => blocks.get(sid(key)),
+    setAuthFlows: (entries: typeof authFlows) => { authFlows.splice(0, authFlows.length, ...entries) },
+    setAccountRows: (key: string, rows: Array<{
+      key: string
+      account: string
+      label?: string
+      selected: boolean
+    }>) => { accountRows.set(key, rows) },
   }
 }
 
@@ -526,6 +563,7 @@ describe('ui-model-selection dual entry', () => {
     expect(face.available).toBe(false)
     face.load()
     await expect(face.select({ provider: 'deepseek', model: 'deepseek-v4-pro' })).resolves.toBeUndefined()
+    await expect(face.selectAccount('anthropic', 'acct-aaa')).resolves.toBeUndefined()
     await expect(b.ctx.modelDirectories.directoryFor(sid('child')).load())
       .rejects.toThrow(/unavailable for addressed subagent/)
     await expect(b.ctx.modelDirectories.directoryFor(sid('child')).select({
@@ -534,7 +572,44 @@ describe('ui-model-selection dual entry', () => {
     })).rejects.toThrow(/unavailable for addressed subagent/)
     b.ctx.emit('connection/reset')
     await Promise.resolve()
-    expect(b.calls).toEqual({ models: 2, select: 0 })
+    expect(b.calls).toEqual({ models: 2, select: 0, selectAccount: 0 })
+  })
+
+  it('the seat reads a provider\'s stored accounts and selects through the same mirror', async () => {
+    const b = await bench()
+    try {
+      b.setGroups([{ ...GROUPS[0]!, id: 'anthropic', name: 'Anthropic' }])
+      b.setAuthFlows([{
+        key: 'llm-pi-ai/anthropic', label: 'Anthropic', inFlight: false, configured: true,
+        methods: [{ id: 'oauth', label: 'OAuth' }],
+      }])
+      b.setAccountRows('llm-pi-ai/anthropic', [
+        { key: 'llm-pi-ai/anthropic--acct-aaa', account: 'acct-aaa', label: 'first@example.com', selected: true },
+        { key: 'llm-pi-ai/anthropic--acct-bbb', account: 'acct-bbb', label: 'second@example.com', selected: false },
+      ])
+      b.remote.emit('authorization/settled', [])
+      b.mint('s1')
+      const face = b.seat().inject!(sid('s1'))
+      await vi.waitFor(() => {
+        expect(face.accounts.getSnapshot().status).toBe('ready')
+      })
+      const provider = face.accounts.getSnapshot().byProvider.get('anthropic')
+      expect(provider?.accounts.map(row => row.account)).toEqual(['acct-aaa', 'acct-bbb'])
+
+      await expect(face.selectAccount('anthropic', 'acct-bbb')).resolves.toEqual({ ok: true, value: undefined })
+      expect(b.calls.selectAccount).toBe(1)
+      // The pointer write's broadcast refresh is what repaints the pane.
+      b.remote.emit('credentials/reference-updated', ['llm-pi-ai/anthropic--selected'])
+      await vi.waitFor(() => {
+        expect(face.accounts.getSnapshot().byProvider.get('anthropic')?.accounts[1]?.selected).toBe(true)
+      })
+
+      await expect(face.selectAccount('anthropic', 'acct-missing'))
+        .resolves.toMatchObject({ ok: false, error: { code: 'authorization/rejected' } })
+      await expect(face.selectAccount('deepseek-official', 'acct-aaa')).resolves.toBeUndefined()
+    } finally {
+      await b.ctx.fiber.dispose()
+    }
   })
 })
 

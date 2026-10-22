@@ -11,9 +11,11 @@ export const vi = {
   'trigger.selectAria': 'Chọn mô hình',
   'trigger.aria': 'Chọn mô hình, hiện tại {model}',
   'trigger.ariaEffort': 'Chọn mô hình, hiện tại {model}, mức suy luận {effort}',
-  'menu.aria': 'Mô hình và mức suy luận',
+  'menu.aria': 'Mô hình, mức suy luận và tài khoản',
   'menu.model': 'Mô hình',
   'menu.effort': 'Mức suy luận',
+  'menu.account': 'Tài khoản',
+  'account.default': 'Mặc định',
   'effort.providerDefault': 'Mặc định',
   'status.loading': 'Đang làm mới danh sách mô hình…',
   'error.action': 'Thao tác mô hình thất bại: {message}',
@@ -25,4 +27,5 @@ export const vi = {
   'search.empty': 'Không có mô hình phù hợp.',
   'empty.models': 'Không có mô hình nào.',
   'empty.efforts': 'Mô hình này không có mức suy luận.',
+  'empty.accounts': 'Chưa có tài khoản đăng nhập.',
 } satisfies Partial<Record<keyof typeof en, string>>

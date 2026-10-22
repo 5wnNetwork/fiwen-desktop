@@ -23,7 +23,13 @@ import { randomBytes, randomUUID } from 'node:crypto'
 import { createServer } from 'node:http'
 import { arch, platform } from 'node:os'
 import type { AddressInfo } from 'node:net'
-import type { OAuthCredential, Provider, ProviderAuthInteraction } from '@earendil-works/pi-ai'
+import type {
+  ModelThinkingLevel,
+  OAuthCredential,
+  Provider,
+  ProviderAuthInteraction,
+  ThinkingLevelMap,
+} from '@earendil-works/pi-ai'
 import { oauthErrorHtml, oauthSuccessHtml } from '@earendil-works/pi-ai/utils/oauth-page'
 import { LlmError } from '@deepseek-ai/dsh-llm'
 import {
@@ -437,12 +443,24 @@ async function refresh(credential: OAuthCredential, signal: AbortSignal): Promis
   }
 }
 
-/** One catalog model entry: the clean picker id plus the wire name the tiered upstream expects. */
+/**
+ * One catalog model entry: the clean picker id plus the wire naming the
+ * tiered upstream expects.
+ */
 interface AntigravityModelSpec {
   id: string
   name: string
-  /** The id the Code Assist envelope names; defaults to `id`. */
+  /** The id the Code Assist envelope names; defaults to `id`, and defaults the tier beside `upstreamIds`. */
   upstreamId?: string
+  /**
+   * Wire names by thinking tier — exactly the tiers this model offers, one
+   * entry per selectable level. Presence makes the model reasoning-capable —
+   * the picker offers the spelled tiers — and dispatch selects the envelope's
+   * `model` by the request's clamped level: the tier travels inside the wire
+   * name, not as a thinking parameter. A model with a single fixed thinking
+   * mode spells it once; absent, the model is non-reasoning.
+   */
+  upstreamIds?: Partial<Record<ModelThinkingLevel, string>>
   contextWindow: number
   image?: boolean
 }
@@ -453,28 +471,72 @@ const GPT_OSS_CONTEXT = 131_072
 /** Upstream caps output at 64k regardless of what a model could emit. */
 const OUTPUT_TOKENS = 64_000
 
+/**
+ * Drift gate over pi-ai's thinking levels — a level pi-ai adds fails
+ * compilation here until the pin loop below decides its tier-map answer.
+ */
+const THINKING_LEVEL_GATE: Record<ModelThinkingLevel, true> = {
+  off: true,
+  minimal: true,
+  low: true,
+  medium: true,
+  high: true,
+  xhigh: true,
+  max: true,
+}
+const THINKING_LEVEL_ORDER = Object.keys(THINKING_LEVEL_GATE) as readonly ModelThinkingLevel[]
+
+/**
+ * The thinking-level map of a tiered model: every level is pinned explicitly —
+ * a spelled tier maps to its wire name, and every other level maps to `null`
+ * (unsupported, `off` included: there is no not-thinking wire name to send).
+ * Pinning is what keeps `off` out of the offered levels, since pi-ai reads an
+ * absent key on a base level as supported.
+ */
+const tierWireMap = (tiers: Partial<Record<ModelThinkingLevel, string>>): ThinkingLevelMap =>
+  Object.fromEntries(THINKING_LEVEL_ORDER.map(level => [level, tiers[level] ?? null]))
+
+// Level sets match what upstream `fetchAvailableModels` reports per model —
+// `supportsThinking`, the display-name tier, and the thinking budget — not a
+// family-wide assumption: tier count and wire spellings differ per model.
 const ANTIGRAVITY_MODELS: readonly AntigravityModelSpec[] = [
-  { id: 'gemini-4-argon-high', name: 'Gemini 4 Argon (High)', upstreamId: 'gemini-4-argon-high(high)', contextWindow: GEMINI_CONTEXT, image: true },
-  { id: 'gemini-3.8-flash-high', name: 'Gemini 3.8 Flash (High)', upstreamId: 'gemini-3.8-flash-high(high)', contextWindow: GEMINI_CONTEXT, image: true },
-  { id: 'gemini-3.8-flash-medium', name: 'Gemini 3.8 Flash (Medium)', upstreamId: 'gemini-3.8-flash-medium(medium)', contextWindow: GEMINI_CONTEXT, image: true },
-  { id: 'gemini-3.8-flash-low', name: 'Gemini 3.8 Flash (Low)', upstreamId: 'gemini-3.8-flash-low(low)', contextWindow: GEMINI_CONTEXT, image: true },
-  { id: 'gemini-3.7-flash-high', name: 'Gemini 3.7 Flash (High)', upstreamId: 'gemini-3.7-flash-tiered(high)', contextWindow: GEMINI_CONTEXT, image: true },
-  { id: 'gemini-3.7-flash-medium', name: 'Gemini 3.7 Flash (Medium)', upstreamId: 'gemini-3.7-flash-tiered(medium)', contextWindow: GEMINI_CONTEXT, image: true },
-  { id: 'gemini-3.7-flash-low', name: 'Gemini 3.7 Flash (Low)', upstreamId: 'gemini-3.7-flash-tiered(low)', contextWindow: GEMINI_CONTEXT, image: true },
-  { id: 'gemini-3.6-flash-high', name: 'Gemini 3.6 Flash (High)', upstreamId: 'gemini-3.6-flash-tiered(high)', contextWindow: GEMINI_CONTEXT, image: true },
-  { id: 'gemini-3.6-flash-medium', name: 'Gemini 3.6 Flash (Medium)', upstreamId: 'gemini-3.6-flash-tiered(medium)', contextWindow: GEMINI_CONTEXT, image: true },
-  { id: 'gemini-3.6-flash-low', name: 'Gemini 3.6 Flash (Low)', upstreamId: 'gemini-3.6-flash-tiered(low)', contextWindow: GEMINI_CONTEXT, image: true },
-  { id: 'gemini-pro-agent', name: 'Gemini 3.1 Pro (High)', contextWindow: GEMINI_CONTEXT, image: true },
-  { id: 'gemini-3.1-pro-low', name: 'Gemini 3.1 Pro (Low)', upstreamId: 'gemini-3.1-pro-low(low)', contextWindow: GEMINI_CONTEXT, image: true },
-  { id: 'claude-sonnet-5-5-high', name: 'Claude Sonnet 5.5 (High)', upstreamId: 'claude-sonnet-5-5-high(high)', contextWindow: CLAUDE_CONTEXT, image: true },
-  { id: 'claude-sonnet-5-5-medium', name: 'Claude Sonnet 5.5 (Medium)', upstreamId: 'claude-sonnet-5-5-medium(medium)', contextWindow: CLAUDE_CONTEXT, image: true },
-  { id: 'claude-sonnet-5-5-low', name: 'Claude Sonnet 5.5 (Low)', upstreamId: 'claude-sonnet-5-5-low(low)', contextWindow: CLAUDE_CONTEXT, image: true },
-  { id: 'claude-opus-5-5-high', name: 'Claude Opus 5.5 (High)', upstreamId: 'claude-opus-5-5-high(high)', contextWindow: CLAUDE_CONTEXT, image: true },
-  { id: 'claude-opus-5-5-medium', name: 'Claude Opus 5.5 (Medium)', upstreamId: 'claude-opus-5-5-medium(medium)', contextWindow: CLAUDE_CONTEXT, image: true },
-  { id: 'claude-opus-5-5-low', name: 'Claude Opus 5.5 (Low)', upstreamId: 'claude-opus-5-5-low(low)', contextWindow: CLAUDE_CONTEXT, image: true },
-  { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6 (Thinking)', contextWindow: CLAUDE_CONTEXT, image: true },
-  { id: 'claude-opus-4-6-thinking', name: 'Claude Opus 4.6 (Thinking)', contextWindow: CLAUDE_CONTEXT, image: true },
-  { id: 'gpt-oss-120b-medium', name: 'GPT-OSS 120B (Medium)', contextWindow: GPT_OSS_CONTEXT },
+  // One fixed tier, named in the wire name.
+  {
+    id: 'gemini-4-argon-high', name: 'Gemini 4 Argon (High)', contextWindow: GEMINI_CONTEXT, image: true,
+    upstreamId: 'gemini-4-argon-high(high)',
+    upstreamIds: { high: 'gemini-4-argon-high(high)' },
+  },
+  // Three tiers: low/medium/high each named by a sibling wire id.
+  {
+    id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash', contextWindow: GEMINI_CONTEXT, image: true,
+    upstreamId: 'gemini-3.8-flash-high(high)',
+    upstreamIds: {
+      low: 'gemini-3.8-flash-low(low)',
+      medium: 'gemini-3.8-flash-medium(medium)',
+      high: 'gemini-3.8-flash-high(high)',
+    },
+  },
+  // No upstream tier evidence: upstream reports these ids without thinking
+  // metadata, so they serve the envelope's default rather than spelling tiers.
+  { id: 'gemini-3.7-flash', name: 'Gemini 3.7 Flash', contextWindow: GEMINI_CONTEXT, image: true },
+  { id: 'gemini-3.6-flash', name: 'Gemini 3.6 Flash', contextWindow: GEMINI_CONTEXT, image: true },
+  { id: 'gemini-3.1-pro', name: 'Gemini 3.1 Pro', contextWindow: GEMINI_CONTEXT, image: true, upstreamId: 'gemini-pro-agent' },
+  { id: 'claude-sonnet-5-5', name: 'Claude Sonnet 5.5', contextWindow: CLAUDE_CONTEXT, image: true },
+  { id: 'claude-opus-5-5', name: 'Claude Opus 5.5', contextWindow: CLAUDE_CONTEXT, image: true },
+  // One fixed thinking level each — upstream reports a single thinkingBudget
+  // with no sibling tier ids, so the level is the wire name itself.
+  {
+    id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6 (Thinking)', contextWindow: CLAUDE_CONTEXT, image: true,
+    upstreamIds: { low: 'claude-sonnet-4-6' },
+  },
+  {
+    id: 'claude-opus-4-6-thinking', name: 'Claude Opus 4.6 (Thinking)', contextWindow: CLAUDE_CONTEXT, image: true,
+    upstreamIds: { low: 'claude-opus-4-6-thinking' },
+  },
+  {
+    id: 'gpt-oss-120b-medium', name: 'GPT-OSS 120B (Medium)', contextWindow: GPT_OSS_CONTEXT,
+    upstreamIds: { medium: 'gpt-oss-120b-medium' },
+  },
 ]
 
 const MODEL_LIST = ANTIGRAVITY_MODELS.map(spec => ({
@@ -485,12 +547,16 @@ const MODEL_LIST = ANTIGRAVITY_MODELS.map(spec => ({
   baseUrl: ANTIGRAVITY_DAILY_HOST,
   input: spec.image === true ? ['text' as const, 'image' as const] : ['text' as const],
   cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 },
-  // The thinking tier is baked into the wire id, so the model itself reports
-  // no selectable reasoning — the picker entry *is* the effort choice.
-  reasoning: false,
+  // A tiered model is reasoning-capable with the spelled tiers offered; its
+  // wire name, not a thinking parameter, carries the level.
+  reasoning: spec.upstreamIds !== undefined,
   contextWindow: spec.contextWindow,
   maxTokens: OUTPUT_TOKENS,
   ...spec.upstreamId === undefined ? {} : { upstreamId: spec.upstreamId },
+  ...spec.upstreamIds === undefined ? {} : {
+    upstreamIds: spec.upstreamIds,
+    thinkingLevelMap: tierWireMap(spec.upstreamIds),
+  },
 }))
 
 /**

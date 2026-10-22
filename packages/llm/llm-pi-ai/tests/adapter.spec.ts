@@ -468,7 +468,7 @@ describe('provider profile lifecycle', () => {
     })
     expect(ctx.llm.listProviders()).toEqual([
       { id: 'openai', name: 'openai' },
-      { id: 'anthropic', name: 'anthropic' },
+      { id: 'anthropic', name: 'Claude' },
     ])
     expect(ctx.llm.providerRetryPolicy('openai')).toEqual({
       mode: 'always',
@@ -530,6 +530,22 @@ describe('provider profile lifecycle', () => {
     // the reasoning option — exactly what naming no effort already does. The
     // capability is reported unavailable rather than offering that control.
     expect((await ctx.llm.resolveModelInfo('openai', 'gpt-4.1')).reasoning).toBeUndefined()
+  })
+
+  it('withholds the effort control from a model that spells a single level', async () => {
+    const ctx = new Context()
+    await ctx.plugin(LlmRuntime)
+    await ctx.plugin(LlmPiAi, {
+      providers: { antigravity: { models: [{ id: 'claude-sonnet-4-6' }, { id: 'gemini-3.8-flash' }] } },
+    })
+    // `low` stays a valid request effort — the level is real — but with one
+    // selectable level the provider default is the level, so there is nothing
+    // to offer as a choice.
+    expect((await ctx.llm.resolveModelInfo('antigravity', 'claude-sonnet-4-6')).reasoning)
+      .toBeUndefined()
+    // A multi-tier sibling still reports its level set.
+    expect((await ctx.llm.resolveModelInfo('antigravity', 'gemini-3.8-flash')).reasoning?.efforts)
+      .toHaveLength(3)
   })
 
   it('uses a supported profile reasoning value as the model default and rejects an unsupported one', async () => {

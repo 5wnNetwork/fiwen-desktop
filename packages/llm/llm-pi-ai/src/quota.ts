@@ -192,6 +192,16 @@ function codexWindows(data: Record<string, unknown>): AuthorizationQuotaWindow[]
   return windows
 }
 
+/** The headers Anthropic's OAuth-scoped endpoints answer to, as Claude Code sends them. */
+function anthropicHeaders(access: string): Record<string, string> {
+  return {
+    'Authorization': `Bearer ${access}`,
+    'anthropic-beta': ANTHROPIC_OAUTH_BETA,
+    'anthropic-version': '2023-06-01',
+    'User-Agent': 'claude-cli/2.1.0 (external, cli)',
+  }
+}
+
 async function anthropicQuota(
   oauth: OAuthAuth,
   input: { payload: unknown; signal: AbortSignal; persist(payload: unknown): Promise<void> },
@@ -199,12 +209,7 @@ async function anthropicQuota(
   const stored = oauthCredentialOf(input.payload)
   if (stored === undefined) return undefined
   const credential = await accessTokenOf(oauth, stored, input)
-  const headers = {
-    'Authorization': `Bearer ${credential.access}`,
-    'anthropic-beta': ANTHROPIC_OAUTH_BETA,
-    'anthropic-version': '2023-06-01',
-    'User-Agent': 'claude-cli/2.1.0 (external, cli)',
-  }
+  const headers = anthropicHeaders(credential.access)
   const data = objectOf(await probe(ANTHROPIC_USAGE_URL, headers, input.signal))
   if (data === undefined) {
     throw new LlmError('quota endpoint returned no usage object', 'QUOTA_REFUSED')
@@ -355,27 +360,72 @@ export function quotaProbe(provider: Provider): AuthorizationFlow['quota'] {
 }
 
 /**
- * The account label a flow's stored record carries, when it carries one:
- * a stored `label`/`email` first (what a quota probe enriched), then the
- * credential's own identity claims — Codex access tokens are JWTs whose
- * profile claim names the ChatGPT account.
+ * The fields a provider's own endpoint can add to a freshly committed grant.
+ * Anthropic's OAuth answer is the bare token triple — no account identity —
+ * so its first profile read fills `label`, giving the seam's same-account
+ * dedup and the surfaces' account names something to read from sign-in on.
+ * Other providers' logins already persist their identity. The read is
+ * best-effort: an unreachable endpoint answers `undefined` rather than
+ * failing the sign-in whose credential already committed.
+ * @param providerId - the provider the record belongs to.
+ * @param payload - the grant payload login just stored.
+ * @param signal - the attempt's abort signal.
+ * @returns fields to merge into the record, or `undefined` when none apply.
+ */
+export async function grantIdentityFields(
+  providerId: string,
+  payload: unknown,
+  signal: AbortSignal,
+): Promise<Record<string, unknown> | undefined> {
+  if (providerId !== 'anthropic') return undefined
+  const credential = oauthCredentialOf(payload)
+  if (credential === undefined
+    || stringOf(credential['label']) !== undefined
+    || stringOf(credential['email']) !== undefined) return undefined
+  const profile = objectOf(await probe(ANTHROPIC_PROFILE_URL, anthropicHeaders(credential.access), signal)
+    .catch(() => undefined))
+  const email = stringOf(objectOf(profile?.['account'])?.['email'])
+  return email === undefined ? undefined : { label: email }
+}
+
+/**
+ * The account description a flow's stored record carries, when it carries
+ * one: a stored `label`/`email` first (what a quota probe or the login
+ * enrichment wrote), then the credential's own identity claims — Codex
+ * access tokens are JWTs whose profile claim names the ChatGPT account.
+ * `identity` is the seam's dedup key — Codex's `accountId` where present,
+ * the account's email otherwise, lowercased — and `expiresAt` reports the
+ * stored access token's own expiry so a surface can flag a stale sign-in.
  * @param providerId - the provider the record belongs to.
  * @param record - a stored record under the flow's key or an account key.
  * @returns the description the seam reports; empty when nothing names the account.
  */
-export function describeGrant(providerId: string, record: CredentialRecord): { label?: string } {
+export function describeGrant(
+  providerId: string,
+  record: CredentialRecord,
+): { label?: string; identity?: string; expiresAt?: number } {
   if (record.kind !== 'grant') return {}
   const fields = objectOf(record.payload)
   if (fields === undefined) return {}
+  const expiresAt = numberOf(fields['expires'])
   const stored = stringOf(fields['label']) ?? stringOf(fields['email'])
-  if (stored !== undefined) return { label: stored }
   if (providerId === 'openai-codex') {
     const claims = jwtClaims(stringOf(fields['access']))
     const email = stringOf(claims?.['email'])
       ?? stringOf(objectOf(claims?.['https://api.openai.com/profile'])?.['email'])
-    if (email !== undefined) return { label: email }
     const accountId = stringOf(fields['accountId'])
-    if (accountId !== undefined) return { label: accountId }
+    const label = stored ?? email ?? accountId
+    // The ChatGPT account id is the stable identity; a stored label or the
+    // token's email claim stands in for records that predate its storage.
+    const identity = accountId === undefined ? (stored ?? email)?.toLowerCase() : `chatgpt:${accountId}`
+    return {
+      ...label === undefined ? {} : { label },
+      ...identity === undefined ? {} : { identity },
+      ...expiresAt === undefined ? {} : { expiresAt },
+    }
   }
-  return {}
+  return {
+    ...stored === undefined ? {} : { label: stored, identity: stored.toLowerCase() },
+    ...expiresAt === undefined ? {} : { expiresAt },
+  }
 }

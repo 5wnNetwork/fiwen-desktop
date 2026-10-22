@@ -627,6 +627,21 @@ it.each([false, true])('uses account availability without asking for an API key:
   expect(seenRefs).toEqual([])
 })
 
+it('keeps the account row while its directory entry carries an error', async () => {
+  const { ctx, mirror } = api({ accountAvailable: false, providers: async () => ok({ providers: [{
+    provider: 'deepseek-account', displayName: 'Fiwen account', settingsNs: 'llm-deepseek-account', settingsPath: [], active: true,
+    error: 'model listing unavailable; retrying',
+  }] }) })
+  const store = new ModelsSettingsStore(ctx, settingsSchema, mirror)
+  await store.load()
+  const rows = store.store.getSnapshot().rows
+  expect(rows[0]).toMatchObject({
+    accountAvailable: true,
+    entry: { provider: 'deepseek-account', error: 'model listing unavailable; retrying' },
+  })
+  expect(providerUsable(rows[0]!)).toBe(true)
+})
+
 it('removes the account row after sign-out and restores it after sign-in', async () => {
   const overrides = { accountAvailable: true, providers: async () => ok({ providers: [{
     provider: 'deepseek-account', displayName: 'Fiwen account', settingsNs: 'llm-deepseek-account', settingsPath: [], active: true,

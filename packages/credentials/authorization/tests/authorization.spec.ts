@@ -132,8 +132,13 @@ function accountFlow(ctx: Context): AuthorizationFlow {
     },
     describeRecord(record: CredentialRecord) {
       if (record.kind !== 'grant') return {}
-      const email = (record.payload as { email?: unknown }).email
-      return typeof email === 'string' ? { label: email } : {}
+      const payload = record.payload as { email?: unknown; expires?: unknown }
+      return {
+        ...typeof payload.email === 'string'
+          ? { label: payload.email, identity: payload.email.toLowerCase() }
+          : {},
+        ...typeof payload.expires === 'number' ? { expiresAt: payload.expires } : {},
+      }
     },
     async quota({ payload, persist }) {
       const token = (payload as { token?: unknown }).token
@@ -211,6 +216,109 @@ describe('account slots', () => {
     expect(await ctx.credentials.readRecord(KEY)).toBeUndefined()
     expect(await ctx.credentials.readRecord(selectionKeyFor(KEY)))
       .toEqual({ kind: 'grant', payload: { account: 'acct-a' } })
+  })
+
+  it('drops the already-stored entry when a sign-in commits the same account identity', async () => {
+    const ctx = await harness()
+    const base = accountFlow(ctx)
+    ctx.authorization.registerFlow({
+      ...base,
+      // Whatever slot the surface mints, this sign-in always lands the same
+      // upstream account — dedup keys on the identity the record reports.
+      describeRecord: (record: CredentialRecord) => record.kind === 'grant'
+        ? { label: 'same@x.dev', identity: 'same@x.dev' }
+        : {},
+    })
+
+    await ctx.authorization.begin({ key: KEY, account: 'acct-a', interaction: surface() })
+    await ctx.authorization.begin({ key: KEY, account: 'acct-b', interaction: surface() })
+
+    await expect(ctx.authorization.listAccounts(KEY)).resolves.toEqual([
+      { key: SLOT_B, account: 'acct-b', label: 'same@x.dev', selected: true },
+    ])
+    expect(await ctx.credentials.describeRecord(SLOT_A)).toMatchObject({ configured: false })
+  })
+
+  it('removes a stored account whose identity a base-record commit reports', async () => {
+    const ctx = await harness()
+    const base = accountFlow(ctx)
+    ctx.authorization.registerFlow({
+      ...base,
+      describeRecord: (record: CredentialRecord) => record.kind === 'grant'
+        ? { label: 'who@x.dev', identity: 'who@x.dev' }
+        : {},
+    })
+    await ctx.credentials.modifyRecord(SLOT_A, () =>
+      Promise.resolve({ kind: 'grant', payload: { token: 'a', email: 'who@x.dev' } }))
+
+    await ctx.authorization.begin({ key: KEY, interaction: surface() })
+
+    expect(await ctx.credentials.describeRecord(SLOT_A)).toMatchObject({ configured: false })
+    await expect(ctx.authorization.listAccounts(KEY)).resolves.toEqual([
+      { key: KEY, account: '', label: 'who@x.dev', selected: true },
+    ])
+  })
+
+  it('keeps each sign-in as its own account when the record reports no identity', async () => {
+    const ctx = await harness()
+    const base = accountFlow(ctx)
+    ctx.authorization.registerFlow({ ...base, describeRecord: () => ({}) })
+
+    await ctx.authorization.begin({ key: KEY, account: 'acct-a', interaction: surface() })
+    await ctx.authorization.begin({ key: KEY, account: 'acct-b', interaction: surface() })
+
+    await expect(ctx.authorization.listAccounts(KEY)).resolves.toHaveLength(2)
+  })
+
+  it('reports the credential expiry a flow reads off its record', async () => {
+    const ctx = await harness()
+    ctx.authorization.registerFlow(accountFlow(ctx))
+    await ctx.credentials.modifyRecord(SLOT_A, () => Promise.resolve({
+      kind: 'grant',
+      payload: { token: 'a', email: 'a@x.dev', expires: 1_700_000_000_000 },
+    }))
+
+    await expect(ctx.authorization.listAccounts(KEY)).resolves.toEqual([
+      { key: SLOT_A, account: 'acct-a', label: 'a@x.dev', expiresAt: 1_700_000_000_000, selected: true },
+    ])
+  })
+
+  it('lists records bare when the flow reads nothing off them', async () => {
+    const ctx = await harness()
+    // committingFlow carries no describeRecord: the list still reports the
+    // slots, just without a label or expiry to show.
+    ctx.authorization.registerFlow(committingFlow(ctx))
+    await ctx.credentials.modifyRecord(SLOT_A, () =>
+      Promise.resolve({ kind: 'grant', payload: { token: 'a' } }))
+
+    await expect(ctx.authorization.listAccounts(KEY)).resolves.toEqual([
+      { key: SLOT_A, account: 'acct-a', selected: true },
+    ])
+  })
+
+  it('ignores a sibling record that vanishes while a sign-in dedups', async () => {
+    const ctx = await harness()
+    const base = accountFlow(ctx)
+    ctx.authorization.registerFlow({
+      ...base,
+      describeRecord: (record: CredentialRecord) => record.kind === 'grant'
+        ? { label: 'same@x.dev', identity: 'same@x.dev' }
+        : {},
+    })
+    await ctx.credentials.modifyRecord(SLOT_A, () =>
+      Promise.resolve({ kind: 'grant', payload: { token: 'a', email: 'same@x.dev' } }))
+    // A slot listed by the dedup enumeration but gone by the read.
+    const ghost = credentialKey('llm-pi-ai', 'openai-codex--ghost')
+    const real = ctx.credentials.listRecords.bind(ctx.credentials)
+    const listed = vi.spyOn(ctx.credentials, 'listRecords')
+      .mockImplementation(async () => [...await real(), { key: ghost, kind: 'grant' }])
+
+    await ctx.authorization.begin({ key: KEY, account: 'acct-b', interaction: surface() })
+    listed.mockRestore()
+
+    await expect(ctx.authorization.listAccounts(KEY)).resolves.toEqual([
+      { key: SLOT_B, account: 'acct-b', label: 'same@x.dev', selected: true },
+    ])
   })
 
   it('refuses an account attempt whose commit lands on the base key', async () => {

@@ -32,6 +32,9 @@ export const remoteDefaultResponses: RemoteTable = {
     'dynamicCordisRunner/inventory': ok([]),
     // ui-settings-plugins web-search card `readCredential()` when the settings mirror first publishes.
     'credentials/describe': ok({}),
+    // ui-settings-models joined read for provider authorization entries; empty
+    // keeps every OAuth flow's account list unread.
+    'authorization/list': ok([]),
     // ui-permission-presets `PermissionCatalogDirectory` on its first read for a connection generation.
     'permissionPresets/catalog': ok({ options: [] }),
     // ui-settings-account refreshes details after a stored-grant snapshot.

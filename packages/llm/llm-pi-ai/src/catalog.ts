@@ -216,6 +216,22 @@ export function catalogProviderIds(): readonly string[] {
 }
 
 /**
+ * The subscription providers the product fronts, mapped to the label
+ * configuration surfaces show for them. Membership decides three things at
+ * once because they share one premise — a subscription is a personal account
+ * quota, not a deployment endpoint: the configurable-provider directory
+ * offers the route before any profile names it, a profile's `displayName`
+ * defaults to the label rather than the route key, and the route serves only
+ * the models its configuration adds instead of falling back to the whole
+ * installed catalog, so picker entries are the account's deliberate choices.
+ */
+export const SUBSCRIPTION_PROVIDERS: ReadonlyMap<string, string> = new Map([
+  ['anthropic', 'Claude'],
+  ['openai-codex', 'ChatGPT'],
+  ['antigravity', 'Gemini'],
+])
+
+/**
  * The installed catalog models for one route, indexed by model id.
  * @param provider - provider route key.
  * @returns catalog models by id; empty for a route {@link catalogProvider} does not return.
@@ -666,7 +682,12 @@ export interface RouteCatalogRequest {
   api?: string
   /** Endpoint override; absent defers to the catalog model, then the catalog provider. */
   baseURL?: string
-  /** Configured catalog; absent means the whole installed catalog for this route. */
+  /**
+   * Configured catalog; absent means the whole installed catalog for this
+   * route — except on a {@link SUBSCRIPTION_PROVIDERS} route, where the
+   * installed catalog is only the discovery candidate list and absence serves
+   * nothing.
+   */
   models?: readonly PiAiModelProfile[]
   /** Installed-catalog customizations by model id; only meaningful while `models` is absent. */
   modelOverrides?: Readonly<Record<string, PiAiModelOverride>>
@@ -860,7 +881,11 @@ export interface RouteCatalog {
  * Materialize one route's catalog by merging the installed catalog defaults
  * under the configured entries. A route with no configured `models` serves the
  * installed catalog unchanged, which is what keeps an existing
- * `providers: { deepseek: { apiKeyEnv: … } }` profile working untouched.
+ * `providers: { deepseek: { apiKeyEnv: … } }` profile working untouched —
+ * except a {@link SUBSCRIPTION_PROVIDERS} route, where the installed catalog
+ * is a discovery candidate list rather than a default: it serves only the
+ * `models` the configuration names, and an empty profile legitimately serves
+ * none.
  * @param request - the route-level catalog facts.
  * @param validation - strict writes reject every error; deferred reads retain model diagnostics.
  * @returns the materialized models and the explicitly configured request caps.
@@ -872,6 +897,11 @@ export function resolveRouteModels(
   const { provider } = request
   const defaults = catalogModels(provider)
   const providerBaseUrl = catalogProvider(provider)?.baseUrl
+  // A subscription route's installed catalog is a candidate list, not a
+  // served default: the picker's entries are the models the configuration
+  // adopted, which is why one of these routes with no models list is not an
+  // error but an empty catalog.
+  const adoptOnly = SUBSCRIPTION_PROVIDERS.has(provider)
   // An absent `models` key and an empty one are the same request: the config
   // schema materializes `[]` for the absent case, and an empty catalog could
   // serve no request anyway, so both mean "serve the installed catalog".
@@ -890,7 +920,15 @@ export function resolveRouteModels(
       invalid(provider, `sets modelOverrides for "${id}" beside a models list; models already replaces the served`
         + ' catalog, so declare the fields on its entries')
     }
-    if (!defaults.has(id)) {
+    if (adoptOnly) {
+      // No installed catalog rides along to be customized: an override on an
+      // adopt-only route would sit beside nothing and change nothing, which
+      // is exactly the "silently unchanged model" the refusal exists for.
+      const message = `sets modelOverrides for "${id}", but a subscription route serves only its models list;`
+        + ' declare the fields on its entries'
+      if (validation === 'strict') invalid(provider, message)
+      modelErrors.set(id, `llm-pi-ai: provider "${provider}" ${message}`)
+    } else if (!defaults.has(id)) {
       const message = `modelOverrides names "${id}", which the installed catalog does not describe`
       if (validation === 'strict') invalid(provider, message)
       modelErrors.set(id, `llm-pi-ai: provider "${provider}" ${message}`)
@@ -907,8 +945,10 @@ export function resolveRouteModels(
   // the same path with the same diagnostics and request-default semantics.
   const entries: readonly PiAiModelProfile[] = configured.length > 0
     ? configured
-    : [...defaults.values()].map(model => ({ id: model.id, ...overrides[model.id] }))
-  if (entries.length === 0) {
+    : adoptOnly
+      ? []
+      : [...defaults.values()].map(model => ({ id: model.id, ...overrides[model.id] }))
+  if (entries.length === 0 && !adoptOnly) {
     invalid(provider, 'resolves no models; the installed catalog does not describe this route, so its models'
       + ' must be listed in configuration')
   }
@@ -949,6 +989,20 @@ export function resolveRouteModels(
     // Only a value the profile named is a deployment choice; the catalog's is
     // the model's capability and stays out of request defaults.
     if (entry.maxTokens !== undefined) configuredMaxTokens.set(entry.id, entry.maxTokens)
+    const reasoning = resolveModelReasoning(provider, entry, base)
+    // A catalog entry that dispatches its thinking tier by wire model name —
+    // Antigravity's `upstreamIds` — can honor only the levels it spells; a
+    // declared effort outside them would silently serve the default tier.
+    const tierWires = (base as { upstreamIds?: Readonly<Record<string, string>> } | undefined)?.upstreamIds
+    if (tierWires !== undefined
+      && typeof entry.reasoningEfforts === 'object') {
+      for (const level of Object.keys(entry.reasoningEfforts)) {
+        if (tierWires[level] === undefined) {
+          invalid(provider, `model "${entry.id}" reasoningEfforts.${level} offers a level the installed entry`
+            + ' cannot spell: it selects its thinking tier by wire model name and none names that level')
+        }
+      }
+    }
     return {
       // The installed entry lays the floor, and the fields below override it.
       // Enumerating instead would silently drop every `Model` field this
@@ -965,7 +1019,7 @@ export function resolveRouteModels(
       cost: base?.cost ?? NO_COST,
       contextWindow,
       maxTokens,
-      ...resolveModelReasoning(provider, entry, base),
+      ...reasoning,
       ...resolveModelCompat(provider, entry, request.compat, base, api),
     }
   }

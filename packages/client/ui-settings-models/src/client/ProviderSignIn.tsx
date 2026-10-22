@@ -20,6 +20,10 @@
 import { randomUUID } from '@deepseek-ai/dsh-util-crypto'
 import { useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
+import {
+  Button, IconCheckOutlineRegular, IconChevronDownOutlineRegular, IconEllipsisOutlineMedium,
+  IconPlusOutlineRegular, IconRefreshOutlineRegular, IconTrashOutlineRegular, Menu, Modal,
+} from '@deepseek-ai/dsh-client-ui-primitives'
 import type {
   AuthorizationAccountView, AuthorizationEntryView, AuthorizationNotice, AuthorizationPromptView,
 } from '@deepseek-ai/dsh-api-remotes/client'
@@ -131,67 +135,113 @@ function windowLabel(quotaWindow: { readonly label: string; readonly usedPercent
 }
 
 /**
- * One stored account's row: a radio that selects it for the provider's
- * requests, its quota control and windows, and its sign-out. Quota is fetched
- * on the row's own click — an upstream probe per account is too heavy to run
- * unprompted on every page load.
+ * The stale-credential marker for one account: the record's own access-token
+ * expiry is what it reports, so a past stamp is honest even though the next
+ * use or quota probe refreshes it — one that stays past after a probe is the
+ * dead credential worth flagging.
+ */
+function ExpiredMark(props: {
+  readonly at: number | undefined
+  readonly t: (key: keyof typeof en) => string
+}): ReactNode {
+  const { at, t } = props
+  if (at === undefined || at > Date.now()) return null
+  return <span className={styles['accountExpired']} title={t('accountExpiredHint')}>{t('accountExpired')}</span>
+}
+
+/** The quota presentation of one account: plan plus windows, a failure line, or a pending hint. */
+function QuotaChips(props: {
+  readonly quota: AuthorizationQuotaOutcome | undefined
+  readonly quotaBusy: boolean
+  readonly t: (key: keyof typeof en) => string
+}): ReactNode {
+  const { quota, quotaBusy, t } = props
+  const reported = quota?.kind === 'reported' ? quota.quota : undefined
+  const resetAt = reported?.windows.find(quotaWindow => quotaWindow.resetAt !== undefined)?.resetAt
+  if (reported !== undefined) {
+    return (
+      <span
+        className={styles['quotaChips']}
+        title={resetAt === undefined ? undefined : t('quotaReset').replace('{when}', () => new Date(resetAt).toLocaleString())}
+      >
+        {reported.plan === undefined ? null : <span className={styles['quotaPlan']}>{reported.plan}</span>}
+        {reported.windows.map(quotaWindow => <span key={quotaWindow.id} className={styles['quotaChip']}>{windowLabel(quotaWindow)}</span>)}
+      </span>
+    )
+  }
+  if (quota?.kind === 'refused') {
+    return <span className={styles['quotaFailed']} title={quota.message}>{t('quotaFailed')}</span>
+  }
+  return quotaBusy ? <span className={styles['quotaPending']}>{t('quotaChecking')}</span> : null
+}
+
+/**
+ * One stored account's row: a whole-row radio that selects it for the
+ * provider's requests, its quota windows, and an overflow menu holding the
+ * quota refresh and the sign-out — the destructive action sits behind the
+ * menu's confirm dialog instead of sharing the row as a bare text link.
  */
 function AccountRow(props: {
-  readonly flowKey: string
   readonly account: AuthorizationAccountView
   readonly quota: AuthorizationQuotaOutcome | undefined
   readonly quotaBusy: boolean
   readonly t: (key: keyof typeof en) => string
   readonly disabled: boolean
+  readonly menuOpen: boolean
+  readonly onMenuOpen: () => void
+  readonly onMenuClose: () => void
   readonly onSelect: (account: string) => void
   readonly onQuota: (account: string) => void
-  readonly onSignOut: (key: string) => void
+  readonly onSignOutRequest: (account: AuthorizationAccountView) => void
 }): ReactNode {
-  const { flowKey, account, quota, quotaBusy, t, disabled } = props
-  const reported = quota?.kind === 'reported' ? quota.quota : undefined
-  const resetAt = reported?.windows.find(quotaWindow => quotaWindow.resetAt !== undefined)?.resetAt
+  const { account, quota, quotaBusy, t, disabled, menuOpen } = props
   return (
-    <li className={styles['accountRow']}>
-      <label className={styles['accountSelector']}>
-        <input
-          type="radio"
-          name={`${flowKey}-account`}
-          checked={account.selected}
-          disabled={disabled || account.selected}
-          aria-label={t('accountUse')}
-          onChange={() => { props.onSelect(account.account) }}
-        />
-        <span className={styles['accountLabel']}>{accountLabel(account, t)}</span>
-      </label>
-      {reported !== undefined
-        ? (
-          <span
-            className={styles['quotaChips']}
-            title={resetAt === undefined ? undefined : t('quotaReset').replace('{when}', () => new Date(resetAt).toLocaleString())}
-          >
-            {reported.plan === undefined ? null : <span className={styles['quotaPlan']}>{reported.plan}</span>}
-            {reported.windows.map(quotaWindow => <span key={quotaWindow.id} className={styles['quotaChip']}>{windowLabel(quotaWindow)}</span>)}
-          </span>
-        )
-        : quota?.kind === 'refused'
-          ? <span className={styles['quotaFailed']} title={quota.message}>{t('quotaFailed')}</span>
-          : null}
+    <li className={styles['accountRow']} data-selected={account.selected || undefined}>
       <button
         type="button"
-        className={styles['linkButton']}
-        disabled={disabled || quotaBusy}
-        onClick={() => { props.onQuota(account.account) }}
-      >
-        {quotaBusy ? t('quotaChecking') : t('quotaCheck')}
-      </button>
-      <button
-        type="button"
-        className={styles['linkButton']}
+        role="radio"
+        aria-checked={account.selected}
+        className={styles['accountSelect']}
         disabled={disabled}
-        onClick={() => { props.onSignOut(account.key) }}
+        onClick={() => { if (!account.selected) props.onSelect(account.account) }}
       >
-        {t('signOut')}
+        <span className={styles['accountCheck']} aria-hidden="true">
+          {account.selected ? <IconCheckOutlineRegular size={14} /> : null}
+        </span>
+        <span className={styles['accountLabel']}>{accountLabel(account, t)}</span>
+        <ExpiredMark at={account.expiresAt} t={t} />
+        <QuotaChips quota={quota} quotaBusy={quotaBusy} t={t} />
       </button>
+      <Menu
+        open={menuOpen}
+        portal
+        align="end"
+        anchor={(
+          <button
+            type="button"
+            className={styles['accountMenuButton']}
+            aria-label={t('accountActions')}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            disabled={disabled}
+            onClick={() => { (menuOpen ? props.onMenuClose : props.onMenuOpen)() }}
+          >
+            <IconEllipsisOutlineMedium size={14} />
+          </button>
+        )}
+        items={[
+          { id: 'quota', label: t('quotaRefresh'), icon: <IconRefreshOutlineRegular size={16} /> },
+          { type: 'separator', id: 'actions' },
+          { id: 'signout', label: t('signOut'), icon: <IconTrashOutlineRegular size={16} />, danger: true },
+        ]}
+        onClose={props.onMenuClose}
+        onSelect={(id) => {
+          props.onMenuClose()
+          // The menu emits only its two declared item ids.
+          if (id === 'quota') props.onQuota(account.account)
+          else props.onSignOutRequest(account)
+        }}
+      />
     </li>
   )
 }
@@ -209,6 +259,10 @@ export function ProviderSignIn(props: ProviderSignInProps): ReactNode {
   const [expanded, setExpanded] = useState(false)
   const [quotaByAccount, setQuotaByAccount] = useState<Readonly<Record<string, AuthorizationQuotaOutcome | undefined>>>({})
   const [quotaBusy, setQuotaBusy] = useState<string | undefined>(undefined)
+  /** The record key whose overflow menu is open. */
+  const [menuFor, setMenuFor] = useState<string | undefined>(undefined)
+  /** The record awaiting the sign-out confirmation dialog. */
+  const [confirmOut, setConfirmOut] = useState<{ readonly key: string; readonly label: string } | undefined>(undefined)
   // The card's own attempt marker: only an attempt this surface began is
   // cancelled on unmount, and only it reports busy outward.
   const running = useRef(false)
@@ -280,6 +334,9 @@ export function ProviderSignIn(props: ProviderSignInProps): ReactNode {
       tab.current = null
     }
     if (outcome.kind === 'failed') setFailure(outcome.message)
+    // A committed account just earned its slot; its quota probe runs off the
+    // same gesture that signed it in.
+    else if (account !== undefined) void quota(account)
   }
 
   const signOut = async (key: string): Promise<void> => {
@@ -309,97 +366,123 @@ export function ProviderSignIn(props: ProviderSignInProps): ReactNode {
     }
   }
 
+  /**
+   * Opening the list is the deliberate gesture the per-account probes wait
+   * for: a fresh read fetches every account's quota once rather than a
+   * click at a time, and a cached answer never refetches.
+   */
+  const toggleExpand = (list: readonly AuthorizationAccountView[]): void => {
+    if (expanded) { setExpanded(false); return }
+    setExpanded(true)
+    list.forEach((account) => {
+      if (quotaByAccount[account.account] === undefined) void quota(account.account)
+    })
+  }
+
   // The URL/code affordances follow the most recent notice that carried one —
   // a trailing progress line must not hide what the human still needs.
   const lastUrl = attempt === undefined ? undefined : [...attempt.log].reverse().find(notice => notice.url !== undefined)?.url
   const lastCode = attempt === undefined ? undefined : [...attempt.log].reverse().find(notice => notice.code !== undefined)?.code
   const selected = accounts?.find(account => account.selected)
-  const idle = (
-    <div className={styles['signInRow']}>
-      {accounts === undefined
-        ? entry.configured
+  const idle = accounts === undefined || accounts.length === 0
+    ? (
+      <div className={styles['signInRow']}>
+        {accounts === undefined && entry.configured
           ? (
             <span className={styles['accountStatus']}>
               <span className={`${styles['credentialDot']} ${styles['credentialDotConfigured']}`} aria-hidden="true" />
               {t('accountSignedIn')}
             </span>
           )
-          : null
-        : selected === undefined
-          ? null
+          : null}
+        {entry.inFlight
+          ? <span className={styles['advancedHint']}>{t('signingIn')}</span>
           : (
-            <span className={styles['accountStatus']}>
-              <span className={`${styles['credentialDot']} ${styles['credentialDotConfigured']}`} aria-hidden="true" />
-              {accountLabel(selected, t)}
-            </span>
+            <button
+              type="button"
+              className={styles['secondaryButton']}
+              disabled={disabled || signingOut}
+              onClick={begin}
+            >
+              {oauth.label}
+            </button>
           )}
-      {entry.inFlight
-        ? <span className={styles['advancedHint']}>{t('signingIn')}</span>
-        : (
-          <button
-            type="button"
-            className={styles['secondaryButton']}
-            disabled={disabled || signingOut}
-            onClick={begin}
-          >
-            {accounts !== undefined && accounts.length > 0 ? t('accountAdd') : oauth.label}
-          </button>
-        )}
-      {accounts !== undefined && accounts.length > 0
-        ? (
-          <button
-            type="button"
-            className={styles['linkButton']}
-            aria-expanded={expanded}
-            onClick={() => { setExpanded(current => !current) }}
-          >
-            {expanded ? t('accountHide') : t('accountManage')}
-          </button>
-        )
-        : null}
-      {accounts === undefined && entry.configured
-        ? (
-          <button
-            type="button"
-            className={styles['linkButton']}
-            disabled={disabled || signingOut || entry.inFlight}
-            onClick={() => { void signOut(entry.key) }}
-          >
-            {signingOut ? t('signingOut') : t('signOut')}
-          </button>
-        )
-        : null}
-    </div>
-  )
+        {accounts === undefined && entry.configured
+          ? (
+            <button
+              type="button"
+              className={styles['linkButton']}
+              disabled={disabled || signingOut || entry.inFlight}
+              onClick={() => { setConfirmOut({ key: entry.key, label: t('accountSignedIn') }) }}
+            >
+              {signingOut ? t('signingOut') : t('signOut')}
+            </button>
+          )
+          : null}
+      </div>
+    )
+    : (
+      <div className={styles['accountBlock']}>
+        <button
+          type="button"
+          className={styles['accountHeader']}
+          aria-expanded={expanded}
+          disabled={disabled}
+          onClick={() => { toggleExpand(accounts) }}
+        >
+          <span className={`${styles['credentialDot']} ${styles['credentialDotConfigured']}`} aria-hidden="true" />
+          <span className={styles['accountHeaderLabel']}>
+            {selected === undefined ? '—' : accountLabel(selected, t)}
+          </span>
+          <ExpiredMark at={selected?.expiresAt} t={t} />
+          <QuotaChips
+            quota={selected === undefined ? undefined : quotaByAccount[selected.account]}
+            quotaBusy={selected !== undefined && quotaBusy === selected.account}
+            t={t}
+          />
+          <IconChevronDownOutlineRegular className={styles['accountChevron']} />
+        </button>
+        {entry.inFlight ? <span className={styles['advancedHint']}>{t('signingIn')}</span> : null}
+        {expanded
+          ? (
+            <ul className={styles['accountList']} role="radiogroup" aria-label={t('subscription')}>
+              {accounts.map(account => (
+                <AccountRow
+                  key={account.key}
+                  account={account}
+                  quota={quotaByAccount[account.account]}
+                  quotaBusy={quotaBusy === account.account}
+                  t={t}
+                  disabled={disabled || signingOut || entry.inFlight}
+                  menuOpen={menuFor === account.key}
+                  onMenuOpen={() => { setMenuFor(account.key) }}
+                  onMenuClose={() => { setMenuFor(undefined) }}
+                  onSelect={(slot) => { void select(slot) }}
+                  onQuota={(slot) => { void quota(slot) }}
+                  onSignOutRequest={(view) => { setConfirmOut({ key: view.key, label: accountLabel(view, t) }) }}
+                />
+              ))}
+              <li>
+                <button
+                  type="button"
+                  className={styles['accountAdd']}
+                  disabled={disabled || signingOut || entry.inFlight}
+                  onClick={begin}
+                >
+                  <IconPlusOutlineRegular size={14} />
+                  {t('accountAdd')}
+                </button>
+              </li>
+            </ul>
+          )
+          : null}
+      </div>
+    )
   return (
     <div className={styles['field']}>
       <span className={styles['fieldLabel']}>{t('subscription')}</span>
       {attempt === undefined
-        ? (
-          <>
-            {idle}
-            {expanded && accounts !== undefined
-              ? (
-                <ul className={styles['accountList']}>
-                  {accounts.map(account => (
-                    <AccountRow
-                      key={account.key}
-                      flowKey={entry.key}
-                      account={account}
-                      quota={quotaByAccount[account.account]}
-                      quotaBusy={quotaBusy === account.account}
-                      t={t}
-                      disabled={disabled || signingOut || entry.inFlight}
-                      onSelect={(slot) => { void select(slot) }}
-                      onQuota={(slot) => { void quota(slot) }}
-                      onSignOut={(key) => { void signOut(key) }}
-                    />
-                  ))}
-                </ul>
-              )
-              : null}
-          </>
-        )
+        ? idle
         : (
           <div className={styles['signInAttempt']}>
             {attempt.log.map((notice, index) => (
@@ -436,6 +519,32 @@ export function ProviderSignIn(props: ProviderSignInProps): ReactNode {
           </div>
         )}
       {failure === undefined ? null : <p className={styles['error']}>{failure}</p>}
+      {confirmOut === undefined
+        ? null
+        : (
+          <Modal
+            open
+            title={t('signOut')}
+            closeLabel={t('cancel')}
+            description={t('signOutConfirm').replace('{label}', () => confirmOut.label)}
+            onClose={() => { setConfirmOut(undefined) }}
+            footer={(
+              <>
+                <Button variant="outline" onClick={() => { setConfirmOut(undefined) }}>{t('cancel')}</Button>
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    const { key } = confirmOut
+                    setConfirmOut(undefined)
+                    void signOut(key)
+                  }}
+                >
+                  {t('signOut')}
+                </Button>
+              </>
+            )}
+          />
+        )}
     </div>
   )
 }

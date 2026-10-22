@@ -21,7 +21,7 @@ afterEach(async () => {
   for (const ctx of contexts.splice(0)) await ctx.fiber.dispose()
 })
 
-/** Fail the account listing request fast, so the route serves its bundled catalog and fetch mocks see only Messages traffic. */
+/** Fail the account listing request fast, so request resolution uses bundled knowledge and fetch mocks see only Messages traffic. */
 function listingRequest(input: string | URL | Request): Response | undefined {
   const url = new URL(input instanceof Request ? input.url : input)
   return url.pathname === '/models' ? new Response(null, { status: 404 }) : undefined

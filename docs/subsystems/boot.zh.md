@@ -136,6 +136,56 @@ async reconcileProfile(requiredIds: readonly string[] = []): Promise<ProfileReco
 
 Source: [`packages/boot/hmr/src/index.ts`](../../packages/boot/hmr/src/index.ts)
 
+<a id="ctxmarket--market"></a>
+
+### `ctx.market` — `Market`
+
+Browse and install marketplace items. `deepseekAccount` authenticates installs when the origin matches its inference origin; `profileContext` supplies the user patch file MCP installs append to.
+
+```ts cordis-catalog
+/**
+ * One catalog page plus the category rail.
+ * @param query - kind/category/text filters, sort key, and pagination.
+ * @returns matching items with the enabled categories and the total match count.
+ */
+@Remote async catalog(query: MarketSearchQuery): Promise<MarketCatalogResult>
+
+/**
+ * One item's detail view, including the long description.
+ * @param id - catalog slug.
+ * @returns the item detail.
+ * @throws {RemoteError} `market/not-found` for a missing or delisted item.
+ */
+@Remote async detail(id: string): Promise<MarketItemDetail>
+
+/**
+ * Install one item: records the install server-side, then writes the artifact locally — the skill
+ * directory or the MCP patch row — and records it in the local ledger. Named `installItem` because
+ * the Client namespace service owns a private `install`.
+ * @param id - catalog slug.
+ * @returns the recorded install.
+ * @throws {RemoteError} `market/auth-required`, `market/not-found`, `market/conflict`,
+ * `market/no-profile`, `market/profile-unavailable`, `market/invalid-response`, `market/fetch-failed`.
+ */
+@Remote async installItem(id: string): Promise<MarketInstalledView>
+
+/**
+ * Remove one installed item: the skill directory or the MCP patch row, and its ledger entry.
+ * User-owned directories are never removed.
+ * @param id - catalog slug.
+ * @returns whether a local artifact was actually removed.
+ */
+@Remote async uninstallItem(id: string): Promise<boolean>
+
+/**
+ * Items installed on this machine, reconciled against the artifacts that still exist.
+ * @returns the install views the Installed marker shows.
+ */
+@Remote async installed(): Promise<readonly MarketInstalledView[]>
+```
+
+Source: [`packages/boot/market/src/index.ts`](../../packages/boot/market/src/index.ts)
+
 <a id="ctxpluginmanager--pluginmanager"></a>
 
 ### `ctx.pluginManager` — `PluginManager`
@@ -366,6 +416,26 @@ Module replacements have finished loading.
 ```
 
 Source: [`packages/boot/hmr/src/index.ts`](../../packages/boot/hmr/src/index.ts)
+
+<a id="market-events"></a>
+
+### `market/*` events
+
+<a id="marketchanged--emit"></a>
+
+#### `market/changed` — emit
+
+A marketplace install or uninstall changed the local artifacts.
+
+```ts cordis-catalog
+/**
+ * A marketplace install or uninstall changed the local artifacts.
+ * @mode emit
+ */
+'market/changed'(): void
+```
+
+Source: [`packages/boot/market/src/types.ts`](../../packages/boot/market/src/types.ts)
 
 <a id="plugin-manager-events"></a>
 

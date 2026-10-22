@@ -66,11 +66,12 @@ export class AccountModelCatalog {
   }
 
   /**
-   * Resolve the view for the current credential. The first access of a scope
-   * waits for its load, which the request deadline bounds; later accesses
-   * return at once and refresh a stale listing in the background.
+   * Resolve the view for the current credential. Each access waits for a load
+   * while no listing is held — the first access of a scope, or one past
+   * `retryAgeMs` after a failure — which the request deadline bounds; other
+   * accesses return at once and refresh a stale listing in the background.
    * @param signal - abandons this wait only; the shared load continues.
-   * @returns the view after any first load of the scope settles.
+   * @returns the view after any awaited load of the scope settles.
    */
   async view(signal?: AbortSignal): Promise<CatalogView> {
     const settings = this.dependencies.settings()
@@ -80,8 +81,12 @@ export class AccountModelCatalog {
     const scope = token === undefined ? undefined : `${settings.url}\n${createHash('sha256').update(token).digest('hex')}`
     if (scope !== this.scope) this.rescope(scope)
     if (token !== undefined) {
-      if (this.settledAt === undefined) await abandonable(this.start(settings, token), signal)
-      else if (this.dependencies.now() - this.settledAt >= settings.maxAgeMs) void this.start(settings, token)
+      const due = this.settledAt === undefined
+        || this.dependencies.now() - this.settledAt >= (this.failing ? settings.retryAgeMs : settings.maxAgeMs)
+      if (due) {
+        if (this.listing === undefined) await abandonable(this.start(settings, token), signal)
+        else void this.start(settings, token)
+      }
     }
     return this.current()
   }
@@ -120,7 +125,7 @@ export class AccountModelCatalog {
       }, (error: unknown) => {
         if (generation !== this.generation) return
         if (!this.failing) {
-          const fallback = this.listing === undefined ? 'using the bundled catalog' : 'keeping the previous catalog'
+          const fallback = this.listing === undefined ? 'offering no models until a listing loads' : 'keeping the previous catalog'
           this.dependencies.warn(`model listing from ${settings.url} failed (${String(error)}); ${fallback}`)
         }
         this.settledAt = this.dependencies.now()

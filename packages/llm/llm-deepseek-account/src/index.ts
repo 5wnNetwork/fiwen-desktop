@@ -101,13 +101,20 @@ export function apply(ctx: Context, config: Config): void {
   const entry = { provider: PROVIDER, displayName: 'Fiwen Account', settingsNs: ctx.fiber.entry?.options.id ?? name, settingsPath: [] }
   const directory = ctx.llm.registerConfigurableProviders([entry])
   let reportedError: string | undefined
-  /** Publish override diagnostics on the provider directory. */
+  /** Publish listing and override diagnostics on the provider directory. */
   const discovered = (view: CatalogView): AccountConnection => {
     const connection = connectionOf(view)
-    const error = connection.catalog.overrideErrors.length === 0 ? undefined : connection.catalog.overrideErrors.join('; ')
+    const errors = connection.catalog.overrideErrors.slice()
+    if (view.signedIn && view.listing === undefined) errors.unshift('model listing unavailable; retrying')
+    const error = errors.length === 0 ? undefined : errors.join('; ')
     if (error !== reportedError) {
       reportedError = error
-      directory.replace([error === undefined ? entry : { ...entry, error }])
+      try {
+        directory.replace([error === undefined ? entry : { ...entry, error }])
+      } catch (replaceError) {
+        // Teardown disposes the registration while an in-flight discovery still settles.
+        if (!(replaceError instanceof LlmError && replaceError.code === 'REGISTRATION_DISPOSED')) throw replaceError
+      }
     }
     return connection
   }
@@ -119,7 +126,7 @@ export function apply(ctx: Context, config: Config): void {
     admit: (connection, model) => { refuse(model, connection.catalog.refusals.get(model)) },
     discoverModels: async (provider) => {
       const view = await catalog.view()
-      return view.signedIn ? discovered(view).catalog.offered.map(model => catalogModelInfo(provider, model)) : []
+      return discovered(view).catalog.offered.map(model => catalogModelInfo(provider, model))
     },
   })
   ctx.effect(() => () => { catalog.dispose() }, 'llm-deepseek-account: model catalog')

@@ -411,11 +411,13 @@ describe('ModelsSection', () => {
     expect(seat?.[2]).toMatchObject({ entryKey: 'llm-pi-ai' })
     fireEvent.click(row.getByRole('button', { name: 'Edit anthropic' }))
     const editor = row.getByText(en.subscription).closest('div')!
-    // The joined account list puts sign-out inside the expanded rows and
-    // turns the sign-in button into the add-account control.
-    fireEvent.click(within(editor).getByRole('button', { name: en.accountManage }))
+    // The joined account list discloses the selected account in its header;
+    // expanding exposes the add-account row, and sign-out sits in the row's
+    // overflow menu.
+    fireEvent.click(within(editor).getByRole('button', { name: en.accountBase, expanded: false }))
     expect(within(editor).getByRole('button', { name: en.accountAdd })).toBeTruthy()
-    expect(within(editor).getByRole('button', { name: en.signOut })).toBeTruthy()
+    fireEvent.click(within(editor).getByRole('button', { name: en.accountActions }))
+    expect(screen.getByRole('menuitem', { name: en.signOut })).toBeTruthy()
   })
 
   it('shows no credential dot on an env-less OAuth route no flow has claimed', async () => {

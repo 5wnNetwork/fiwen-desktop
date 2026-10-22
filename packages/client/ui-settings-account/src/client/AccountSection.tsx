@@ -2,7 +2,7 @@
 import { Big } from 'big.js'
 import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import { Button, IconRightUpOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { AccountDetails, AccountView, SignInAttemptId } from '@deepseek-ai/dsh-deepseek-account/types'
+import type { AccountDetails, AccountPlan, AccountView, SignInAttemptId } from '@deepseek-ai/dsh-deepseek-account/types'
 import type { PropsRuntime, PropsLocale, InjectFace, HostObservable } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ThemeSnapshot } from '@deepseek-ai/dsh-client-ui-theme/client'
 import type { PlatformPage, PlatformPages } from './platform-pages.ts'
@@ -58,10 +58,8 @@ export interface AccountSectionInjected {
   formatWalletBalance: (balance: string, currency: BalanceCurrency) => string
   /** Locale-aware medium date for a plan expiry timestamp. */
   formatPlanDate: (iso: string) => string
-  /** Locale-aware wall time for the quota reset instant. */
-  formatPlanReset: (iso: string) => string
-  /** Locale-aware point amount from a decimal string. */
-  formatPlanPoints: (points: string) => string
+  /** Locale-aware duration until the plan's quota reset instant. */
+  formatPlanResetIn: (iso: string) => string
 
   /** Account stream owned by the Host and theme snapshots published by the renderer, observed through framework hooks. */
   hooks: {
@@ -75,8 +73,6 @@ export interface AccountSectionInjected {
    * @returns after the account queries settle; image loading completes independently.
    */
   refreshAccount: () => Promise<void>
-  /** Open the external support questionnaire with the account, build and environment sampled by this click. */
-  contactUs: () => void
   /** Open or dismiss the login dialog. */
   showLogin: (visible: boolean) => void
   /** Claim dialog ownership for the onboarding step. */
@@ -100,7 +96,7 @@ export type AccountSectionProps =
 /** @param props - localized actions, account subscription, and the shared Platform page channel. @returns account settings UI. */
 export function AccountSection({
   t, useAccount, useTheme, start, cancel, openPlatformPage,
-  formatWalletBalance, formatPlanDate, formatPlanReset, formatPlanPoints,
+  formatWalletBalance, formatPlanDate, formatPlanResetIn,
   avatarFailed,
 }: AccountSectionProps) {
   const { view: state, details, avatar, failed: streamFailed } = useAccount(value => value)
@@ -233,21 +229,11 @@ export function AccountSection({
                 : t('planValueUntil', { name: plan.name, date: formatPlanDate(plan.expiresAt) })}</span></span>
             </span>
           </div>
-          <div className={css.row}>
-            <span>{t('dailyQuota')}</span>
-            <span className={css.bonusValue}>
-              <span className={css.amount}><span>{t('quotaValueReset', {
-                used: formatPlanPoints(plan.quotaUsed), daily: formatPlanPoints(plan.dailyQuota),
-                time: formatPlanReset(plan.resetsAt),
-              })}</span></span>
-            </span>
-          </div>
+          <QuotaBlock plan={plan} t={t} formatPlanResetIn={formatPlanResetIn} />
         </>}
         <div className={css.divider} />
         <div className={css.row}>
-          <span className={css.secondary}>{t('more')}</span>
           <div className={css.links}>
-            {platformLink(t('usage'), css.linkButton)}
             <a className={`${css.linkButton} ${css.primary}`} href={state?.links.topUpUrl} aria-disabled={state === undefined}
               target="_blank" rel="noreferrer"
               onClick={(event) => { if (openPlatformPage !== undefined && signedIn) { event.preventDefault(); showPage(openPlatformPage, 'top-up') } }}>{t('topUp')}</a>
@@ -256,4 +242,35 @@ export function AccountSection({
       </div>
     </section>
   )
+}
+
+/**
+ * The plan's quota readout: the quota label above a meter whose fill is the
+ * remaining share, flanked by the remaining and used percentages, with the
+ * reset countdown below.
+ */
+function QuotaBlock({ plan, t, formatPlanResetIn }: {
+  readonly plan: AccountPlan
+  readonly t: AccountSectionProps['t']
+  readonly formatPlanResetIn: (iso: string) => string
+}) {
+  const used = quotaUsedPercent(plan)
+  const remaining = 100 - used
+  return <>
+    <span>{t('dailyQuota')}</span>
+    <div className={css.quotaMeter} role="meter" aria-label={t('dailyQuota')}
+      aria-valuemin={0} aria-valuemax={100} aria-valuenow={remaining}>
+      <span className={css.quotaPercent} aria-hidden="true">{remaining}%</span>
+      <div className={css.quotaTrack}><div className={css.quotaFill} style={{ width: `${remaining}%` }} /></div>
+      <span className={css.quotaPercent} aria-hidden="true">{used}%</span>
+    </div>
+    <span className={css.quotaReset}>{t('quotaResetIn', { time: formatPlanResetIn(plan.resetsAt) })}</span>
+  </>
+}
+
+/** The daily quota's consumed share in whole percent, clamped inside 0–100. */
+function quotaUsedPercent(plan: Pick<AccountPlan, 'dailyQuota' | 'quotaUsed'>): number {
+  const daily = new Big(plan.dailyQuota)
+  if (daily.lte(0)) return 0
+  return Math.min(100, Math.max(0, Math.round(new Big(plan.quotaUsed).div(daily).times(100).toNumber())))
 }

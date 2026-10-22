@@ -25,18 +25,18 @@ const resolve = (rows: object[] | undefined, overrides: Record<string, ModelOver
 })
 
 describe('without a listing', () => {
-  it('offers the bundled catalog', () => {
+  it('offers no models and keeps bundled knowledge for request resolution', () => {
     const catalog = resolve(undefined)
-    expect(catalog.offered.map(model => [model.id, model.name, model.contextWindow])).toEqual([
+    expect(catalog.offered).toEqual([])
+    expect(catalog.resolution.map(model => [model.id, model.name, model.contextWindow])).toEqual([
       ['deepseek-flash', 'DeepSeek-V4.1-Flash', 1_000_000], ['deepseek-v4-pro', 'DeepSeek-V4-Pro', 1_000_000],
     ])
-    expect(catalog.resolution).toEqual(catalog.offered)
     expect(catalog.refusals.size).toBe(0)
   })
 
   it('applies overrides and does not judge override ids it cannot see', () => {
     const catalog = resolve(undefined, { 'deepseek-flash': { contextWindow: 524_288 }, 'remote-only': { contextWindow: 1 } })
-    expect(catalog.offered[0]?.contextWindow).toBe(524_288)
+    expect(catalog.resolution[0]?.contextWindow).toBe(524_288)
     expect(catalog.overrideErrors).toEqual([])
   })
 })

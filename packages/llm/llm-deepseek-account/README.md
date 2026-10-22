@@ -29,7 +29,7 @@ Only `deepseekAccount.resolveToken(url)` supplies the token; the account service
 
 The route's catalog comes from the account's `GET /models` listing at the origin of the Messages `baseURL` (`https://api.deepseek.com/models` for the official endpoint); the listing endpoint is not configurable. Listing requests carry the account token in `x-dsh-auth-token` and the harness `User-Agent`, and reject redirects.
 
-The first access of a credential waits for the listing up to `modelsTimeoutMs`. Later accesses use the loaded listing and refresh it in the background once it is older than `modelsMaxAgeMs`. A failed or empty listing keeps the previous one; before any listing loads, the route serves the built-in catalog of the current version (`deepseek-flash` and `deepseek-v4-pro`). A listing HTTP 401 does not remove the stored login. Each loaded listing, the first failure of a failing streak with the catalog it falls back to, and each hidden listing entry are written to the console with the `[llm-deepseek-account]` tag; secrets are never logged. Each account token has its own listing, so the service can roll a model out to some accounts first.
+The first access of a credential waits for the listing up to `modelsTimeoutMs`. Later accesses use the loaded listing and refresh it in the background once it is older than `modelsMaxAgeMs`. A failed or empty listing keeps the previous one; before any listing loads, the route offers no models and marks the provider unavailable on the Models page. A failed load retries once the failure is older than `modelsRetryAgeMs`, and an access past that age while no listing is held waits for the retry. A listing HTTP 401 does not remove the stored login. Each loaded listing, the first failure of a failing streak with its fallback, and each hidden listing entry are written to the console with the `[llm-deepseek-account]` tag; secrets are never logged. Each account token has its own listing, so the service can roll a model out to some accounts first.
 
 A listed model is offered only when the current Fiwen version can serve it. A model that declares `client_requirements["deepseek-harness"].min_version` is offered when the current version is at least that version in semantic-version order, including prerelease tags such as `0.2.0-alpha.1` and `0.2.0-rc.1`. A prerelease orders below its release: `min_version: 0.2.1` refuses `0.2.1-alpha.2`, so a listing that admits prereleases declares the earliest one it admits, such as `0.2.1-alpha.0`. A model without that declaration is offered only when the built-in catalog knows its id; other listed models stay hidden. A request for a listed model the current version cannot serve fails before network I/O with `CLIENT_UPGRADE_REQUIRED`, which names the required and current versions, or with `MODEL_UNSUPPORTED`. Model ids the listing does not name pass through unchanged.
 
@@ -51,7 +51,8 @@ Offered models take the listing's name, `context_window`, input modalities, and 
 | Field | Default | Meaning |
 |---|---|---|
 | `modelsTimeoutMs` | `5,000` | Deadline of one listing request and of a first-access wait |
-| `modelsMaxAgeMs` | `600,000` | Listing age after which the next access refreshes it; a failed load retries after the same age |
+| `modelsMaxAgeMs` | `600,000` | Listing age after which the next access refreshes it in the background |
+| `modelsRetryAgeMs` | `30,000` | Failed-load age after which the next access retries the listing |
 | `modelOverrides` | `{}` | Field overrides by model id |
 
 An account request HTTP 401 maps to `ACCOUNT_TOKEN_INVALID` independently of the response body. The account service removes the credential only if it still matches the request token. HTTP 403 and other failures do not clear the login. The account module owns task cancellation after sign-out; this plugin does not inspect Agents.
@@ -91,7 +92,7 @@ Credentials and catalog availability do not enter model input; the protocol tran
 
 <a id="known-limitations-and-deferred-work"></a>
 
-- The listing cache lives in memory; a start without network serves bundled capabilities until a listing loads.
+- The listing cache lives in memory; a start without network offers no account models until a listing loads, while bundled knowledge still resolves model ids a request names.
 - A listing change during a running process reaches the Web model picker at its next catalog refresh; the plugin does not announce it.
 - The gate runs in this client; a modified client can still request any id unless the service rejects it.
 - The listing's effort levels are ignored.

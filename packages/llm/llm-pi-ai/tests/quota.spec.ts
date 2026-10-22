@@ -3,7 +3,7 @@ import type { OAuthCredential, Provider } from '@earendil-works/pi-ai'
 import type { AuthorizationQuota } from '@deepseek-ai/dsh-authorization'
 import type { CredentialRecord } from '@deepseek-ai/dsh-credentials'
 import { catalogProvider } from '../src/catalog.ts'
-import { describeGrant, quotaProbe } from '../src/quota.ts'
+import { describeGrant, grantIdentityFields, quotaProbe } from '../src/quota.ts'
 
 /** Every upstream URL a quota probe may reach, keyed by host substring. */
 const calls: { url: string; init: RequestInit | undefined }[] = []
@@ -376,22 +376,38 @@ describe('antigravity quota', () => {
 describe('describeGrant', () => {
   const record = (payload: unknown): CredentialRecord => ({ kind: 'grant', payload: payload as Record<string, unknown> })
 
-  it('prefers a stored label, then a stored email', () => {
-    expect(describeGrant('anthropic', record({ label: 'kept', email: 'other' }))).toEqual({ label: 'kept' })
-    expect(describeGrant('anthropic', record({ email: 'mail@x.test' }))).toEqual({ label: 'mail@x.test' })
-    expect(describeGrant('antigravity', record({ email: 'g@x.test' }))).toEqual({ label: 'g@x.test' })
+  it('prefers a stored label, then a stored email, and reports both as the dedup identity', () => {
+    expect(describeGrant('anthropic', record({ label: 'kept', email: 'other' })))
+      .toEqual({ label: 'kept', identity: 'kept' })
+    expect(describeGrant('anthropic', record({ email: 'Mail@x.test' })))
+      .toEqual({ label: 'Mail@x.test', identity: 'mail@x.test' })
+    expect(describeGrant('antigravity', record({ email: 'g@x.test' })))
+      .toEqual({ label: 'g@x.test', identity: 'g@x.test' })
   })
 
   it('reads the codex account off the access-token claims when nothing was stored', () => {
     const claims = { email: 'claims@openai.test' }
     const access = `h.${Buffer.from(JSON.stringify(claims)).toString('base64url')}.s`
-    expect(describeGrant('openai-codex', record({ access }))).toEqual({ label: 'claims@openai.test' })
+    expect(describeGrant('openai-codex', record({ access })))
+      .toEqual({ label: 'claims@openai.test', identity: 'claims@openai.test' })
     // The nested profile claim is the other spelling ChatGPT tokens use.
     const nested = `h.${Buffer.from(JSON.stringify({ 'https://api.openai.com/profile': { email: 'nested@x.test' } })).toString('base64url')}.s`
-    expect(describeGrant('openai-codex', record({ access: nested }))).toEqual({ label: 'nested@x.test' })
-    expect(describeGrant('openai-codex', record({ access: 'not-a-jwt', accountId: 'acct-9' }))).toEqual({ label: 'acct-9' })
-    // A JWT-shaped but undecodable payload degrades to the account id, not a throw.
-    expect(describeGrant('openai-codex', record({ access: 'h.!!!.s', accountId: 'acct-0' }))).toEqual({ label: 'acct-0' })
+    expect(describeGrant('openai-codex', record({ access: nested })))
+      .toEqual({ label: 'nested@x.test', identity: 'nested@x.test' })
+    // The ChatGPT account id is the stable identity when the record stored one.
+    expect(describeGrant('openai-codex', record({ access: 'not-a-jwt', accountId: 'acct-9' })))
+      .toEqual({ label: 'acct-9', identity: 'chatgpt:acct-9' })
+    expect(describeGrant('openai-codex', record({ access: 'h.!!!.s', accountId: 'acct-0' })))
+      .toEqual({ label: 'acct-0', identity: 'chatgpt:acct-0' })
+    // An account id outranks the email claims: it is the upstream identity.
+    expect(describeGrant('openai-codex', record({ access, accountId: 'acct-9' })))
+      .toEqual({ label: 'claims@openai.test', identity: 'chatgpt:acct-9' })
+  })
+
+  it('reports the stored access token\'s own expiry', () => {
+    expect(describeGrant('antigravity', record({ email: 'g@x.test', expires: 1_700_000_000_000 })))
+      .toEqual({ label: 'g@x.test', identity: 'g@x.test', expiresAt: 1_700_000_000_000 })
+    expect(describeGrant('anthropic', record({ expires: 42 }))).toEqual({ expiresAt: 42 })
   })
 
   it('answers nothing for api-key records and unlabeled grants of other providers', () => {
@@ -401,5 +417,42 @@ describe('describeGrant', () => {
     // decodes to nothing claim-shaped — both answer no label, not a throw.
     expect(describeGrant('openai-codex', record('junk'))).toEqual({})
     expect(describeGrant('openai-codex', record({ access: 'h.e30=.s' }))).toEqual({})
+  })
+})
+
+describe('grantIdentityFields', () => {
+  it('reads the anthropic account email off the profile endpoint for a bare grant', async () => {
+    stubFetch({ '/api/oauth/profile': { body: { account: { email: 'claude@x.test' } } } })
+
+    await expect(grantIdentityFields('anthropic', live(), AbortSignal.timeout(5_000)))
+      .resolves.toEqual({ label: 'claude@x.test' })
+    expect(calls.map(call => call.url)).toEqual([
+      expect.stringContaining('/api/oauth/profile'),
+    ])
+    expect(calls[0]?.init?.headers).toMatchObject({ 'anthropic-beta': 'oauth-2025-04-20' })
+  })
+
+  it('adds nothing when the grant already carries an identity, is not oauth, or is not anthropic', async () => {
+    stubFetch({})
+    await expect(grantIdentityFields('anthropic', live({ label: 'named' }), AbortSignal.timeout(5_000)))
+      .resolves.toBeUndefined()
+    await expect(grantIdentityFields('anthropic', live({ email: 'has@x.test' }), AbortSignal.timeout(5_000)))
+      .resolves.toBeUndefined()
+    await expect(grantIdentityFields('anthropic', { type: 'api_key', key: 'sk' }, AbortSignal.timeout(5_000)))
+      .resolves.toBeUndefined()
+    await expect(grantIdentityFields('antigravity', live(), AbortSignal.timeout(5_000)))
+      .resolves.toBeUndefined()
+    expect(calls).toEqual([])
+  })
+
+  it('declines rather than fail the sign-in when the profile read cannot answer', async () => {
+    stubFetch({ '/api/oauth/profile': { status: 500, body: {} } })
+    await expect(grantIdentityFields('anthropic', live(), AbortSignal.timeout(5_000)))
+      .resolves.toBeUndefined()
+
+    // A profile answer without an account email is the other "nothing to add".
+    stubFetch({ '/api/oauth/profile': { body: { account: {} } } })
+    await expect(grantIdentityFields('anthropic', live(), AbortSignal.timeout(5_000)))
+      .resolves.toBeUndefined()
   })
 })

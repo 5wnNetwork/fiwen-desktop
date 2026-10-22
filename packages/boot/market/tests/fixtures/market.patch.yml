@@ -1,0 +1,11 @@
+- insert:
+    - id: deepseek-account
+      name: cordis:account
+    - id: mcp-base
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: base
+    - id: market
+      name: cordis:market
+      config:
+        origin: http://market.test

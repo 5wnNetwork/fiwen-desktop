@@ -67,6 +67,9 @@
       "path": "../ui-plan"
     },
     {
+      "path": "../ui-market"
+    },
+    {
       "path": "../ui-plugin-manager/tsconfig.client.json"
     },
     {

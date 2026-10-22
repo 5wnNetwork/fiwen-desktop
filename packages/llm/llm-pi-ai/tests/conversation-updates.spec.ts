@@ -59,8 +59,12 @@ async function send(provider: string, modelId: string, options: Omit<GenerateOpt
   try {
     await runtime
     // The serializer requires an API key even though the local server does not authenticate.
+    // The one model is listed because a subscription route's installed
+    // catalog is a candidate list, not a served default.
     const adapter = new LlmPiAi.PiAiAdapter({
-      profiles: () => resolveProfiles({ [provider]: { baseURL: server.url, apiKeyEnv: 'PI_CONVERSATION_TEST_KEY', transport: 'sse' } }),
+      profiles: () => resolveProfiles({ [provider]: {
+        baseURL: server.url, apiKeyEnv: 'PI_CONVERSATION_TEST_KEY', transport: 'sse', models: [{ id: modelId }],
+      } }),
       resolveApiKey: () => Promise.resolve(apiKey),
       auth: memoryAuth(),
     })

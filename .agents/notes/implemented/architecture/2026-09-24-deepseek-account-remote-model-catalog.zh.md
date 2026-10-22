@@ -10,7 +10,7 @@ Status: implemented
 
 ## 决策
 
-- [`llm-deepseek-account`](../../../../packages/llm/llm-deepseek-account/README.zh.md) 按凭据懒加载列表，首次访问最多等待 `modelsTimeoutMs`，超过 `modelsMaxAgeMs` 后在后台刷新；获取失败或返回的列表中没有模型时保留上一份，还没有加载到任何列表时使用内置目录。缓存只在内存中，以端点和 token 指纹为键，因此按账号灰度互不干扰。
+- [`llm-deepseek-account`](../../../../packages/llm/llm-deepseek-account/README.zh.md) 按凭据懒加载列表，首次访问最多等待 `modelsTimeoutMs`，超过 `modelsMaxAgeMs` 后在后台刷新；获取失败超过 `modelsRetryAgeMs` 后重试；获取失败或返回的列表中没有模型时保留上一份，还没有加载到任何列表时不提供模型（[无列表状态之后被收窄](../bug-fix/2026-10-22-account-route-no-bundled-fallback.zh.md)）。缓存只在内存中，以端点和 token 指纹为键，因此按账号灰度互不干扰。
 - 列出的模型在其 `client_requirements["deepseek-harness"].min_version` 按 semver 顺序不高于当前 DeepSeek Harness 版本时可用。没有这个声明时，只有内置目录认识的 id 可用，其余保持隐藏，因为客户端无法判断将来哪个版本会支持它们。请求被拒绝的已列出模型时，在网络请求之前以 `CLIENT_UPGRADE_REQUIRED` 或 `MODEL_UNSUPPORTED` 失败。
 - 列表中的能力逐字段覆盖内置能力；内置条目保留工具更新模式、图片预算等客户端知识；`modelOverrides` 最后叠加，复用 `models` 条目的字段与校验。`max_output_tokens` 只限制请求默认值，不直接成为默认值。
 - 共享传输层只新增 `connect` 与 `admit` 两个提供方钩子；列表、门控与合并都留在账号包中。
@@ -21,9 +21,9 @@ Status: implemented
 
 **未知模型套用默认参数。** Reasonix 和 Pi 用通用默认值驱动未知 id，MiniMax 把这种做法当作缺陷。需要客户端改动的模型会以错误的方式运行。
 
-**整份列表严格校验。** Codex、ZCode 和 Kimi 会因为一个坏字段拒绝整份列表。一条格式错误的记录就会让所有账号退回内置目录。
+**整份列表严格校验。** Codex、ZCode 和 Kimi 会因为一个坏字段拒绝整份列表。一条格式错误的记录就会让所有账号退回空目录。
 
-**持久化上一次成功的列表。** 持久缓存要新增持久化格式并承担迁移责任；内置目录已经覆盖离线启动。
+**持久化上一次成功的列表。** 持久缓存要新增持久化格式并承担迁移责任；内置知识仍能解析请求使用的模型 id，目录项也会报告故障。
 
 **保留 `models` 并改为按 id 合并。** API key 路由的 `models` 会替换整个目录，同名字段在兄弟路由上改成合并语义会让含义相反。
 
@@ -33,4 +33,4 @@ Status: implemented
 
 - 旧构建永远不会提供它不认识的模型，除非服务端声明了该构建满足的最低版本；服务端必须声明 `min_version`，将来的构建才能提示升级后可用。
 - 改过的客户端仍然可以请求任意 id；只有服务端自己拒绝这类请求时，版本下限才会被强制执行。
-- 登录后的第一次账号访问最多等待 `modelsTimeoutMs`；离线启动在加载到列表之前使用内置能力；进程运行中途的列表变化要等 Web 选择器下一次刷新目录时才会显示。
+- 登录后的第一次账号访问最多等待 `modelsTimeoutMs`；离线启动在加载到列表之前不提供账号模型，并通过提供方诊断提示；进程运行中途的列表变化要等 Web 选择器下一次刷新目录时才会显示。

@@ -78,7 +78,10 @@ export function joinProviderDirectory(
 
 /** One provider row the page renders. */
 export interface ProviderRow {
-  /** Account route has usable credentials for the configured inference origin. */
+  /**
+   * Account route has usable credentials for the configured inference origin;
+   * a diagnostic-bearing row stays visible so its error reaches the page.
+   */
   accountAvailable?: boolean
   /** The directory entry (route id, display name, settings address, live state). */
   entry: ProviderDirectoryEntry
@@ -283,7 +286,9 @@ export class ModelsSettingsStore {
       const catalog = await this.ctx.remote.session.modelCatalog()
       for (const row of rows) {
         if (row.entry.provider === 'deepseek-account') row.accountAvailable = catalog.ok
-          && catalog.value.groups.some(group => group.id === 'deepseek-account' && group.models.length > 0)
+          && (catalog.value.groups.some(group => group.id === 'deepseek-account' && group.models.length > 0)
+            // A diagnostic (for example a listing outage) keeps the row so its error reaches the page.
+            || row.entry.error !== undefined)
       }
     }
     const refs = [...new Set(rows.filter(row => row.entry.provider !== 'deepseek-account').flatMap(row =>

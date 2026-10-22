@@ -11,6 +11,8 @@ import type { Config as ProtocolConfig, DeepSeekCatalogModel, Options as Protoco
 export const DEFAULT_MODELS_TIMEOUT_MS = 5_000
 /** Default listing age after which the next access refreshes it in the background. */
 export const DEFAULT_MODELS_MAX_AGE_MS = 600_000
+/** Default failed-load age after which the next access retries the listing. */
+export const DEFAULT_MODELS_RETRY_AGE_MS = 30_000
 
 /** Field overrides for one model; unset fields and empty lists inherit the underlying entry. */
 export type ModelOverride = Omit<DeepSeekCatalogModel, 'id'>
@@ -20,10 +22,16 @@ export interface Config extends Omit<ProtocolConfig, 'models'> {
   /** Deadline of one listing request, which also bounds a first-use wait (default five seconds). */
   modelsTimeoutMs: Volatile<number>
   /**
-   * Listing age after which the next access refreshes it in the background;
-   * a failed load retries after the same age (default ten minutes).
+   * Listing age after which the next access refreshes it in the background
+   * (default ten minutes).
    */
   modelsMaxAgeMs: Volatile<number>
+  /**
+   * Failed-load age after which the next access retries the listing;
+   * an access past the age waits for the retry while no listing is held
+   * (default thirty seconds).
+   */
+  modelsRetryAgeMs: Volatile<number>
   /** Field overrides by model id, layered over the account listing and the built-in catalog. */
   modelOverrides: Volatile<Record<string, ModelOverride>>
 }
@@ -40,6 +48,7 @@ export const Config = z.object({
   ...protocolFields,
   modelsTimeoutMs: z.number().min(Number.MIN_VALUE).max(MAX_TIMER_DELAY_MS).default(DEFAULT_MODELS_TIMEOUT_MS).volatile(),
   modelsMaxAgeMs: z.number().step(1).min(0).max(Number.MAX_SAFE_INTEGER).default(DEFAULT_MODELS_MAX_AGE_MS).volatile(),
+  modelsRetryAgeMs: z.number().step(1).min(0).max(Number.MAX_SAFE_INTEGER).default(DEFAULT_MODELS_RETRY_AGE_MS).volatile(),
   modelOverrides: z.dict(modelOverride).default({}).volatile(),
 })
 
@@ -47,6 +56,7 @@ export const Config = z.object({
 export type AccountOptions = Omit<ProtocolOptions, 'models'> & {
   modelsTimeoutMs?: number
   modelsMaxAgeMs?: number
+  modelsRetryAgeMs?: number
   modelOverrides?: Record<string, ModelOverride>
 }
 
@@ -58,6 +68,8 @@ export interface CatalogSettings {
   readonly timeoutMs: number
   /** Listing age after which the next access refreshes it. */
   readonly maxAgeMs: number
+  /** Failed-load age after which the next access retries the listing. */
+  readonly retryAgeMs: number
 }
 
 /** One validated configuration generation of the account route. */
@@ -117,6 +129,7 @@ export function resolveAccountOptions(options: AccountOptions, environment?: Lau
   }
   const {
     modelsTimeoutMs = DEFAULT_MODELS_TIMEOUT_MS, modelsMaxAgeMs = DEFAULT_MODELS_MAX_AGE_MS,
+    modelsRetryAgeMs = DEFAULT_MODELS_RETRY_AGE_MS,
     modelOverrides = {}, ...protocolOptions
   } = options
   if (!Number.isFinite(modelsTimeoutMs) || modelsTimeoutMs <= 0 || modelsTimeoutMs > MAX_TIMER_DELAY_MS) {
@@ -125,10 +138,13 @@ export function resolveAccountOptions(options: AccountOptions, environment?: Lau
   if (!Number.isSafeInteger(modelsMaxAgeMs) || modelsMaxAgeMs < 0) {
     throw new Error('llm-deepseek-account: modelsMaxAgeMs must be a non-negative safe integer')
   }
+  if (!Number.isSafeInteger(modelsRetryAgeMs) || modelsRetryAgeMs < 0) {
+    throw new Error('llm-deepseek-account: modelsRetryAgeMs must be a non-negative safe integer')
+  }
   const protocol = resolveAdapterOptions(protocolOptions, environment)
   return {
     protocol,
-    catalog: { url: listingEndpoint(protocol.baseURL), timeoutMs: modelsTimeoutMs, maxAgeMs: modelsMaxAgeMs },
+    catalog: { url: listingEndpoint(protocol.baseURL), timeoutMs: modelsTimeoutMs, maxAgeMs: modelsMaxAgeMs, retryAgeMs: modelsRetryAgeMs },
     modelOverrides: Object.fromEntries(Object.entries(modelOverrides).map(([id, override]) => [id, resolveOverride(id, override)])),
   }
 }

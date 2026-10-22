@@ -66,7 +66,7 @@ import type {} from '@deepseek-ai/dsh-fs'
 import { deepEqualJson } from '@deepseek-ai/dsh-util-values'
 import { PiAiAdapter } from './adapter.ts'
 import { authContextFrom, credentialStoreFrom } from './auth.ts'
-import { catalogProvider, catalogProviderIds } from './catalog.ts'
+import { catalogProvider, catalogProviderIds, SUBSCRIPTION_PROVIDERS } from './catalog.ts'
 import { assertServiceable, Config, resolveProfiles } from './config.ts'
 import type { ResolvedPiAiProviderProfile } from './config.ts'
 import { discoverModels } from './discovery.ts'
@@ -114,13 +114,9 @@ function registrationFacts(profiles: ReadonlyMap<string, ResolvedPiAiProviderPro
     .sort((left, right) => left.provider.localeCompare(right.provider))
 }
 
-/**
- * The catalog providers the directory offers to sign-in-driven surfaces.
- * These are the third-party subscriptions the product fronts; every other
- * installed provider stays usable through a hand-declared route without
- * being offered here.
- */
-const OFFERED_PROVIDERS: ReadonlySet<string> = new Set(['anthropic', 'openai-codex', 'antigravity'])
+// The catalog providers the directory offers to sign-in-driven surfaces are
+// the subscription set itself: every other installed provider stays usable
+// through a hand-declared route without being offered here.
 
 /**
  * The configurable-provider directory: the offered catalog routes, plus
@@ -159,8 +155,9 @@ function directoryEntries(
     // installed provider still works when a route declares it by name — the
     // profile loop below always grants that route its settings address —
     // but it is not offered as a pick from this surface.
-    if (!OFFERED_PROVIDERS.has(provider)) continue
-    declare(provider, provider)
+    const label = SUBSCRIPTION_PROVIDERS.get(provider)
+    if (label === undefined) continue
+    declare(provider, label)
   }
   for (const [provider, profile] of profiles) declare(provider, profile.displayName, profile.catalogError)
   return [...entries.values()]

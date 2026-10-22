@@ -30,6 +30,8 @@ import { ModelSelect } from './ModelSelect.tsx'
 import { en, zh, type ModelKey } from './locales.ts'
 import { orderModelProviders } from './provider-order.ts'
 
+export { ProviderAccountsDirectory } from './accounts.ts'
+export type { ProviderAccounts, ProviderAccountsState } from './accounts.ts'
 export { ModelDirectory } from './directory.ts'
 export type { ModelDirectoryState } from './directory.ts'
 export { ModelDirectoryResolver } from './service.ts'
@@ -104,7 +106,7 @@ function selectionOf(state: ModelDirectoryState, id: string): ModelSelection | u
 const NS = 'model'
 
 /** Required services: the contribution registry, the seat's slot registry, locale, and the service's own faces. */
-export const inject = ['commandUi', 'locale', 'sessions', 'slots', 'remote', 'remote.session']
+export const inject = ['commandUi', 'locale', 'sessions', 'slots', 'remote', 'remote.session', 'remote.authorization']
 
 /**
  * Client plugin body: mount ModelDirectoryResolver, register the `model` dictionaries,
@@ -181,11 +183,17 @@ export function apply(ctx: ClientContext): void {
         return {
           available,
           directory: directory.store,
+          accounts: models.accounts.store,
           load: () => {
-            if (available) directory.load().catch(() => { /* surfaced on the store */ })
+            if (!available) return
+            directory.load().catch(() => { /* surfaced on the store */ })
+            void models.accounts.load()
           },
           select: (selection: ModelSelection) => available
             ? directory.select(selection)
+            : Promise.resolve(undefined),
+          selectAccount: (provider: string, account: string) => available
+            ? models.accounts.select(provider, account)
             : Promise.resolve(undefined),
         }
       },

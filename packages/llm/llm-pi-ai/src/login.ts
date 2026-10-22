@@ -12,9 +12,9 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { AuthorizationMethod, AuthorizationPrompt, AuthorizationSession } from '@deepseek-ai/dsh-authorization'
 import { accountRecordId } from '@deepseek-ai/dsh-authorization'
 import { isCredentialKeySegment } from '@deepseek-ai/dsh-credentials'
-import { catalogProvider, catalogProviderIds } from './catalog.ts'
+import { catalogProvider, catalogProviderIds, SUBSCRIPTION_PROVIDERS } from './catalog.ts'
 import { recordKeyFor } from './auth.ts'
-import { describeGrant, quotaProbe } from './quota.ts'
+import { describeGrant, grantIdentityFields, quotaProbe } from './quota.ts'
 import type { PiAiAuthInjection } from './adapter.ts'
 import { createModels } from './models.ts'
 
@@ -151,7 +151,9 @@ export function registerPiAiFlows(ctx: Context, auth: PiAiAuthInjection): void {
     const quota = quotaProbe(provider)
     ctx.authorization.registerFlow({
       key: recordKeyFor(providerId),
-      label: provider.name,
+      // A subscription flow's label is the product-facing provider name, the
+      // same one its route and directory entry resolve to.
+      label: SUBSCRIPTION_PROVIDERS.get(providerId) ?? provider.name,
       methods: [first, ...rest],
       describeRecord: record => describeGrant(providerId, record),
       ...quota === undefined ? {} : { quota },
@@ -179,6 +181,21 @@ export function registerPiAiFlows(ctx: Context, auth: PiAiAuthInjection): void {
           notify: (event) => { relay(event, session) },
           prompt: prompt => session.prompt(restate(prompt)),
         })
+        // A provider whose OAuth answer carries no account identity gets its
+        // label read off the provider's own endpoint now, so the seam's
+        // same-account dedup and the surfaces' account names work from this
+        // sign-in on rather than after a first quota probe.
+        const recordKey = recordKeyFor(loginProvider.id)
+        const committed = await ctx.credentials.readRecord(recordKey)
+        const fields = committed?.kind === 'grant'
+          ? await grantIdentityFields(providerId, committed.payload, session.signal)
+          : undefined
+        if (fields !== undefined) {
+          await ctx.credentials.modifyRecord(recordKey, current => Promise.resolve(
+            current?.kind === 'grant' && typeof current.payload === 'object' && current.payload !== null
+              ? { kind: 'grant', payload: { ...current.payload, ...fields } }
+              : current))
+        }
       },
     })
   }

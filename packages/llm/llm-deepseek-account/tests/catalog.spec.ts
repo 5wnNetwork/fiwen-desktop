@@ -10,14 +10,14 @@ const listing = (...ids: string[]): ModelListing => ({
   entries: ids.map(id => ({ id, requirement: { kind: 'none' }, capabilities: { usable: true, facts: { inputModalities: ['text'] } } })),
 })
 
-function harness(timeoutMs = 60_000, honorsAbort = true) {
+function harness(timeoutMs = 60_000, honorsAbort = true, retryAgeMs = 40) {
   let clock = 0
   let token: string | undefined = 'token-a'
   const loads: Array<{ token: string; signal: AbortSignal; settle: PromiseWithResolvers<ModelListing> }> = []
   const info = vi.fn()
   const warn = vi.fn()
   const catalog = new AccountModelCatalog({
-    settings: () => ({ url: 'https://api.example/models', timeoutMs, maxAgeMs: 100 }),
+    settings: () => ({ url: 'https://api.example/models', timeoutMs, maxAgeMs: 100, retryAgeMs }),
     token: () => Promise.resolve(token),
     load: (_url, value, signal) => {
       const settle = Promise.withResolvers<ModelListing>()
@@ -61,7 +61,24 @@ it('bounds the first wait by the request deadline and serves no listing after a 
   const { catalog, loads, warn } = harness(5)
   await expect(catalog.view()).resolves.toEqual({ signedIn: true, listing: undefined })
   expect(timeoutOf(loads[0]!.signal, LISTING_TIMEOUT)?.timeoutMs).toBe(5)
-  expect(warn).toHaveBeenCalledExactlyOnceWith(expect.stringContaining('using the bundled catalog'))
+  expect(warn).toHaveBeenCalledExactlyOnceWith(expect.stringContaining('offering no models until a listing loads'))
+})
+
+it('awaits a retry past the failure retry age and serves its listing in the same access', async () => {
+  const { catalog, loads, flush, advance } = harness()
+  const first = catalog.view()
+  await flush()
+  loads[0]!.settle.reject(new Error('down'))
+  await expect(first).resolves.toEqual({ signedIn: true, listing: undefined })
+  advance(39)
+  await catalog.view()
+  expect(loads).toHaveLength(1)
+  advance(1)
+  const retry = catalog.view()
+  await flush()
+  expect(loads).toHaveLength(2)
+  loads[1]!.settle.resolve(listing('a'))
+  await expect(retry).resolves.toMatchObject({ listing: listing('a') })
 })
 
 it('abandons only the caller\'s wait when its signal aborts', async () => {

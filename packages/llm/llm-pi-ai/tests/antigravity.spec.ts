@@ -381,6 +381,54 @@ describe('antigravity stream', () => {
     expect((inner.generationConfig?.['thinkingConfig'] as Record<string, unknown>)['includeThoughts']).not.toBe(true)
   })
 
+  it('dispatches a tiered model by wire name, with no thinking parameter at all', async () => {
+    stubFetch({ 'streamGenerateContent': { stream: [
+      JSON.stringify({ response: { candidates: [{ finishReason: 'STOP' }] } }),
+    ] } })
+    // The consolidated catalog shape: one picker model whose clamped level
+    // selects the wire spelling, `upstreamId` answering the default tier.
+    const tiered = {
+      ...model({ id: 'gemini-3.8-flash', name: 'Gemini 3.8 Flash', reasoning: true }),
+      upstreamId: 'gemini-3.8-flash-high(high)',
+      upstreamIds: {
+        low: 'gemini-3.8-flash-low(low)',
+        medium: 'gemini-3.8-flash-medium(medium)',
+        high: 'gemini-3.8-flash-high(high)',
+      },
+      thinkingLevelMap: {
+        off: null, minimal: null,
+        low: 'gemini-3.8-flash-low(low)', medium: 'gemini-3.8-flash-medium(medium)',
+        high: 'gemini-3.8-flash-high(high)', xhigh: null, max: null,
+      },
+    } as Model<Api>
+
+    await drain(antigravityStreamSimple(tiered, textContext(), { apiKey: 'at', reasoning: 'low' }))
+    let envelope = postedEnvelope()
+    expect(envelope['model']).toBe('gemini-3.8-flash-low(low)')
+    // The tier already travels in the wire name; a thinkingConfig beside it
+    // would state the same thing twice, so none is sent.
+    expect((envelope['request'] as { generationConfig?: Record<string, unknown> })
+      .generationConfig?.['thinkingConfig']).toBeUndefined()
+
+    calls.length = 0
+    await drain(antigravityStreamSimple(tiered, textContext(), { apiKey: 'at', reasoning: 'medium' }))
+    envelope = postedEnvelope()
+    expect(envelope['model']).toBe('gemini-3.8-flash-medium(medium)')
+
+    calls.length = 0
+    // No level requested: the default tier answers under its own wire name.
+    await drain(antigravityStreamSimple(tiered, textContext(), { apiKey: 'at' }))
+    envelope = postedEnvelope()
+    expect(envelope['model']).toBe('gemini-3.8-flash-high(high)')
+
+    calls.length = 0
+    // A level with no wire spelling clamps to the nearest offered tier:
+    // `xhigh` finds nothing upward and lands on `high`.
+    await drain(antigravityStreamSimple(tiered, textContext(), { apiKey: 'at', reasoning: 'xhigh' }))
+    envelope = postedEnvelope()
+    expect(envelope['model']).toBe('gemini-3.8-flash-high(high)')
+  })
+
   it('throws synchronously when streamSimple has no credential', () => {
     expect(() => antigravityStreamSimple(model(), textContext(), {})).toThrow('No API key')
   })
@@ -643,6 +691,68 @@ describe('antigravity provider', () => {
     expect(auth.apiKey).toBe('at')
     expect(auth.headers?.[ANTIGRAVITY_PROJECT_HEADER]).toBe('p')
     expect(auth.headers?.['x-antigravity-account']).toBe('e@x.test')
+  })
+
+  it('lists one reasoning model per tiered family, the tiers spelled by wire name', () => {
+    const models = antigravityProvider().getModels()
+    // The wire table's per-tier spellings collapse into one picker entry;
+    // nothing suffixed remains for a picker to list beside it.
+    expect(models.filter(entry => entry.id.startsWith('gemini-3.8-flash')).map(entry => entry.id))
+      .toEqual(['gemini-3.8-flash'])
+    const flash = models.find(entry => entry.id === 'gemini-3.8-flash')
+    expect(flash).toMatchObject({
+      reasoning: true,
+      upstreamId: 'gemini-3.8-flash-high(high)',
+      upstreamIds: {
+        low: 'gemini-3.8-flash-low(low)',
+        medium: 'gemini-3.8-flash-medium(medium)',
+        high: 'gemini-3.8-flash-high(high)',
+      },
+      // Every unspelled level is pinned out, `off` included: the picker offers
+      // exactly the tiers a wire name exists for.
+      thinkingLevelMap: {
+        off: null, minimal: null,
+        low: 'gemini-3.8-flash-low(low)', medium: 'gemini-3.8-flash-medium(medium)',
+        high: 'gemini-3.8-flash-high(high)', xhigh: null, max: null,
+      },
+    })
+    // Level sets are per model, not per family: a fixed-thinking entry spells
+    // its single level once, and an entry upstream reports no tiers for is
+    // non-reasoning.
+    expect(models.find(entry => entry.id === 'claude-sonnet-4-6')).toMatchObject({
+      reasoning: true,
+      upstreamIds: { low: 'claude-sonnet-4-6' },
+      thinkingLevelMap: {
+        off: null, minimal: null, low: 'claude-sonnet-4-6',
+        medium: null, high: null, xhigh: null, max: null,
+      },
+    })
+    expect(models.find(entry => entry.id === 'gpt-oss-120b-medium'))
+      .toMatchObject({ reasoning: true, upstreamIds: { medium: 'gpt-oss-120b-medium' } })
+    expect(models.find(entry => entry.id === 'gemini-3.7-flash')?.reasoning).toBe(false)
+  })
+
+  it('dispatches a single-level thinking model under its one wire name', async () => {
+    stubFetch({ 'streamGenerateContent': { stream: [
+      JSON.stringify({ response: { candidates: [{ finishReason: 'STOP' }] } }),
+    ] } })
+    const fixed = antigravityProvider().getModels()
+      .find(entry => entry.id === 'claude-sonnet-4-6')
+    expect((fixed as { upstreamIds?: unknown } | undefined)?.upstreamIds)
+      .toEqual({ low: 'claude-sonnet-4-6' })
+
+    // Any requested level clamps to the one spelled tier, and the tier still
+    // travels in the wire name — no thinking parameter is sent.
+    await drain(antigravityStreamSimple(fixed!, textContext(), { apiKey: 'at', reasoning: 'medium' }))
+    const envelope = postedEnvelope()
+    expect(envelope['model']).toBe('claude-sonnet-4-6')
+    expect((envelope['request'] as { generationConfig?: Record<string, unknown> })
+      .generationConfig?.['thinkingConfig']).toBeUndefined()
+
+    calls.length = 0
+    // No level requested: the default tier answers under the same name.
+    await drain(antigravityStreamSimple(fixed!, textContext(), { apiKey: 'at' }))
+    expect(postedEnvelope()['model']).toBe('claude-sonnet-4-6')
   })
 
   it('runs the full sign-in: loopback code, exchange, discovery, stored project and email', async () => {

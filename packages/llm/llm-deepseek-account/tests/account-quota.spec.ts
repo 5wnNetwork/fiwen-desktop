@@ -13,7 +13,7 @@ afterEach(async () => {
   vi.unstubAllEnvs()
 })
 
-/** Fail the account listing request fast, so the route serves its bundled catalog and each call gets a fresh Messages response. */
+/** Fail the account listing request fast, so request resolution uses bundled knowledge and each call gets a fresh Messages response. */
 function messagesOnly(response: () => Response) {
   return (input: string | URL | Request): Promise<Response> => {
     const url = new URL(input instanceof Request ? input.url : input)

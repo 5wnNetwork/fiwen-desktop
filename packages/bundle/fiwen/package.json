@@ -43,6 +43,8 @@
   },
   "dependencies": {
     "@deepseek-ai/dsh-client-locale-vi": "workspace:*",
-    "@deepseek-ai/dsh-client-ui-brand-fiwen": "workspace:*"
+    "@deepseek-ai/dsh-client-ui-brand-fiwen": "workspace:*",
+    "@deepseek-ai/dsh-market": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-market": "workspace:*"
   }
 }

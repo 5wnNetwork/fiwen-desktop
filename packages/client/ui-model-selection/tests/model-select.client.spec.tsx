@@ -3,9 +3,11 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import { RemoteError, SlotTestRuntime } from '@deepseek-ai/dsh-client-test-runtime'
 import { SessionId } from '@deepseek-ai/dsh-session/types'
-import type { ModelSelection } from '@deepseek-ai/dsh-api-remotes/client'
+import { credentialKey } from '@deepseek-ai/dsh-credentials'
+import type { AuthorizationAccountView, ModelSelection } from '@deepseek-ai/dsh-api-remotes/client'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { ComponentProps } from 'react'
+import type { ProviderAccountsState } from '../src/client/accounts.ts'
 import type { ModelDirectoryState } from '../src/client/directory.ts'
 import { ModelSelect } from '../src/client/ModelSelect.tsx'
 import { en, zh } from '../src/client/locales.ts'
@@ -23,6 +25,9 @@ const t: ComponentProps<typeof ModelSelect>['t'] = (key, params) => {
 }
 
 const renderLabel: ComponentProps<typeof ModelSelect>['renderSlot'] = (_name, _owner, options) => options?.fallback ?? null
+
+const accountsOf = (byProvider: ProviderAccountsState['byProvider'] = new Map()) =>
+  createSnapshotStore<ProviderAccountsState>({ byProvider, status: 'ready', error: null })
 
 const reasoning = {
   efforts: [
@@ -96,7 +101,9 @@ describe('ModelSelect label slot', () => {
     await runtime.root.declare({
       'conversation.input.model.label': { kind: 'single', scope: 'session', inline: true },
     }, ({ renderSlot, SessionProvider }) => <SessionProvider session={session}>
-      <ModelSelect locked={false} available directory={directory} load={vi.fn()} select={select} t={t} renderSlot={renderSlot} />
+      <ModelSelect locked={false} available
+        accounts={accountsOf()} selectAccount={vi.fn()}
+        directory={directory} load={vi.fn()} select={select} t={t} renderSlot={renderSlot} />
     </SessionProvider>)
     runtime.renderRoot()
     const trigger = screen.getByRole('button', { name: '选择模型，当前 Same model' })
@@ -139,7 +146,9 @@ describe('ModelSelect label slot', () => {
   it('does not decorate loading or missing selections with a stale provider', () => {
     const directory = createSnapshotStore(state({ groups: [], status: 'loading' }))
     const renderSlot = vi.fn(() => null)
-    render(<ModelSelect locked={false} available directory={directory} load={vi.fn()} select={vi.fn()} t={t} renderSlot={renderSlot} />)
+    render(<ModelSelect locked={false} available
+      accounts={accountsOf()} selectAccount={vi.fn()}
+      directory={directory} load={vi.fn()} select={vi.fn()} t={t} renderSlot={renderSlot} />)
     expect(renderSlot).not.toHaveBeenCalled()
     expect(document.querySelector('[data-provider-id]')).toBeNull()
     act(() => { directory.set(state({ groups: [] })) })
@@ -158,7 +167,7 @@ describe('ModelSelect reasoning effort', () => {
     render(<ModelSelect renderSlot={renderLabel}
       locked={false}
       available
-      directory={directory}
+      accounts={accountsOf()} selectAccount={vi.fn()} directory={directory}
       load={vi.fn()}
       select={select}
       t={t}
@@ -201,7 +210,7 @@ describe('ModelSelect reasoning effort', () => {
     render(<ModelSelect renderSlot={renderLabel}
       locked={false}
       available
-      directory={directory}
+      accounts={accountsOf()} selectAccount={vi.fn()} directory={directory}
       load={vi.fn()}
       select={vi.fn().mockResolvedValue({ ok: true, value: undefined })}
       t={t}
@@ -223,7 +232,7 @@ describe('ModelSelect reasoning effort', () => {
     render(<ModelSelect renderSlot={renderLabel}
       locked={false}
       available
-      directory={directory}
+      accounts={accountsOf()} selectAccount={vi.fn()} directory={directory}
       load={vi.fn()}
       select={select}
       t={t}
@@ -240,12 +249,14 @@ describe('ModelSelect reasoning effort', () => {
     expect(select).not.toHaveBeenCalled()
     expect(directory.getSnapshot().current).toEqual({ provider: 'deepseek-official', model: 'removed-model' })
     fireEvent.keyDown(screen.getByRole('menuitemradio', { name: 'DeepSeek-V4-Flash' }), { key: 'Escape' })
-    expect(screen.queryByRole('group', { name: '模型与推理等级' })).toBeNull()
+    expect(screen.queryByRole('group', { name: zh['menu.aria'] })).toBeNull()
   })
 
   it.each(['model', 'provider'])('hides the saved id and effort when the selected %s disappears', (removed) => {
     const directory = createSnapshotStore(state({ retainedEffort: 'High' }))
-    render(<ModelSelect renderSlot={renderLabel} locked={false} available directory={directory} load={vi.fn()} select={vi.fn()} t={t} />)
+    render(<ModelSelect renderSlot={renderLabel} locked={false} available
+      accounts={accountsOf()} selectAccount={vi.fn()}
+      directory={directory} load={vi.fn()} select={vi.fn()} t={t} />)
     expect(screen.getByRole('button', { name: /选择模型，当前/ }).textContent).toContain('DeepSeek-V4-Flash')
     act(() => { directory.update((snapshot) => {
       snapshot.groups = removed === 'provider' ? [] : snapshot.groups.map(group => ({ ...group, models: [] }))
@@ -257,7 +268,7 @@ describe('ModelSelect reasoning effort', () => {
     fireEvent.click(trigger)
     expect(screen.getByRole('status').textContent).toBe(zh['empty.models'])
     fireEvent.keyDown(trigger, { key: 'Tab', shiftKey: true })
-    expect(screen.queryByRole('group', { name: '模型与推理等级' })).toBeNull()
+    expect(screen.queryByRole('group', { name: zh['menu.aria'] })).toBeNull()
   })
 
   it.each([null, state().current])('shows loading until the catalog and Session projection are both ready (%j)', async (current) => {
@@ -270,7 +281,7 @@ describe('ModelSelect reasoning effort', () => {
     render(<ModelSelect renderSlot={renderLabel}
       locked={false}
       available
-      directory={directory}
+      accounts={accountsOf()} selectAccount={vi.fn()} directory={directory}
       load={vi.fn()}
       select={vi.fn().mockResolvedValue({ ok: true, value: undefined })}
       t={t}
@@ -306,7 +317,7 @@ describe('ModelSelect reasoning effort', () => {
     render(<ModelSelect renderSlot={renderLabel}
       locked={false}
       available
-      directory={directory}
+      accounts={accountsOf()} selectAccount={vi.fn()} directory={directory}
       load={vi.fn()}
       select={select}
       t={t}
@@ -350,7 +361,9 @@ describe('ModelSelect reasoning effort', () => {
         }
       })
     })
-    render(<ModelSelect renderSlot={renderLabel} locked={false} available directory={directory} load={vi.fn()} select={select} t={t} />)
+    render(<ModelSelect renderSlot={renderLabel} locked={false} available
+      accounts={accountsOf()} selectAccount={vi.fn()}
+      directory={directory} load={vi.fn()} select={select} t={t} />)
     const spinners = () => document.querySelectorAll('[data-state="ongoing"]')
 
     const trigger = screen.getByRole('button', { name: /选择模型|当前/ })
@@ -379,7 +392,9 @@ describe('ModelSelect reasoning effort', () => {
       directory.set(state({ status: 'selecting', pending: selection }))
       return new Promise<undefined>(() => {})
     })
-    render(<ModelSelect renderSlot={renderLabel} locked={false} available directory={directory} load={vi.fn()} select={select} t={t} />)
+    render(<ModelSelect renderSlot={renderLabel} locked={false} available
+      accounts={accountsOf()} selectAccount={vi.fn()}
+      directory={directory} load={vi.fn()} select={select} t={t} />)
 
     fireEvent.click(screen.getByRole('button', { name: /选择模型|当前/ }))
     fireEvent.click(screen.getByRole('menuitem', { name: /推理等级/ }))
@@ -398,7 +413,7 @@ describe('ModelSelect reasoning effort', () => {
       const { container } = render(<ModelSelect renderSlot={renderLabel}
         locked={false}
         available
-        directory={createSnapshotStore(state())}
+        accounts={accountsOf()} selectAccount={vi.fn()} directory={createSnapshotStore(state())}
         load={vi.fn()}
         select={vi.fn().mockResolvedValue({ ok: true, value: undefined })}
         t={t}
@@ -431,7 +446,7 @@ describe('ModelSelect reasoning effort', () => {
     render(<ModelSelect renderSlot={renderLabel}
       locked={false}
       available={false}
-      directory={createSnapshotStore(state())}
+      accounts={accountsOf()} selectAccount={vi.fn()} directory={createSnapshotStore(state())}
       load={load}
       select={vi.fn().mockResolvedValue(undefined)}
       t={t}
@@ -448,7 +463,7 @@ describe('ModelSelect keyboard walk', () => {
     render(<ModelSelect renderSlot={renderLabel}
       locked={false}
       available
-      directory={createSnapshotStore(state())}
+      accounts={accountsOf()} selectAccount={vi.fn()} directory={createSnapshotStore(state())}
       load={vi.fn()}
       select={select}
       t={t}
@@ -521,7 +536,7 @@ describe('ModelSelect keyboard walk', () => {
     render(<ModelSelect renderSlot={renderLabel}
       locked={false}
       available
-      directory={createSnapshotStore(state())}
+      accounts={accountsOf()} selectAccount={vi.fn()} directory={createSnapshotStore(state())}
       load={vi.fn()}
       select={vi.fn().mockResolvedValue({ ok: true, value: undefined })}
       t={t}
@@ -567,7 +582,7 @@ describe('ModelSelect keyboard walk', () => {
     render(<ModelSelect renderSlot={renderLabel}
       locked={false}
       available
-      directory={directory}
+      accounts={accountsOf()} selectAccount={vi.fn()} directory={directory}
       load={load}
       select={vi.fn().mockResolvedValue({ ok: true, value: undefined })}
       t={t}
@@ -581,12 +596,12 @@ describe('ModelSelect keyboard walk', () => {
     expect(fireEvent.mouseDown(retry)).toBe(false)
     fireEvent.click(retry)
     expect(load).toHaveBeenCalledTimes(2)
-    expect(screen.getByRole('group', { name: '模型与推理等级' })).toBeTruthy()
+    expect(screen.getByRole('group', { name: zh['menu.aria'] })).toBeTruthy()
     retry.focus()
     // A control that is not a row keeps the browser's traversal.
     expect(fireEvent.keyDown(retry, { key: 'Tab' })).toBe(true)
     fireEvent.keyDown(retry, { key: 'Escape' })
-    expect(screen.queryByRole('group', { name: '模型与推理等级' })).toBeNull()
+    expect(screen.queryByRole('group', { name: zh['menu.aria'] })).toBeNull()
   })
 
   it('focuses the checked model in a small catalog', () => {
@@ -626,7 +641,7 @@ describe('ModelSelect keyboard walk', () => {
     render(<ModelSelect renderSlot={renderLabel}
       locked={false}
       available
-      directory={createSnapshotStore(state({ current: { provider: 'gone', model: 'gone' } }))}
+      accounts={accountsOf()} selectAccount={vi.fn()} directory={createSnapshotStore(state({ current: { provider: 'gone', model: 'gone' } }))}
       load={vi.fn()}
       select={vi.fn().mockResolvedValue({ ok: true, value: undefined })}
       t={t}
@@ -643,7 +658,9 @@ describe('ModelSelect catalog size', () => {
   it.each([0, 1, 4, 5])('shows search only above four models (%i models)', (count) => {
     const groups = modelGroups(count)
     const current = { provider: 'deepseek-official', model: count > 1 ? 'model-2' : 'deepseek-v4-flash' }
-    render(<ModelSelect renderSlot={renderLabel} locked={false} available directory={createSnapshotStore(state({ groups, current }))}
+    render(<ModelSelect renderSlot={renderLabel} locked={false} available
+      accounts={accountsOf()} selectAccount={vi.fn()}
+      directory={createSnapshotStore(state({ groups, current }))}
       load={vi.fn()} select={vi.fn()} t={t} />)
     const trigger = screen.getByRole('button', { name: /选择模型/ })
     fireEvent.click(trigger)
@@ -666,7 +683,7 @@ describe('ModelSelect catalog size', () => {
 
   it.each([0, 1, 4, 5])('opens an unselected %i-model catalog on search or its first row', (count) => {
     render(<ModelSelect renderSlot={renderLabel} locked={false} available
-      directory={createSnapshotStore(state({ groups: modelGroups(count), current: null }))}
+      accounts={accountsOf()} selectAccount={vi.fn()} directory={createSnapshotStore(state({ groups: modelGroups(count), current: null }))}
       load={vi.fn()} select={vi.fn()} t={t} />)
     const trigger = screen.getByRole('button', { name: '请选择模型' })
     fireEvent.click(trigger)
@@ -680,7 +697,9 @@ describe('ModelSelect catalog size', () => {
   it.each([true, false])('clears search and restores focus across 5 → 4 → 5 models (checked: %s)', (checked) => {
     const current = { provider: 'deepseek-official', model: checked ? 'model-3' : 'removed' }
     const directory = createSnapshotStore(state({ groups: modelGroups(5), current }))
-    render(<ModelSelect renderSlot={renderLabel} locked={false} available directory={directory} load={vi.fn()} select={vi.fn()} t={t} />)
+    render(<ModelSelect renderSlot={renderLabel} locked={false} available
+      accounts={accountsOf()} selectAccount={vi.fn()}
+      directory={directory} load={vi.fn()} select={vi.fn()} t={t} />)
     fireEvent.click(screen.getByRole('button', { name: /选择模型/ }))
     if (checked) fireEvent.click(screen.getByRole('menuitem', { name: /^模型/ }))
     const search = screen.getByRole('searchbox')
@@ -708,7 +727,7 @@ describe('ModelSelect catalog size', () => {
   it('moves actual row focus with arrows, leaves Enter native, and selects with Tab in a small catalog', async () => {
     const select = vi.fn().mockResolvedValue({ ok: true, value: undefined })
     render(<ModelSelect renderSlot={renderLabel} locked={false} available
-      directory={createSnapshotStore(state({ groups: modelGroups(4), current: { provider: 'deepseek-official', model: 'model-2' } }))}
+      accounts={accountsOf()} selectAccount={vi.fn()} directory={createSnapshotStore(state({ groups: modelGroups(4), current: { provider: 'deepseek-official', model: 'model-2' } }))}
       load={vi.fn()} select={select} t={t} />)
     const trigger = screen.getByRole('button', { name: /选择模型/ })
     fireEvent.click(trigger)
@@ -733,13 +752,15 @@ describe('ModelSelect catalog size', () => {
     expect(fireEvent.keyDown(rows[2]!, { key: 'Tab' })).toBe(false)
     expect(select).toHaveBeenCalledWith({ provider: 'deepseek-official', model: 'model-3' })
     await waitFor(() => { expect(document.activeElement).toBe(trigger) })
-    expect(screen.queryByRole('group', { name: '模型与推理等级' })).toBeNull()
+    expect(screen.queryByRole('group', { name: zh['menu.aria'] })).toBeNull()
     expect(trigger.hasAttribute('data-selection-focus')).toBe(true)
   })
 
   it('keeps Tab selection available after hovering a small-catalog row', async () => {
     const select = vi.fn().mockResolvedValue({ ok: true, value: undefined })
-    render(<ModelSelect renderSlot={renderLabel} locked={false} available directory={createSnapshotStore(state({ groups: modelGroups(4) }))}
+    render(<ModelSelect renderSlot={renderLabel} locked={false} available
+      accounts={accountsOf()} selectAccount={vi.fn()}
+      directory={createSnapshotStore(state({ groups: modelGroups(4) }))}
       load={vi.fn()} select={select} t={t} />)
     fireEvent.click(screen.getByRole('button', { name: /选择模型/ }))
     fireEvent.click(screen.getByRole('menuitem', { name: /^模型/ }))
@@ -749,12 +770,14 @@ describe('ModelSelect catalog size', () => {
     expect(row.hasAttribute('data-highlighted')).toBe(true)
     expect(fireEvent.keyDown(row, { key: 'Tab' })).toBe(false)
     expect(select).toHaveBeenCalledWith({ provider: 'deepseek-official', model: 'model-3' })
-    await waitFor(() => { expect(screen.queryByRole('group', { name: '模型与推理等级' })).toBeNull() })
+    await waitFor(() => { expect(screen.queryByRole('group', { name: zh['menu.aria'] })).toBeNull() })
   })
 
   it.each(['Escape', 'Tab'])('leaves a small model pane with %s and returns to its root cell', (key) => {
     const select = vi.fn()
-    render(<ModelSelect renderSlot={renderLabel} locked={false} available directory={createSnapshotStore(state({ groups: modelGroups(4) }))}
+    render(<ModelSelect renderSlot={renderLabel} locked={false} available
+      accounts={accountsOf()} selectAccount={vi.fn()}
+      directory={createSnapshotStore(state({ groups: modelGroups(4) }))}
       load={vi.fn()} select={select} t={t} />)
     fireEvent.click(screen.getByRole('button', { name: /选择模型/ }))
     fireEvent.click(screen.getByRole('menuitem', { name: /^模型/ }))
@@ -771,7 +794,7 @@ describe('ModelSelect catalog size', () => {
 describe('ModelSelect search', () => {
   it('clears search when reopening an unselected large catalog', () => {
     render(<ModelSelect renderSlot={renderLabel} locked={false} available
-      directory={createSnapshotStore(state({ groups: modelGroups(5), current: null }))}
+      accounts={accountsOf()} selectAccount={vi.fn()} directory={createSnapshotStore(state({ groups: modelGroups(5), current: null }))}
       load={vi.fn()} select={vi.fn()} t={t} />)
     const trigger = screen.getByRole('button', { name: '请选择模型' })
     fireEvent.click(trigger)
@@ -779,7 +802,7 @@ describe('ModelSelect search', () => {
     expect(document.activeElement).toBe(search)
     fireEvent.change(search, { target: { value: 'zzzz' } })
     fireEvent.keyDown(search, { key: 'Escape' })
-    expect(screen.queryByRole('group', { name: '模型与推理等级' })).toBeNull()
+    expect(screen.queryByRole('group', { name: zh['menu.aria'] })).toBeNull()
     fireEvent.click(trigger)
     expect(screen.getByRole('searchbox').getAttribute('value')).toBe('')
     expect(document.activeElement).toBe(screen.getByRole('searchbox'))
@@ -790,7 +813,9 @@ describe('ModelSelect search', () => {
     const directory = createSnapshotStore(state({ groups: [
       ...state().groups, { id: 'empty', name: 'Empty Provider', models: [] },
     ] }))
-    render(<ModelSelect renderSlot={renderLabel} locked={false} available directory={directory} load={vi.fn()} select={vi.fn()} t={t} />)
+    render(<ModelSelect renderSlot={renderLabel} locked={false} available
+      accounts={accountsOf()} selectAccount={vi.fn()}
+      directory={directory} load={vi.fn()} select={vi.fn()} t={t} />)
     fireEvent.click(screen.getByRole('button', { name: /选择模型/ }))
     fireEvent.click(screen.getByRole('menuitem', { name: /模型/ }))
     expect(screen.queryByRole('group', { name: 'Empty Provider' })).toBeNull()
@@ -803,7 +828,9 @@ describe('ModelSelect search', () => {
     const select = vi.fn()
     render(<>
       <button type="button">Outside</button>
-      <ModelSelect renderSlot={renderLabel} locked={false} available directory={createSnapshotStore(state({ groups: modelGroups(5) }))}
+      <ModelSelect renderSlot={renderLabel} locked={false} available
+        accounts={accountsOf()} selectAccount={vi.fn()}
+        directory={createSnapshotStore(state({ groups: modelGroups(5) }))}
         load={vi.fn()} select={select} t={t} />
     </>)
     const trigger = screen.getByRole('button', { name: /选择模型/ })
@@ -830,7 +857,9 @@ describe('ModelSelect search', () => {
         ] },
       ],
     }))
-    render(<ModelSelect renderSlot={renderLabel} locked={false} available directory={directory} load={vi.fn()} select={select} t={t} />)
+    render(<ModelSelect renderSlot={renderLabel} locked={false} available
+      accounts={accountsOf()} selectAccount={vi.fn()}
+      directory={directory} load={vi.fn()} select={select} t={t} />)
     fireEvent.click(screen.getByRole('button', { name: /选择模型/ }))
     fireEvent.click(screen.getByRole('menuitem', { name: /模型/ }))
     const search = screen.getByRole('searchbox')
@@ -870,7 +899,7 @@ describe('ModelSelect search', () => {
     expect(document.activeElement).toBe(search)
     fireEvent.keyDown(search, { key })
     expect(select).toHaveBeenCalledWith({ provider: 'other', model: 'gamma' })
-    await waitFor(() => { expect(screen.queryByRole('group', { name: '模型与推理等级' })).toBeNull() })
+    await waitFor(() => { expect(screen.queryByRole('group', { name: zh['menu.aria'] })).toBeNull() })
     const trigger = screen.getByRole('button', { name: /选择模型/ })
     await waitFor(() => { expect(document.activeElement).toBe(trigger) })
     expect(trigger.hasAttribute('data-selection-focus')).toBe(true)
@@ -882,7 +911,9 @@ describe('ModelSelect search', () => {
       { id: 'other', name: 'Other', models: [{ id: 'gemini', name: 'Gemini Flash' }] },
     ] }))
     const select = vi.fn().mockResolvedValue({ ok: true, value: undefined })
-    render(<ModelSelect renderSlot={renderLabel} locked={false} available directory={directory} load={vi.fn()} select={select} t={t} />)
+    render(<ModelSelect renderSlot={renderLabel} locked={false} available
+      accounts={accountsOf()} selectAccount={vi.fn()}
+      directory={directory} load={vi.fn()} select={select} t={t} />)
     const trigger = screen.getByRole('button', { name: /选择模型/ })
     fireEvent.click(trigger)
     fireEvent.click(screen.getByRole('menuitem', { name: /模型/ }))
@@ -928,7 +959,9 @@ describe('ModelSelect search', () => {
 
 it('hides the inherited effort until a listed model is selected', async () => {
   const directory = createSnapshotStore<ModelDirectoryState>(state({ current: null, routable: false, retainedEffort: 'High' }))
-  render(<ModelSelect renderSlot={renderLabel} locked={false} available directory={directory} load={vi.fn()} select={vi.fn()} t={t} />)
+  render(<ModelSelect renderSlot={renderLabel} locked={false} available
+    accounts={accountsOf()} selectAccount={vi.fn()}
+    directory={directory} load={vi.fn()} select={vi.fn()} t={t} />)
   const trigger = screen.getByRole('button', { name: '请选择模型' })
   expect(trigger.hasAttribute('disabled')).toBe(false)
   await expect(`${trigger.textContent}\n`).toMatchFileSnapshot('./expected/unselected-model.txt')
@@ -940,7 +973,7 @@ it('hides the inherited effort until a listed model is selected', async () => {
   const row = screen.getByRole('menuitemradio', { name: 'DeepSeek-V4-Flash' })
   expect(document.activeElement).toBe(row)
   fireEvent.keyDown(row, { key: 'Escape' })
-  expect(screen.queryByRole('group', { name: '模型与推理等级' })).toBeNull()
+  expect(screen.queryByRole('group', { name: zh['menu.aria'] })).toBeNull()
   fireEvent.click(trigger)
   expect(screen.queryByRole('searchbox')).toBeNull()
   expect(document.activeElement).toBe(screen.getByRole('menuitemradio', { name: 'DeepSeek-V4-Flash' }))
@@ -952,7 +985,9 @@ it('places account and official models before third-party models', async () => {
     id, name: id, models: [1, 2].map(index => ({ id: `${id}-${index}`, name: `${id}-${index}` })),
   }))
   const directory = createSnapshotStore<ModelDirectoryState>(state({ current: null, groups }))
-  render(<ModelSelect renderSlot={renderLabel} locked={false} available directory={directory} load={vi.fn()} select={vi.fn()} t={t} />)
+  render(<ModelSelect renderSlot={renderLabel} locked={false} available
+    accounts={accountsOf()} selectAccount={vi.fn()}
+    directory={directory} load={vi.fn()} select={vi.fn()} t={t} />)
   fireEvent.click(screen.getByRole('button', { name: '请选择模型' }))
   const names = screen.getAllByRole('menuitemradio').map(row => row.textContent)
   expect(names).toEqual([
@@ -969,7 +1004,7 @@ it.each([en, zh])('localizes the account group while preserving external names',
     models: [{ id: 'model', name: 'Model' }],
   }))
   render(<ModelSelect renderSlot={renderLabel} locked={false} available
-    directory={createSnapshotStore(state({ current: null, groups }))}
+    accounts={accountsOf()} selectAccount={vi.fn()} directory={createSnapshotStore(state({ current: null, groups }))}
     load={vi.fn()} select={vi.fn()} t={key => key in copy ? copy[key as keyof typeof copy] : key} />)
   fireEvent.click(screen.getByRole('button', { name: copy['trigger.selectAria'] }))
   expect(screen.getByRole('group', { name: copy['provider.account'] })).toBeTruthy()
@@ -982,11 +1017,116 @@ it('restores the account model name after login without changing the saved route
   ] }]
   const selected = { provider: 'deepseek-account', model: 'deepseek-flash', reasoningEffort: 'high' }
   const directory = createSnapshotStore(state({ current: selected, groups, retainedEffort: 'High' }))
-  render(<ModelSelect renderSlot={renderLabel} locked={false} available directory={directory} load={vi.fn()} select={vi.fn()} t={t} />)
+  render(<ModelSelect renderSlot={renderLabel} locked={false} available
+    accounts={accountsOf()} selectAccount={vi.fn()}
+    directory={directory} load={vi.fn()} select={vi.fn()} t={t} />)
   expect(screen.getByRole('button', { name: /选择模型，当前/ }).textContent).toBe('DeepSeek FlashHigh')
   act(() => { directory.update((snapshot) => { snapshot.groups = []; snapshot.routable = false }) })
   expect(screen.getByRole('button', { name: '请选择模型' }).textContent).toBe('请选择模型')
   act(() => { directory.update((snapshot) => { snapshot.groups = groups; snapshot.routable = true }) })
   expect(screen.getByRole('button', { name: /选择模型，当前/ }).textContent).toBe('DeepSeek FlashHigh')
   expect(directory.getSnapshot().current).toEqual(selected)
+})
+
+describe('ModelSelect account pane', () => {
+  const flowKey = credentialKey('llm-pi-ai', 'deepseek-official')
+  const accountRows: AuthorizationAccountView[] = [
+    { key: credentialKey('llm-pi-ai', 'deepseek-official--acct-aaa'), account: 'acct-aaa', label: 'first@example.com', selected: true },
+    { key: credentialKey('llm-pi-ai', 'deepseek-official--acct-bbb'), account: 'acct-bbb', label: 'second@example.com', selected: false },
+  ]
+  const withAccounts = (accounts: AuthorizationAccountView[] = accountRows) =>
+    accountsOf(new Map([['deepseek-official', { key: flowKey, accounts }]]))
+
+  it('hides the account row when the routed provider has no OAuth flow', () => {
+    render(<ModelSelect renderSlot={renderLabel} locked={false} available
+      accounts={accountsOf()} selectAccount={vi.fn()} directory={createSnapshotStore(state())}
+      load={vi.fn()} select={vi.fn()} t={t} />)
+    fireEvent.click(screen.getByRole('button', { name: /选择模型，当前/ }))
+    expect(screen.queryByRole('menuitem', { name: /账号/ })).toBeNull()
+  })
+
+  it('shows the selected account on the root row and selects another through selectAccount', async () => {
+    const selectAccount = vi.fn(async (_provider: string, _account: string) => ({ ok: true as const, value: undefined }))
+    render(<ModelSelect renderSlot={renderLabel} locked={false} available
+      accounts={withAccounts()} selectAccount={selectAccount}
+      directory={createSnapshotStore(state())} load={vi.fn()} select={vi.fn()} t={t} />)
+    fireEvent.click(screen.getByRole('button', { name: /选择模型，当前/ }))
+    const row = screen.getByRole('menuitem', { name: /账号/ })
+    expect(row.textContent).toContain('first@example.com')
+    fireEvent.click(row)
+    const rows = screen.getAllByRole('menuitemradio')
+    expect(rows.map(r => r.textContent)).toEqual(['first@example.com', 'second@example.com'])
+    expect(rows[0]!.getAttribute('aria-checked')).toBe('true')
+    fireEvent.click(rows[1]!)
+    await waitFor(() => { expect(selectAccount).toHaveBeenCalledWith('deepseek-official', 'acct-bbb') })
+    await waitFor(() => { expect(screen.queryByRole('menu')).toBeNull() })
+  })
+
+  it('closes without a call when the already-selected account is picked', () => {
+    const selectAccount = vi.fn()
+    render(<ModelSelect renderSlot={renderLabel} locked={false} available
+      accounts={withAccounts()} selectAccount={selectAccount}
+      directory={createSnapshotStore(state())} load={vi.fn()} select={vi.fn()} t={t} />)
+    fireEvent.click(screen.getByRole('button', { name: /选择模型，当前/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /账号/ }))
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'first@example.com' }))
+    expect(selectAccount).not.toHaveBeenCalled()
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
+
+  it('announces a refused switch through the toast and keeps the account rows', async () => {
+    const selectAccount = vi.fn(async () => ({
+      ok: false as const,
+      error: new RemoteError('authorization/rejected', 'no such account', { key: 'llm-pi-ai/deepseek-official' }),
+    }))
+    render(<ModelSelect renderSlot={renderLabel} locked={false} available
+      accounts={withAccounts()} selectAccount={selectAccount}
+      directory={createSnapshotStore(state())} load={vi.fn()} select={vi.fn()} t={t} />)
+    fireEvent.click(screen.getByRole('button', { name: /选择模型，当前/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /账号/ }))
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'second@example.com' }))
+    const toast = await screen.findByRole('alert')
+    expect(toast.textContent).toContain('模型操作失败')
+    expect(screen.getAllByRole('menuitemradio')).toHaveLength(2)
+  })
+
+  it('shows the empty state and base/slot fallbacks when a flow has no labels or records', () => {
+    const unlabeled = withAccounts([
+      { key: flowKey, account: '', selected: false },
+      { key: credentialKey('llm-pi-ai', 'deepseek-official--acct-ccc'), account: 'acct-ccc', selected: true },
+    ])
+    render(<ModelSelect renderSlot={renderLabel} locked={false} available
+      accounts={unlabeled} selectAccount={vi.fn()}
+      directory={createSnapshotStore(state())} load={vi.fn()} select={vi.fn()} t={t} />)
+    fireEvent.click(screen.getByRole('button', { name: /选择模型，当前/ }))
+    const row = screen.getByRole('menuitem', { name: /账号/ })
+    expect(row.textContent).toContain('acct-ccc')
+    fireEvent.click(row)
+    expect(screen.getAllByRole('menuitemradio').map(r => r.textContent)).toEqual(['默认', 'acct-ccc'])
+  })
+
+  it('renders the empty pane and a dash when the flow holds no accounts', () => {
+    render(<ModelSelect renderSlot={renderLabel} locked={false} available
+      accounts={withAccounts([])} selectAccount={vi.fn()}
+      directory={createSnapshotStore(state())} load={vi.fn()} select={vi.fn()} t={t} />)
+    fireEvent.click(screen.getByRole('button', { name: /选择模型，当前/ }))
+    const row = screen.getByRole('menuitem', { name: /账号/ })
+    expect(row.textContent).toContain('—')
+    fireEvent.click(row)
+    expect(screen.getByText('没有已登录的账号。')).toBeTruthy()
+  })
+
+  it('Escape backs out of the account pane to its root cell', () => {
+    render(<ModelSelect renderSlot={renderLabel} locked={false} available
+      accounts={withAccounts()} selectAccount={vi.fn()}
+      directory={createSnapshotStore(state())} load={vi.fn()} select={vi.fn()} t={t} />)
+    const trigger = screen.getByRole('button', { name: /选择模型，当前/ })
+    fireEvent.click(trigger)
+    fireEvent.click(screen.getByRole('menuitem', { name: /账号/ }))
+    fireEvent.keyDown(screen.getAllByRole('menuitemradio')[0]!, { key: 'Escape' })
+    // Back on the account cell, so the next keystroke still reaches the menu.
+    expect(document.activeElement?.textContent).toContain('账号')
+    fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
 })

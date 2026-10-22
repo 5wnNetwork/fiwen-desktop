@@ -32,10 +32,10 @@ it('claims onboarding while loading and completes after login or dismissal', () 
     useAccount: <T,>(select: (snapshot: AccountSnapshot) => T) => select(account),
     useTheme: <T,>(select: (snapshot: ThemeSnapshot) => T) => select(theme),
     start: vi.fn(async () => {}), cancel: vi.fn(async () => {}), signOut: vi.fn(async () => {}),
-    contactUs: vi.fn(), t: makeTranslate(en),
+    t: makeTranslate(en),
     refreshAccount: vi.fn(async () => {}), bonusNoticeShown: vi.fn(), bonusNoticeDismissed: vi.fn(),
     formatWalletBalance: (balance: string, currency: BalanceCurrency) => formatBalance(balance, currency),
-    formatPlanDate: (iso: string) => `d:${iso}`, formatPlanReset: (iso: string) => `r:${iso}`, formatPlanPoints: (points: string) => points,
+    formatPlanDate: (iso: string) => `d:${iso}`, formatPlanResetIn: (iso: string) => `r:${iso}`,
     avatarFailed: vi.fn(),
   }
   const view = render(<AccountOnboarding {...props} />)

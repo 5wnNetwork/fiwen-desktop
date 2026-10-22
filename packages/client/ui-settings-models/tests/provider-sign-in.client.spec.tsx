@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /** Provider-card sign-in surface: OAuth begin, notice/prompt relay, cancel, and sign-out. */
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
@@ -278,6 +278,7 @@ describe('ProviderSignIn', () => {
     stubTab()
     renderSignIn(operations, { ...OAUTH_ENTRY, configured: true })
     fireEvent.click(screen.getByRole('button', { name: en.signOut }))
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: en.signOut }))
     await waitFor(() => { expect(face.authorization.signOut).toHaveBeenCalledWith('llm-pi-ai/anthropic') })
     await screen.findByText('store refused')
   })
@@ -385,33 +386,80 @@ describe('ProviderSignIn accounts', () => {
     />)
   }
 
-  it('names the selected account collapsed and lists every account expanded', () => {
-    const { operations } = harness()
+  /** The disclosure header: the only expanded-capable button carrying the selected account's name. */
+  function header(expanded = false): HTMLElement {
+    // The name is a substring match: status markers inside the header (the
+    // expired-credential chip) join its accessible name.
+    return screen.getByRole('button', { name: /work@example\.com/, expanded })
+  }
+
+  it('names the selected account collapsed and lists every account expanded', async () => {
+    const { face, operations } = harness()
     renderWithAccounts(operations)
-    expect(screen.getByText('work@example.com')).toBeTruthy()
-    fireEvent.click(screen.getByRole('button', { name: en.accountManage }))
+    expect(header()).toBeTruthy()
+    fireEvent.click(header())
     expect(screen.getByText('acct-bb')).toBeTruthy()
     expect(screen.getByText(en.accountBase)).toBeTruthy()
     expect(screen.getAllByRole('radio')).toHaveLength(3)
+    // Expanding is the gesture that fetches every account's quota once.
+    await waitFor(() => { expect(face.authorization.quota).toHaveBeenCalledTimes(3) })
+    // Re-expanding reads the cache instead of probing again.
+    fireEvent.click(header(true))
+    fireEvent.click(header())
+    await waitFor(() => { expect(screen.getAllByRole('radio')).toHaveLength(3) })
+    expect(face.authorization.quota).toHaveBeenCalledTimes(3)
   })
 
   it('hides the list again from the same control', () => {
     const { operations } = harness()
     renderWithAccounts(operations)
-    fireEvent.click(screen.getByRole('button', { name: en.accountManage }))
-    fireEvent.click(screen.getByRole('button', { name: en.accountHide }))
+    fireEvent.click(header())
+    fireEvent.click(header(true))
     expect(screen.queryByText('acct-bb')).toBeNull()
   })
 
   it('selects another account through the remote', async () => {
     const { face, operations } = harness()
     renderWithAccounts(operations)
-    fireEvent.click(screen.getByRole('button', { name: en.accountManage }))
-    const radios = screen.getAllByRole('radio')
-    fireEvent.click(radios[1]!)
+    fireEvent.click(header())
+    fireEvent.click(screen.getAllByRole('radio')[1]!)
     await waitFor(() => { expect(face.authorization.selectAccount).toHaveBeenCalledWith('llm-pi-ai/anthropic', 'acct-bb') })
-    // The selected radio is disabled — selection is already where it resolves.
-    expect(radios[0]).toHaveProperty('disabled', true)
+  })
+
+  it('does not reselect the account that is already active', async () => {
+    const { face, operations } = harness()
+    renderWithAccounts(operations)
+    fireEvent.click(header())
+    const radios = screen.getAllByRole('radio')
+    expect(radios[0]!.getAttribute('aria-checked')).toBe('true')
+    fireEvent.click(radios[0]!)
+    await waitFor(() => { expect(face.authorization.quota).toHaveBeenCalled() })
+    expect(face.authorization.selectAccount).not.toHaveBeenCalled()
+  })
+
+  it('flags an account whose stored credential has expired, collapsed and in its row', async () => {
+    const { operations } = harness()
+    renderWithAccounts(operations, [
+      {
+        key: 'llm-pi-ai/anthropic--acct-aa' as AuthorizationAccountView['key'],
+        account: 'acct-aa', label: 'work@example.com', selected: true,
+        expiresAt: Date.now() - 1_000,
+      },
+      {
+        key: 'llm-pi-ai/anthropic--acct-bb' as AuthorizationAccountView['key'],
+        account: 'acct-bb', selected: false,
+        expiresAt: Date.now() + 3_600_000,
+      },
+    ])
+
+    // The selected account's stale credential is flagged on the collapsed header.
+    expect(within(header()).getByText(en.accountExpired)).toBeTruthy()
+
+    fireEvent.click(header())
+    const radios = screen.getAllByRole('radio')
+    expect(within(radios[0]!).getByText(en.accountExpired)).toBeTruthy()
+    // A live token's expiry is not noise the row carries.
+    expect(within(radios[1]!).queryByText(en.accountExpired)).toBeNull()
   })
 
   it('surfaces a select refusal', async () => {
@@ -422,13 +470,13 @@ describe('ProviderSignIn accounts', () => {
       }),
     })
     renderWithAccounts(operations)
-    fireEvent.click(screen.getByRole('button', { name: en.accountManage }))
+    fireEvent.click(header())
     fireEvent.click(screen.getAllByRole('radio')[1]!)
     await screen.findByText('pick refused')
   })
 
-  it('reports one account\'s quota beside its row', async () => {
-    const { face, operations } = harness({
+  it('reports each account\'s quota beside its row once expanded', async () => {
+    const { operations } = harness({
       quota: () => Promise.resolve({
         ok: true,
         value: {
@@ -442,12 +490,13 @@ describe('ProviderSignIn accounts', () => {
       }),
     })
     renderWithAccounts(operations)
-    fireEvent.click(screen.getByRole('button', { name: en.accountManage }))
-    fireEvent.click(screen.getAllByRole('button', { name: en.quotaCheck })[1]!)
-    await waitFor(() => { expect(face.authorization.quota).toHaveBeenCalledWith('llm-pi-ai/anthropic', 'acct-bb') })
-    await screen.findByText('pro')
-    expect(screen.getByText('5 hour 42%')).toBeTruthy()
-    expect(screen.getByText('7 day 8%')).toBeTruthy()
+    fireEvent.click(header())
+    const rows = screen.getAllByRole('radio')
+    await screen.findAllByText('pro')
+    for (const row of rows) {
+      expect(within(row).getByText('5 hour 42%')).toBeTruthy()
+      expect(within(row).getByText('7 day 8%')).toBeTruthy()
+    }
   })
 
   it('renders quota windows that carry no plan or reset time', async () => {
@@ -458,21 +507,20 @@ describe('ProviderSignIn accounts', () => {
       }),
     })
     renderWithAccounts(operations)
-    fireEvent.click(screen.getByRole('button', { name: en.accountManage }))
-    fireEvent.click(screen.getAllByRole('button', { name: en.quotaCheck })[0]!)
-    await screen.findByText('Weekly 12%')
+    fireEvent.click(header())
+    await screen.findAllByText('Weekly 12%')
   })
 
   it('shows nothing when the provider has no quota answer', async () => {
     const { face, operations } = harness()
     renderWithAccounts(operations)
-    fireEvent.click(screen.getByRole('button', { name: en.accountManage }))
-    fireEvent.click(screen.getAllByRole('button', { name: en.quotaCheck })[0]!)
-    await waitFor(() => { expect(face.authorization.quota).toHaveBeenCalled() })
+    fireEvent.click(header())
+    await waitFor(() => { expect(face.authorization.quota).toHaveBeenCalledTimes(3) })
+    await waitFor(() => { expect(screen.queryByText(en.quotaChecking)).toBeNull() })
     expect(screen.queryByText(en.quotaFailed)).toBeNull()
   })
 
-  it('marks a quota refusal without hiding other rows', async () => {
+  it('marks quota refusals without hiding other rows', async () => {
     const { operations } = harness({
       quota: () => Promise.resolve({
         ok: false,
@@ -480,24 +528,77 @@ describe('ProviderSignIn accounts', () => {
       }),
     })
     renderWithAccounts(operations)
-    fireEvent.click(screen.getByRole('button', { name: en.accountManage }))
-    fireEvent.click(screen.getAllByRole('button', { name: en.quotaCheck })[0]!)
-    await screen.findByText(en.quotaFailed)
+    fireEvent.click(header())
+    await screen.findAllByText(en.quotaFailed)
     expect(screen.getByText('acct-bb')).toBeTruthy()
   })
 
-  it('signs out one account by its own record key', async () => {
+  it('refreshes one account\'s quota from its row menu', async () => {
     const { face, operations } = harness()
     renderWithAccounts(operations)
-    fireEvent.click(screen.getByRole('button', { name: en.accountManage }))
-    fireEvent.click(screen.getAllByRole('button', { name: en.signOut })[1]!)
+    fireEvent.click(header())
+    await waitFor(() => { expect(face.authorization.quota).toHaveBeenCalledTimes(3) })
+    const overflow = screen.getAllByRole('button', { name: en.accountActions })[1]!
+    // A second click on the open overflow button collapses it again.
+    fireEvent.click(overflow)
+    fireEvent.click(overflow)
+    fireEvent.click(overflow)
+    fireEvent.click(screen.getByRole('menuitem', { name: en.quotaRefresh }))
+    await waitFor(() => { expect(face.authorization.quota).toHaveBeenCalledTimes(4) })
+    expect(face.authorization.quota).toHaveBeenLastCalledWith('llm-pi-ai/anthropic', 'acct-bb')
+  })
+
+  it('signs out one account by its own record key after confirming', async () => {
+    const { face, operations } = harness()
+    renderWithAccounts(operations)
+    fireEvent.click(header())
+    fireEvent.click(screen.getAllByRole('button', { name: en.accountActions })[1]!)
+    fireEvent.click(screen.getByRole('menuitem', { name: en.signOut }))
+    const dialog = await screen.findByRole('dialog')
+    expect(within(dialog).getByText(en.signOutConfirm.replace('{label}', 'acct-bb'))).toBeTruthy()
+    fireEvent.click(within(dialog).getByRole('button', { name: en.signOut }))
     await waitFor(() => { expect(face.authorization.signOut).toHaveBeenCalledWith('llm-pi-ai/anthropic--acct-bb') })
+  })
+
+  it('abandons the sign-out however the dialog is dismissed', async () => {
+    const { face, operations } = harness()
+    renderWithAccounts(operations)
+    fireEvent.click(header())
+    const menus = screen.getAllByRole('button', { name: en.accountActions })
+    fireEvent.click(menus[1]!)
+    fireEvent.click(screen.getByRole('menuitem', { name: en.signOut }))
+    let dialog = await screen.findByRole('dialog')
+    // The dialog's own close control shares the footer Cancel's label.
+    fireEvent.click(within(dialog).getAllByRole('button', { name: en.cancel })[0]!)
+    await waitFor(() => { expect(screen.queryByRole('dialog')).toBeNull() })
+    fireEvent.click(screen.getAllByRole('button', { name: en.accountActions })[1]!)
+    fireEvent.click(screen.getByRole('menuitem', { name: en.signOut }))
+    dialog = await screen.findByRole('dialog')
+    fireEvent.click(within(dialog).getAllByRole('button', { name: en.cancel }).at(-1)!)
+    await waitFor(() => { expect(screen.queryByRole('dialog')).toBeNull() })
+    expect(face.authorization.signOut).not.toHaveBeenCalled()
+  })
+
+  it('shows a blank header while the selection pointer resolves nowhere', () => {
+    const { operations } = harness()
+    renderWithAccounts(operations, ACCOUNTS.map(account => ({ ...account, selected: false })))
+    expect(screen.getByText('—')).toBeTruthy()
+  })
+
+  it('notes a running sign-in inside the expanded account block', () => {
+    const { operations } = harness()
+    render(<ProviderSignIn
+      entry={{ ...OAUTH_ENTRY, configured: true, inFlight: true }}
+      accounts={ACCOUNTS} operations={operations} t={t} disabled={false}
+    />)
+    expect(screen.getByText(en.signingIn)).toBeTruthy()
   })
 
   it('mints a fresh account slot when adding from a populated list', async () => {
     const { face, operations } = harness()
     stubTab()
     renderWithAccounts(operations)
+    fireEvent.click(header())
     fireEvent.click(screen.getByRole('button', { name: en.accountAdd }))
     await waitFor(() => {
       expect(face.authorization.begin).toHaveBeenCalledWith('llm-pi-ai/anthropic', 'oauth', expect.stringMatching(/^acct-/))

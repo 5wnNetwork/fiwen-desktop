@@ -28,6 +28,7 @@ import type {
   AssistantMessageEventStream,
   JsonObject,
   Model,
+  ModelThinkingLevel,
   ProviderHeaders,
   SimpleStreamOptions,
   StreamOptions,
@@ -146,12 +147,23 @@ const DEFAULT_THOUGHT_SIGNATURE =
   'EuwGCukGAXLI2nxwZIq54WWSoL/YN0P3TsDZ7zRnLi8g0S4aVr2HUGxvaHKySuY6HAVzcE0GPGjXrytLIldxthSvfxgUlJh6Qa9Z+Oj5QZBlYdg6HaJ6yuY5R7waE6rdwBsRf7Ft2j3DJ9rMi9qhWFqApewYtPhls3VHtuvND3l8Rm09+lbAXQs6KKWEWrxNLKTBkfpMgXhRERc/TQRMZu1twAablm6/Zk1tsYRvfWKLsNbeKF+CCojJdXJKvnR/8Ouuoa+Y2Ti20hcW7aZIIjZDFYPU//k6Ybmhg69J/imbFai2ckhfLaisqdDkdoIiBJScTOUvYqP6AE9d4MsydSC+UlhIMk4hoP76R8vUSCZRMkjOaDXstf/QoVZKbt94wyRZgAJ1G0BqI8L5ow86kLpA4wJEtxsRGymOE4bKUvApveBakYDNM9APkf+LbtbzWSseGjoZcSlycF9iN8Q2XNYKRrHbv3Lr5Y8JjdH/5y/6SHkNehTEZugaeGnSPSyCTWto1kQgHpxdWmhkLfJGNUGLmue7Mesj4TSms4J33mRpYVhNB/J333FCqIP0hr/E7BkkjEn7yZ4X7SQlh+xKPurapsnHRwiKmtsilmEFrnTE9iQr+pMr6M29qqFNv1tr5yumbaJw8JW9sB15tNsRv+dW6BjNanbsKz7HCgKUBc8tGy+7YuhXzAfViyRefcjK7eZW0Fbyt7AbybJTKz78W8NH7ye6LAwzOebXpeZ4D43fNIt8bKh26qgduSQv/7o+pAflkuqHZ99YWgHQ8h8OkZFi3eOiSYjsjhdZ/czWOdoPI/OnqIldzMPF5YlrKBLFX8VhRKVmqgsmWf5PHGulHhMkVlS+XG2UIseGy69ARa93D78Gsa+1n1kJr7EEB7Rh+27vUMxVYLdz1yMSvE5nalTAlg/ZeG8+XQ0cHuAI3KbQpHW2Q++RdXfm5JzD5WdJZUU+Zn8t8UUn85BH4RxZLeE0qJikgSsKoYVBc6YhiMjhPgkR95ReimY4Z0xCJdRo1gjexOFeODZMpQF6Yxnoic7IrdgsFA3iePTbFnPp3IAM1fAThWhXJUn3QInUOTd5o1qmTmn6REbL15g/JQNl+dqUoPkhleeb2V3kjqp1okmO3wMZbPknR3S1LZNmlS72/iBQUm+n2b/RCn4PjmM2'
 
 /**
- * The model id the envelope names. An Antigravity model declares its upstream
- * spelling separately (`gemini-3.8-flash` signs in as `gemini-3.8-flash-medium(medium)`),
- * because the wire name carries the fixed thinking tier; a model without the
- * override answers its own id.
+ * The tier-indexed wire spellings of a model whose thinking tier travels
+ * inside the model name, or `undefined` for one whose wire name is fixed.
  */
-function upstreamModelId(model: Model<Api>): string {
+function tierUpstreamIds(model: Model<Api>): Readonly<Record<string, string>> | undefined {
+  const ids = (model as { upstreamIds?: unknown }).upstreamIds
+  return typeof ids === 'object' && ids !== null ? ids as Readonly<Record<string, string>> : undefined
+}
+
+/**
+ * The model id the envelope names. A tiered model spells the request's
+ * clamped level (`gemini-3.8-flash` at `low` signs in as
+ * `gemini-3.8-flash-low(low)`); its `upstreamId` is the name the default tier
+ * answers to. A model without the overrides answers its own id.
+ */
+function upstreamModelId(model: Model<Api>, tier: ModelThinkingLevel | undefined): string {
+  const spelled = tier === undefined ? undefined : tierUpstreamIds(model)?.[tier]
+  if (spelled !== undefined) return spelled
   const upstream = (model as { upstreamId?: unknown }).upstreamId
   return typeof upstream === 'string' && upstream.length > 0 ? upstream : model.id
 }
@@ -190,6 +202,8 @@ function antigravityContents(model: Model<Api>, context: TranscriptContext): Wir
  */
 interface AntigravityStreamOptions extends StreamOptions {
   thinking?: { enabled: boolean; level?: string; budgetTokens?: number }
+  /** The thinking tier a tiered model's wire name must spell; absent selects its default tier. */
+  tier?: ModelThinkingLevel
   /** `ToolChoice` for the dispatching api, or an api-specific richer value — read string-only here. */
   toolChoice?: unknown
 }
@@ -212,7 +226,10 @@ function antigravityRequest(
   if (options.maxTokens !== undefined) {
     generationConfig['maxOutputTokens'] = Math.min(options.maxTokens, MAX_OUTPUT_TOKENS)
   }
-  if (options.thinking !== undefined && model.reasoning) {
+  // A tiered model carries its thinking level in the wire name — the
+  // `thinkingConfig` block is skipped for it entirely, exactly as the fixed
+  // non-reasoning entries sent none.
+  if (options.thinking !== undefined && model.reasoning && tierUpstreamIds(model) === undefined) {
     const thinking = options.thinking
     if (thinking.enabled) {
       generationConfig['thinkingConfig'] = {
@@ -341,7 +358,7 @@ export const antigravityStream = (
       const request = await opts.onPayload?.(inner, model) ?? inner
       const sessionId = numericSessionId(
         opts.sessionId ?? opts.headers?.[ANTIGRAVITY_ACCOUNT_HEADER] ?? randomUUID())
-      const wire = upstreamModelId(model)
+      const wire = upstreamModelId(model, opts.tier)
       const project = opts.headers?.[ANTIGRAVITY_PROJECT_HEADER]
       const envelope = {
         // A credential that never learned its project still sends one — the
@@ -503,6 +520,15 @@ export const antigravityStreamSimple = (
   const base: AntigravityStreamOptions = {
     ...buildBaseOptions(model, context, options, apiKey),
     ...options?.toolChoice === undefined ? {} : { toolChoice: options.toolChoice },
+  }
+  // A tiered model's reasoning is dispatched into the wire name; the clamped
+  // level selects the spelling, and an unrequested level keeps the default.
+  const tiers = tierUpstreamIds(model)
+  if (tiers !== undefined) {
+    const tier = options?.reasoning === undefined
+      ? undefined
+      : clampThinkingLevel(model, options.reasoning)
+    return antigravityStream(model, context, { ...base, ...tier === undefined ? {} : { tier } })
   }
   if (options?.reasoning === undefined) {
     return antigravityStream(model, context, { ...base, thinking: { enabled: false } })

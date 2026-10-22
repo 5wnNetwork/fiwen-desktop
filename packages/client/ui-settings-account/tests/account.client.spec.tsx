@@ -37,13 +37,12 @@ function operationsOf(state: Omit<AccountView, 'links'>, details?: Partial<Accou
       theme: { getSnapshot: () => themeOf('light'), subscribe: () => () => {} },
     },
     hasRunningAccountTasks: vi.fn(async () => false),
-    contactUs: vi.fn(), showLogin: vi.fn(), setOnboarding: vi.fn(),
+    showLogin: vi.fn(), setOnboarding: vi.fn(),
     bonusNoticeShown: vi.fn(), bonusNoticeDismissed: vi.fn(),
     refreshAccount: vi.fn(() => Promise.resolve()),
     formatWalletBalance: (balance, currency) => formatBalance(balance, currency),
     formatPlanDate: iso => new Intl.DateTimeFormat('en-US', { dateStyle: 'medium' }).format(new Date(iso)),
-    formatPlanReset: iso => new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit' }).format(new Date(iso)),
-    formatPlanPoints: points => new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(Number(points)),
+    formatPlanResetIn: () => '13h',
     avatarFailed: vi.fn(),
     start: vi.fn(() => Promise.resolve()), cancel: vi.fn(() => Promise.resolve()), signOut: vi.fn(() => Promise.resolve()),
   }
@@ -112,7 +111,6 @@ it.each([en, zh])('renders account cards without inventing profile or balance da
   mount({ status: 'credential-stored', attempt: null }, copy)
   expect(screen.getByText(copy.signedIn)).toBeTruthy()
   expect(screen.getAllByText(copy.loading)).toHaveLength(3)
-  expect(screen.getByRole('link', { name: copy.usage }).getAttribute('href')).toBe('http://localhost:8081/usage')
   expect(screen.getByRole('link', { name: copy.topUp }).getAttribute('href')).toBe('http://localhost:8081/top_up')
   expect(screen.queryByRole('button', { name: copy.signOut })).toBeNull()
   expect(document.body.textContent).not.toContain('209.00')
@@ -141,14 +139,10 @@ it.each([en, zh].flatMap(copy => ([false, true, 'unknown'] as const).map(running
     useTheme={selector => selector(operations.hooks.theme.getSnapshot())} wide openOnboarding={() => {}} openSettings={openSettings}
     t={key => key in copy ? copy[key as AccountKey] : key} />)
   fireEvent.click(screen.getByRole('button', { name: copy.menu }))
-  expect(screen.getAllByRole('menuitem').map(item => item.textContent)).toEqual([copy.settings, copy.contactUs, copy.signOut])
+  expect(screen.getAllByRole('menuitem').map(item => item.textContent)).toEqual([copy.settings, copy.signOut])
   await expect(`${screen.getByRole('menu').textContent}\n`).toMatchFileSnapshot(`./expected/menu-${copy === en ? 'en' : 'zh'}.txt`)
   fireEvent.click(screen.getByRole('menuitem', { name: copy.settings }))
   expect(openSettings).toHaveBeenCalledOnce()
-  fireEvent.click(screen.getByRole('button', { name: copy.menu }))
-  fireEvent.click(screen.getByRole('menuitem', { name: copy.contactUs }))
-  expect(operations.contactUs).toHaveBeenCalledOnce()
-  expect(screen.queryByRole('menu')).toBeNull()
   fireEvent.click(screen.getByRole('button', { name: copy.menu }))
   await act(async () => { fireEvent.click(screen.getByRole('menuitem', { name: copy.signOut })) })
   expect(signOut).not.toHaveBeenCalled()
@@ -187,7 +181,7 @@ it.each([en, zh])('updates the Settings menu keycaps and accessible combination 
   expect(props.openSettings).toHaveBeenCalledOnce()
 })
 
-it.each([en, zh])('offers settings, contact and sign-in from the signed-out account menu', async (copy) => {
+it.each([en, zh])('offers settings and sign-in from the signed-out account menu', async (copy) => {
   const openSettings = vi.fn()
   const operations = operationsOf({ status: 'signed-out', attempt: null })
   const { AccountMenu } = await import('../src/client/AccountMenu.tsx')
@@ -199,13 +193,10 @@ it.each([en, zh])('offers settings, contact and sign-in from the signed-out acco
   expect(trigger.textContent).toBe(copy.more)
   expect(trigger.querySelector('svg')).not.toBeNull()
   fireEvent.click(trigger)
-  expect(screen.getAllByRole('menuitem').map(item => item.textContent)).toEqual([copy.settings, copy.contactUs, copy.signIn])
+  expect(screen.getAllByRole('menuitem').map(item => item.textContent)).toEqual([copy.settings, copy.signIn])
   await expect(`${screen.getByRole('menu').textContent}\n`).toMatchFileSnapshot(`./expected/menu-signed-out-${copy === en ? 'en' : 'zh'}.txt`)
   fireEvent.click(screen.getByRole('menuitem', { name: copy.settings }))
   expect(openSettings).toHaveBeenCalledOnce()
-  fireEvent.click(screen.getByRole('button', { name: copy.menu }))
-  fireEvent.click(screen.getByRole('menuitem', { name: copy.contactUs }))
-  expect(operations.contactUs).toHaveBeenCalledOnce()
 })
 
 it('reports a failed start in the login dialog, not as a sidebar alert', async () => {
@@ -283,8 +274,29 @@ it.each([en, zh])('renders the plan name and daily quota row when the Platform s
   expect(within(region).getByText(copy.plan)).toBeTruthy()
   expect(within(region).getByText(copy.dailyQuota)).toBeTruthy()
   expect(region.textContent).toContain('Pro')
-  // Decimal point strings render as locale-grouped numbers, not raw wire text.
-  expect(region.textContent).toContain('1,234.6 / 50,000')
+  // The meter's fill is the remaining share, so its reading is 100 − used.
+  const meter = within(region).getByRole('meter', { name: copy.dailyQuota })
+  expect(meter.getAttribute('aria-valuemin')).toBe('0')
+  expect(meter.getAttribute('aria-valuemax')).toBe('100')
+  expect(meter.getAttribute('aria-valuenow')).toBe('98')
+  expect(region.textContent).toContain('98%')
+  expect(region.textContent).toContain('2%')
+  expect(region.textContent).toContain(copy.quotaResetIn.replace('{time}', '13h'))
+})
+
+it('reports a whole zero share when the Platform supplies a zero daily quota', () => {
+  mount({ status: 'credential-stored', attempt: null }, en, {
+    balance: {
+      status: 'ready', value: [], bonusWallets: [],
+      plan: {
+        id: 'pro', name: 'Pro', expiresAt: null,
+        dailyQuota: '0', quotaUsed: '0', quotaRemaining: '0',
+        resetsAt: '2030-01-02T22:00:00.000Z', maxContext: 1_000_000,
+      },
+    },
+  })
+  const meter = screen.getByRole('meter', { name: en.dailyQuota })
+  expect(meter.getAttribute('aria-valuenow')).toBe('100')
 })
 
 it('renders no plan row when the Platform supplies none', () => {
@@ -309,8 +321,8 @@ it.each([en, zh])('shows the signed-out settings prompt without balance or Platf
 it('opens usage inside Desktop and returns to the same Account settings', async () => {
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} })
   const platform: PlatformBridge = { open: vi.fn(async () => {}), setBounds: vi.fn(async () => {}), close: vi.fn(async () => {}) }
-  mount({ status: 'credential-stored', attempt: null }, en, undefined, platform)
-  const usage = screen.getByRole('link', { name: en.usage })
+  mount({ status: 'credential-stored', attempt: null }, en, { balance: { status: 'failed' } }, platform)
+  const usage = screen.getAllByRole('link', { name: en.balanceUnavailable })[0]!
   act(() => { usage.focus() })
   await act(async () => { fireEvent.click(usage) })
   expect(platform.open).toHaveBeenCalledWith('usage', { x: 0, y: 0, width: 0, height: 0 })
@@ -380,7 +392,7 @@ it('ignores a retried document completing after returning to Account', async () 
     .mockRejectedValueOnce(new Error('load failed')).mockReturnValueOnce(loaded.promise)
   const platform: PlatformBridge = { open, setBounds: vi.fn(async () => {}), close: vi.fn(async () => {}) }
   mount({ status: 'credential-stored', attempt: null }, en, undefined, platform)
-  await act(async () => { fireEvent.click(screen.getByRole('link', { name: en.usage })) })
+  await act(async () => { fireEvent.click(screen.getByRole('link', { name: en.topUp })) })
   await act(async () => { fireEvent.click(screen.getByRole('button', { name: en.platformRetry })) })
   await act(async () => { fireEvent.click(screen.getByRole('button', { name: en.backToHarness })) })
   await act(async () => { loaded.resolve(undefined); await loaded.promise })
@@ -405,8 +417,12 @@ it.each(['usage', 'top-up'] as const)('shows an accessible spinner until %s fini
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} })
   const loaded = Promise.withResolvers<undefined>()
   const platform: PlatformBridge = { open: () => loaded.promise, setBounds: async () => {}, close: async () => {} }
-  mount({ status: 'credential-stored', attempt: null }, en, undefined, platform)
-  await act(async () => { fireEvent.click(screen.getByRole('link', { name: page === 'usage' ? en.usage : en.topUp })) })
+  mount({ status: 'credential-stored', attempt: null }, en,
+    page === 'usage' ? { balance: { status: 'failed' } } : undefined, platform)
+  const opener = page === 'usage'
+    ? screen.getAllByRole('link', { name: en.balanceUnavailable })[0]!
+    : screen.getByRole('link', { name: en.topUp })
+  await act(async () => { fireEvent.click(opener) })
   const status = screen.getByRole('status', { name: en.loading })
   expect({ accessibleName: status.getAttribute('aria-label'), visibleText: status.textContent }).toMatchInlineSnapshot(`
     {
@@ -570,7 +586,7 @@ it('shows unavailable details and keeps external Platform links usable in a brow
   const unavailable = screen.getAllByRole('link', { name: en.balanceUnavailable })
   expect(unavailable).toHaveLength(2)
   for (const link of unavailable) expect(link.getAttribute('href')).toBe('http://localhost:8081/usage')
-  for (const name of [en.usage, en.topUp, en.balanceUnavailable]) {
+  for (const name of [en.topUp, en.balanceUnavailable]) {
     const event = new MouseEvent('click', { bubbles: true, cancelable: true })
     screen.getAllByRole('link', { name })[0]!.dispatchEvent(event)
     expect(event.defaultPrevented).toBe(false)
@@ -679,7 +695,7 @@ it('reads once per Settings entry, whatever section the entry opens', async () =
 it('reads the account again when the user returns from the top-up view, and not from usage', async () => {
   vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} })
   const platform: PlatformBridge = { open: vi.fn(async () => {}), setBounds: vi.fn(async () => {}), close: vi.fn(async () => {}) }
-  const operations = mount({ status: 'credential-stored', attempt: null }, en, undefined, platform)
+  const operations = mount({ status: 'credential-stored', attempt: null }, en, { balance: { status: 'failed' } }, platform)
   // Opening the view enters the top-up page; leaving it is the user coming back to Settings.
   await act(async () => { fireEvent.click(screen.getByRole('link', { name: en.topUp })) })
   expect(platform.open).toHaveBeenCalledWith('top-up', expect.anything())
@@ -688,7 +704,7 @@ it('reads the account again when the user returns from the top-up view, and not 
   // The page leaves immediately and the account reads settle behind it.
   expect(screen.queryByRole('dialog')).toBeNull()
   expect(operations.refreshAccount).toHaveBeenCalledOnce()
-  await act(async () => { fireEvent.click(screen.getByRole('link', { name: en.usage })) })
+  await act(async () => { fireEvent.click(screen.getAllByRole('link', { name: en.balanceUnavailable })[0]!) })
   expect(platform.open).toHaveBeenCalledWith('usage', expect.anything())
   await act(async () => { fireEvent.click(screen.getByRole('button', { name: en.backToHarness })) })
   // Usage changed nothing the account owns, so returning from it reads nothing.
@@ -706,8 +722,8 @@ it('reports resize failure, ignores late native failures, and tolerates a remove
   document.body.append(svg)
   onTestFinished(() => { svg.remove() })
   svg.focus()
-  mount({ status: 'credential-stored', attempt: null }, en, undefined, platform)
-  await act(async () => { fireEvent.click(screen.getByRole('link', { name: en.usage })) })
+  mount({ status: 'credential-stored', attempt: null }, en, { balance: { status: 'failed' } }, platform)
+  await act(async () => { fireEvent.click(screen.getAllByRole('link', { name: en.balanceUnavailable })[0]!) })
   await act(async () => { resize!() })
   expect(platform.setBounds).toHaveBeenCalled()
   expect(screen.getByText(en.platformFailed)).toBeTruthy()

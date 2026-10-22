@@ -27,7 +27,7 @@ export interface AccountCatalogInput {
 
 /** One resolved account catalog. */
 export interface AccountCatalog {
-  /** Selectable models in listing order, or this build's models when no listing succeeded. */
+  /** Selectable models in listing order; empty until a listing succeeds. */
   readonly offered: readonly DeepSeekCatalogModel[]
   /** Entries request resolution consults: offered models, then supported models the listing does not offer. */
   readonly resolution: readonly DeepSeekCatalogModel[]
@@ -105,8 +105,11 @@ export function resolveAccountCatalog(input: AccountCatalogInput): AccountCatalo
     return candidate
   }
   if (input.listing === undefined) {
+    // Only the deployment's own listing is offered; bundled entries stay in
+    // resolution so ids a request or a default-model setting already names
+    // still resolve while the listing is unavailable.
     const resolution = resolveAdapterOptions({ models: input.supported.map(withOverride) }).models
-    return { offered: resolution, resolution, refusals: new Map(), problems, overrideErrors }
+    return { offered: [], resolution, refusals: new Map(), problems, overrideErrors }
   }
   const offered: DeepSeekCatalogModel[] = []
   const refusals = new Map<string, CatalogRefusal>()

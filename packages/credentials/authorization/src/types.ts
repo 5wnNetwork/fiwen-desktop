@@ -117,6 +117,14 @@ export interface AuthorizationAccountView {
   account: string
   /** Who the account belongs to, when the flow can read it off its own record. */
   label?: string
+  /**
+   * The credential's own expiry — an OAuth access token's `expires` — in
+   * epoch milliseconds, when the record format carries one. Absent means the
+   * record does not say; a past value marks a stale sign-in the next use or
+   * quota probe refreshes, while a value that stays past after one is a dead
+   * credential to sign in again.
+   */
+  expiresAt?: number
   /** Whether requests against the owning provider currently resolve to this account. */
   selected: boolean
 }

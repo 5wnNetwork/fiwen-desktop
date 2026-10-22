@@ -19,9 +19,11 @@ export const zh = {
   'trigger.selectAria': '请选择模型',
   'trigger.aria': '选择模型，当前 {model}',
   'trigger.ariaEffort': '选择模型，当前 {model}，推理等级 {effort}',
-  'menu.aria': '模型与推理等级',
+  'menu.aria': '模型、推理等级与账号',
   'menu.model': '模型',
   'menu.effort': '推理等级',
+  'menu.account': '账号',
+  'account.default': '默认',
   'effort.providerDefault': 'Default',
   'status.loading': '正在刷新模型列表…',
   'error.action': '模型操作失败：{message}',
@@ -33,6 +35,7 @@ export const zh = {
   'search.empty': '没有匹配的模型。',
   'empty.models': '暂无可用模型',
   'empty.efforts': '当前模型未提供推理等级。',
+  'empty.accounts': '没有已登录的账号。',
 } satisfies Record<string, string>
 
 /** The model namespace key union. */
@@ -49,9 +52,11 @@ export const en = {
   'trigger.selectAria': 'Select model',
   'trigger.aria': 'Select model, current {model}',
   'trigger.ariaEffort': 'Select model, current {model}, reasoning effort {effort}',
-  'menu.aria': 'Model and reasoning effort',
+  'menu.aria': 'Model, reasoning effort, and account',
   'menu.model': 'Model',
   'menu.effort': 'Effort',
+  'menu.account': 'Account',
+  'account.default': 'Default',
   'effort.providerDefault': 'Default',
   'status.loading': 'Refreshing model list…',
   'error.action': 'Model operation failed: {message}',
@@ -63,4 +68,5 @@ export const en = {
   'search.empty': 'No matching models.',
   'empty.models': 'No models available.',
   'empty.efforts': 'This model provides no reasoning effort levels.',
+  'empty.accounts': 'No signed-in accounts.',
 } satisfies Record<ModelKey, string>

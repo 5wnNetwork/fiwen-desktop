@@ -28,7 +28,7 @@ export interface Config {
 
 /** Live preferences projected to the browser. */
 export const Config = z.object({
-  [LOCALE_PREFERENCE_FIELD]: LocaleSettingsFields[LOCALE_PREFERENCE_FIELD].volatile(),
+  preference: LocaleSettingsFields[LOCALE_PREFERENCE_FIELD].volatile(),
   defaultLocale: z.string().pattern(LOCALE_ID_PATTERN).required(false),
 })
 

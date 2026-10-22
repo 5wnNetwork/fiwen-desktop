@@ -535,6 +535,26 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'the entry, or undefined when no flow claims that key.',
       },
       {
+        signature: 'async listAccounts(key: CredentialKey): Promise<readonly AuthorizationAccountView[]>',
+        description: 'Every account slot a flow has stored, for a surface offering account management. The base record — one authorized before accounts existed — reports the empty slot; the `--selected` pointer itself never appears. `selected` reflects the same resolution a request would use: the pointer\'s account when its record is stored, else the base record\'s fallback.',
+        parameters: [{ name: 'key', description: 'the flow\'s record key.' }],
+        returns: 'one view per stored account record, base record first.',
+        throws: ['{AuthorizationError} code `NO_FLOW` when nothing claims the key.'],
+      },
+      {
+        signature: 'async selectAccount(key: CredentialKey, account: string): Promise<void>',
+        description: 'Choose which stored account a flow\'s requests resolve to. The pointer is a record inside the flow\'s own key space, so resolution stays in the owning plugin\'s store and the write goes through the same event stream.',
+        parameters: [{ name: 'key', description: 'the flow\'s record key.' }, { name: 'account', description: 'the slot to select; `\'\'` selects the base record.' }],
+        throws: ['{AuthorizationError} code `NO_FLOW` when nothing claims the key, `INVALID_ACCOUNT` when the slot is not a credential-key segment, or `UNKNOWN_ACCOUNT` when no record is stored under it.'],
+      },
+      {
+        signature: 'async quota(key: CredentialKey, account?: string, signal?: AbortSignal): Promise<AuthorizationQuota | undefined>',
+        description: 'Ask a flow for one stored account\'s quota. The probed account defaults to the selected one — the same resolution a request would use — and a flow that refreshes its token to answer writes the rotated credential back to that same record through the supplied persist callback.',
+        parameters: [{ name: 'key', description: 'the flow\'s record key.' }, { name: 'account', description: 'the slot to probe; `\'\'` is the base record, absent resolves the selection.' }, { name: 'signal', description: 'aborts the probe.' }],
+        returns: 'the normalized quota, or `undefined` when the flow offers no probe or no grant record is stored under the resolved slot.',
+        throws: ['{AuthorizationError} code `NO_FLOW` when nothing claims the key, or `INVALID_ACCOUNT` when the named slot is not a credential-key segment.'],
+      },
+      {
         signature: 'cancel(key: CredentialKey): void',
         description: 'Withdraw the attempt running for a key, if any. Separate from the request\'s own signal because a request/response transport answers a Cancel button on a second call, with no handle on the first one\'s signal.',
         parameters: [{ name: 'key', description: 'the credential record whose attempt should stop.' }],
@@ -568,11 +588,31 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         throws: ['RemoteError when the request is invalid or a required service is absent.'],
       },
       {
-        signature: '@Remote async begin(key: string, method: string | undefined, signal: AbortSignal): Promise<AuthorizationOutcome>',
+        signature: '@Remote async listAccounts(key: string): Promise<readonly AuthorizationAccountView[]>',
+        description: 'Every account a flow has stored, for an account-management surface.',
+        parameters: [{ name: 'key', description: 'the flow\'s record key.' }],
+        returns: 'one view per stored account record, base record first.',
+        throws: ['RemoteError `authorization/rejected` when no flow claims the key.'],
+      },
+      {
+        signature: '@Remote async selectAccount(key: string, account: string): Promise<void>',
+        description: 'Choose which stored account a flow\'s requests resolve to.',
+        parameters: [{ name: 'key', description: 'the flow\'s record key.' }, { name: 'account', description: 'the account slot to select; `\'\'` selects the base record.' }],
+        throws: ['RemoteError `authorization/rejected` when no flow claims the key, the slot is malformed, or no record is stored under it.'],
+      },
+      {
+        signature: '@Remote async quota(key: string, account: string | undefined, signal: AbortSignal): Promise<AuthorizationQuota | undefined>',
+        description: 'Ask a flow for one stored account\'s provider quota.',
+        parameters: [{ name: 'key', description: 'the flow\'s record key.' }, { name: 'account', description: 'the account slot to probe; `\'\'` is the base record, absent resolves the selection.' }, { name: 'signal', description: 'caller lifetime; aborting abandons the probe.' }],
+        returns: 'the normalized quota, or `undefined` when the flow offers none or nothing is stored.',
+        throws: ['RemoteError `authorization/rejected` when no flow claims the key or the slot is malformed.'],
+      },
+      {
+        signature: '@Remote async begin(key: string, method: string | undefined, account: string | undefined, signal: AbortSignal): Promise<AuthorizationOutcome>',
         description: 'Run one attempt to authorize a key, returning when it settles. The call stays open for the whole conversation: notices and prompts arrive as the forwarded events while it runs, the caller\'s own signal withdrawing the attempt when the connection drops or the caller cancels it.',
-        parameters: [{ name: 'key', description: 'the credential record to authorize.' }, { name: 'method', description: 'which of the flow\'s methods to run; `undefined` runs its first.' }, { name: 'signal', description: 'caller lifetime; aborting withdraws the attempt.' }],
+        parameters: [{ name: 'key', description: 'the credential record to authorize.' }, { name: 'method', description: 'which of the flow\'s methods to run; `undefined` runs its first.' }, { name: 'account', description: 'the account slot to authorize into; `undefined` writes the base record.' }, { name: 'signal', description: 'caller lifetime; aborting withdraws the attempt.' }],
         returns: '`authorized` once the record is committed, `cancelled` when the human declined or withdrew.',
-        throws: ['RemoteError `authorization/rejected` when no flow claims the key, the method is unknown, an attempt is already running, or the flow fails.'],
+        throws: ['RemoteError `authorization/rejected` when no flow claims the key, the method is unknown, the account slot is malformed, an attempt is already running, or the flow fails.'],
       },
       {
         signature: '@Remote answer(promptId: string, value: string): boolean',
@@ -1595,6 +1635,45 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         description: 'Select a provider by the file\'s extension and run one query. Selection is per-query and order-independent; no match throws `LspError` `LSP_UNAVAILABLE`.',
         parameters: [{ name: 'request', description: 'the normalized query.' }, { name: 'signal', description: 'optional cancellation forwarded to the selected provider.' }],
         returns: 'the normalized, closed-union result.',
+      },
+    ],
+  },
+  {
+    key: 'market',
+    summary: 'Browse and install marketplace items.',
+    description: 'Browse and install marketplace items. `deepseekAccount` authenticates installs when the origin matches its inference origin; `profileContext` supplies the user patch file MCP installs append to.',
+    methods: [
+      {
+        signature: '@Remote async catalog(query: MarketSearchQuery): Promise<MarketCatalogResult>',
+        description: 'One catalog page plus the category rail.',
+        parameters: [{ name: 'query', description: 'kind/category/text filters, sort key, and pagination.' }],
+        returns: 'matching items with the enabled categories and the total match count.',
+      },
+      {
+        signature: '@Remote async detail(id: string): Promise<MarketItemDetail>',
+        description: 'One item\'s detail view, including the long description.',
+        parameters: [{ name: 'id', description: 'catalog slug.' }],
+        returns: 'the item detail.',
+        throws: ['{RemoteError} `market/not-found` for a missing or delisted item.'],
+      },
+      {
+        signature: '@Remote async installItem(id: string): Promise<MarketInstalledView>',
+        description: 'Install one item: records the install server-side, then writes the artifact locally — the skill directory or the MCP patch row — and records it in the local ledger. Named `installItem` because the Client namespace service owns a private `install`.',
+        parameters: [{ name: 'id', description: 'catalog slug.' }],
+        returns: 'the recorded install.',
+        throws: ['{RemoteError} `market/auth-required`, `market/not-found`, `market/conflict`, `market/no-profile`, `market/profile-unavailable`, `market/invalid-response`, `market/fetch-failed`.'],
+      },
+      {
+        signature: '@Remote async uninstallItem(id: string): Promise<boolean>',
+        description: 'Remove one installed item: the skill directory or the MCP patch row, and its ledger entry. User-owned directories are never removed.',
+        parameters: [{ name: 'id', description: 'catalog slug.' }],
+        returns: 'whether a local artifact was actually removed.',
+      },
+      {
+        signature: '@Remote async installed(): Promise<readonly MarketInstalledView[]>',
+        description: 'Items installed on this machine, reconciled against the artifacts that still exist.',
+        parameters: [],
+        returns: 'the install views the Installed marker shows.',
       },
     ],
   },
@@ -4450,6 +4529,14 @@ export const EVENT_API: readonly EventApiEntry[] = [
     parameters: [{ name: 'options', description: 'the full request. A LOOP-built request carries the process-local {@link markAgentLoopRequest} identity and arrives deep-frozen (mutation throws): its content is a pure function of the session log (the reconstructability Agent Note), so listeners read it, never rewrite it. Hand-built calls do not carry that marker; callers own their request inputs and must keep them unchanged until the stream settles.' }],
   },
   {
+    name: 'market/changed',
+    mode: 'emit',
+    signature: '\'market/changed\'(): void',
+    summary: 'A marketplace install or uninstall changed the local artifacts.',
+    description: 'A marketplace install or uninstall changed the local artifacts.',
+    parameters: [],
+  },
+  {
     name: 'permission-presets/catalog-changed',
     mode: 'emit',
     signature: '\'permission-presets/catalog-changed\'(): void',
@@ -4978,6 +5065,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type AttachmentId = Branded<\'AttachmentId\'>;',
   },
   {
+    name: 'AuthorizationAccountView',
+    declaration: 'export interface AuthorizationAccountView {\n    key: CredentialKey;\n    account: string;\n    label?: string;\n    expiresAt?: number;\n    selected: boolean;\n}',
+  },
+  {
     name: 'AuthorizationDescribeView',
     declaration: 'export interface AuthorizationDescribeView {\n    readonly key: CredentialKey;\n    readonly entry?: AuthorizationEntryView;\n    readonly configured: boolean;\n}',
   },
@@ -4991,7 +5082,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'AuthorizationFlow',
-    declaration: 'export interface AuthorizationFlow {\n    readonly key: CredentialKey;\n    readonly label: string;\n    readonly methods: readonly [\n        AuthorizationMethod,\n        ...AuthorizationMethod[]\n    ];\n    run(session: AuthorizationSession): Promise<void>;\n}',
+    declaration: 'export interface AuthorizationFlow {\n    readonly key: CredentialKey;\n    readonly label: string;\n    readonly methods: readonly [\n        AuthorizationMethod,\n        ...AuthorizationMethod[]\n    ];\n    run(session: AuthorizationSession): Promise<void>;\n    describeRecord?(record: CredentialRecord): {\n        label?: string;\n        identity?: string;\n        expiresAt?: number;\n    };\n    quota?(input: {\n        payload: unknown;\n        signal: AbortSignal;\n        persist: (payload: unknown) => Promise<void>;\n    }): Promise<AuthorizationQuota | undefined>;\n}',
   },
   {
     name: 'AuthorizationInteraction',
@@ -5011,7 +5102,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'AuthorizationOutcome',
-    declaration: 'export interface AuthorizationOutcome {\n    status: AuthorizationStatus;\n}',
+    declaration: 'export interface AuthorizationOutcome {\n    status: AuthorizationStatus;\n    key: CredentialKey;\n}',
   },
   {
     name: 'AuthorizationPrompt',
@@ -5034,12 +5125,20 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface AuthorizationPromptWithdrawnEvent {\n    key: CredentialKey;\n    promptId: string;\n}',
   },
   {
+    name: 'AuthorizationQuota',
+    declaration: 'export interface AuthorizationQuota {\n    plan?: string;\n    windows: readonly AuthorizationQuotaWindow[];\n    message?: string;\n    fetchedAt: number;\n}',
+  },
+  {
+    name: 'AuthorizationQuotaWindow',
+    declaration: 'export interface AuthorizationQuotaWindow {\n    id: string;\n    label: string;\n    usedPercent: number;\n    resetAt?: number;\n}',
+  },
+  {
     name: 'AuthorizationRequest',
-    declaration: 'export interface AuthorizationRequest {\n    key: CredentialKey;\n    method?: string;\n    interaction: AuthorizationInteraction;\n    signal?: AbortSignal;\n}',
+    declaration: 'export interface AuthorizationRequest {\n    key: CredentialKey;\n    account?: string;\n    method?: string;\n    interaction: AuthorizationInteraction;\n    signal?: AbortSignal;\n}',
   },
   {
     name: 'AuthorizationSession',
-    declaration: 'export interface AuthorizationSession {\n    readonly method: string;\n    readonly signal: AbortSignal;\n    commit(record: CredentialRecord): Promise<void>;\n    notify(notice: AuthorizationNotice): void;\n    prompt(prompt: AuthorizationPrompt): Promise<string>;\n}',
+    declaration: 'export interface AuthorizationSession {\n    readonly method: string;\n    readonly account?: string;\n    readonly signal: AbortSignal;\n    commit(record: CredentialRecord): Promise<void>;\n    notify(notice: AuthorizationNotice): void;\n    prompt(prompt: AuthorizationPrompt): Promise<string>;\n}',
   },
   {
     name: 'AuthorizationSettlement',
@@ -6138,6 +6237,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface ManualCompactAgentContext extends CompactionAgentContext {\n    runMaintenance<T>(task: (signal: AbortSignal) => Promise<T>): Promise<T>;\n}',
   },
   {
+    name: 'MarketCatalogResult',
+    declaration: 'export interface MarketCatalogResult {\n    readonly categories: readonly MarketCategoryView[];\n    readonly items: readonly MarketItemView[];\n    readonly total: number;\n    readonly offset: number;\n}',
+  },
+  {
+    name: 'MarketCategoryView',
+    declaration: 'export interface MarketCategoryView {\n    readonly id: string;\n    readonly title: MarketText;\n    readonly sortOrder: number;\n}',
+  },
+  {
     name: 'MarketCompatibility',
     declaration: 'export type MarketCompatibility = {\n    readonly compatible: true;\n} | {\n    readonly compatible: false;\n    readonly runtimeVersion: string;\n    readonly requirements: Readonly<Record<string, string>>;\n    readonly exempted: boolean;\n};',
   },
@@ -6166,8 +6273,24 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type MarketInstallationStatus = \'not-installed\' | \'installed\' | \'update-available\' | \'different-version\' | \'provided\';',
   },
   {
+    name: 'MarketInstalledView',
+    declaration: 'export interface MarketInstalledView {\n    readonly id: string;\n    readonly kind: MarketItemKind;\n    readonly version: string;\n    readonly installedAt: string;\n}',
+  },
+  {
     name: 'MarketInstallTarget',
     declaration: 'export interface MarketInstallTarget {\n    readonly spec: string;\n    readonly registry?: string;\n}',
+  },
+  {
+    name: 'MarketItemDetail',
+    declaration: 'export interface MarketItemDetail extends MarketItemView {\n    readonly description: MarketText | null;\n}',
+  },
+  {
+    name: 'MarketItemKind',
+    declaration: 'export type MarketItemKind = \'skill\' | \'mcp\';',
+  },
+  {
+    name: 'MarketItemView',
+    declaration: 'export interface MarketItemView {\n    readonly id: string;\n    readonly kind: MarketItemKind;\n    readonly categoryId: string | null;\n    readonly title: MarketText;\n    readonly summary: MarketText;\n    readonly icon: string | null;\n    readonly author: string | null;\n    readonly homepage: string | null;\n    readonly version: string;\n    readonly downloads: number;\n    readonly uniqueDownloads: number;\n    readonly updatedAt: string;\n}',
   },
   {
     name: 'MarketListingEntry',
@@ -6194,6 +6317,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface MarketRepository {\n    readonly url: string;\n    readonly directory?: string;\n}',
   },
   {
+    name: 'MarketSearchQuery',
+    declaration: 'export interface MarketSearchQuery {\n    readonly kind?: MarketItemKind | undefined;\n    readonly category?: string | undefined;\n    readonly q?: string | undefined;\n    readonly sort?: \'popular\' | \'unique\' | \'newest\' | \'name\' | undefined;\n    readonly limit?: number | undefined;\n    readonly offset?: number | undefined;\n}',
+  },
+  {
     name: 'MarketSearchResult',
     declaration: 'export interface MarketSearchResult {\n    readonly url: string;\n    readonly title: LocalizedText;\n    readonly description?: LocalizedText;\n    readonly metadata: MarketIndexMetadata;\n    readonly fetchedAt: number;\n    readonly entries: readonly MarketListingEntry[];\n    readonly total: number;\n    readonly nextOffset: number | null;\n}',
   },
@@ -6208,6 +6335,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'MarketSource',
     declaration: 'export type MarketSource = {\n    readonly type: \'npm\';\n    readonly registry?: string;\n} | {\n    readonly type: \'git\';\n    readonly url: string;\n    readonly commit: string;\n    readonly path?: string;\n};',
+  },
+  {
+    name: 'MarketText',
+    declaration: 'export interface MarketText {\n    readonly en: string;\n    readonly [locale: string]: string;\n}',
   },
   {
     name: 'MarketVersion',

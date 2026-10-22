@@ -4,6 +4,7 @@ import type { ModelSelection } from '@deepseek-ai/dsh-api-remotes/client'
 import type { ModelCatalogModel, ModelProviderGroup } from '@deepseek-ai/dsh-api-session-controller/types'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { ModelDirectoryState } from './directory.ts'
+import type { ProviderAccountsState } from './accounts.ts'
 
 /** Catalog data for a model name inside the composer's existing controls. */
 export interface ModelLabelOwner {
@@ -48,6 +49,8 @@ export interface ModelSelectInjected {
   available: boolean
   /** The session's shared directory store (same instance the /model popup reads). */
   directory: SnapshotStore<ModelDirectoryState>
+  /** The shared OAuth-account mirror the account pane renders (Host-generation). */
+  accounts: SnapshotStore<ProviderAccountsState>
   /** Ensure the shared advisory catalog is loaded (errors land on the store). */
   load: () => void
   /**
@@ -56,4 +59,11 @@ export interface ModelSelectInjected {
    * @returns the Host outcome, or undefined when this Session cannot select a model.
    */
   select: (selection: ModelSelection) => Promise<RemoteResult<void> | undefined>
+  /**
+   * Choose which stored account one provider's requests resolve to.
+   * @param provider - the catalog route id whose flow holds the accounts.
+   * @param account - the account slot; `''` selects the base record.
+   * @returns the Host outcome, or undefined when the provider has no account flow.
+   */
+  selectAccount: (provider: string, account: string) => Promise<RemoteResult<void> | undefined>
 }

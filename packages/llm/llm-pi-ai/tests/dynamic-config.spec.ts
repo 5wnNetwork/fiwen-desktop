@@ -125,21 +125,21 @@ describe('request-level dynamic profiles', () => {
   it('allows removing an obsolete override and deleting a route whose catalog cannot be built', async () => {
     const dir = await home()
     const stored = { providers: {
-      anthropic: { modelOverrides: { 'removed-model': { maxTokens: 4096 } } },
+      deepseek: { modelOverrides: { 'removed-model': { maxTokens: 4096 } } },
       'retired-route': {},
     } }
     const ctx = await boot(dir, stored)
-    expect(ctx.llm.listConfigurableProviders().find(entry => entry.provider === 'anthropic')?.error)
+    expect(ctx.llm.listConfigurableProviders().find(entry => entry.provider === 'deepseek')?.error)
       .toContain('modelOverrides names "removed-model"')
     expect(ctx.llm.listConfigurableProviders().find(entry => entry.provider === 'retired-route')?.error)
       .toContain('resolves no models')
-    expect((await ctx.llm.listModels('anthropic')).length).toBeGreaterThan(0)
-    await expect(ctx.llm.resolveModelInfo('anthropic', 'removed-model')).rejects.toThrow('modelOverrides names "removed-model"')
+    expect((await ctx.llm.listModels('deepseek')).length).toBeGreaterThan(0)
+    await expect(ctx.llm.resolveModelInfo('deepseek', 'removed-model')).rejects.toThrow('modelOverrides names "removed-model"')
     await expect(ctx.llm.resolveModelInfo('retired-route', 'anything')).rejects.toThrow('resolves no models')
-    await configurations.get(ctx)!.replace({ providers: { anthropic: {} } })
-    expect(ctx.llm.listProviders()).toEqual([{ id: 'anthropic', name: 'anthropic' }])
+    await configurations.get(ctx)!.replace({ providers: { deepseek: {} } })
+    expect(ctx.llm.listProviders()).toEqual([{ id: 'deepseek', name: 'deepseek' }])
     expect(ctx.llm.listConfigurableProviders().find(entry => entry.provider === 'retired-route')).toBeUndefined()
-    expect(ctx.llm.listConfigurableProviders().find(entry => entry.provider === 'anthropic')?.error).toBeUndefined()
+    expect(ctx.llm.listConfigurableProviders().find(entry => entry.provider === 'deepseek')?.error).toBeUndefined()
   })
 
   it('mounts bare and dormant, then registers routes the moment settings supply providers', async () => {
@@ -162,7 +162,7 @@ describe('request-level dynamic profiles', () => {
     expect(directory.map(entry => entry.provider)).toEqual(['anthropic', 'openai-codex', 'antigravity'])
     expect(directory).toContainEqual({
       provider: 'antigravity',
-      displayName: 'antigravity',
+      displayName: 'Gemini',
       settingsNs: 'llm-pi-ai',
       settingsPath: ['providers', 'antigravity'],
       declared: false,

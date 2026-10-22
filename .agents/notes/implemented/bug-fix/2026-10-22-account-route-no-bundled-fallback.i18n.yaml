@@ -1,0 +1,19 @@
+# Bilingual-pair consistency record for 2026-10-22-account-route-no-bundled-fallback.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-10-22-account-route-no-bundled-fallback.md
+/agent-note-the-account-route-never-offers-bundled-models-while-its-listing-is-unavailable:
+  en: 2b80162dccfbfc4b
+  zh: ef87e7fb62a495f7
+/agent-note-the-account-route-never-offers-bundled-models-while-its-listing-is-unavailable/problem:
+  en: 723d48c6e39dd715
+  zh: 4af327a5513e734d
+/agent-note-the-account-route-never-offers-bundled-models-while-its-listing-is-unavailable/decision:
+  en: de62987c820e0845
+  zh: 9943d32b3ab59dfd
+/agent-note-the-account-route-never-offers-bundled-models-while-its-listing-is-unavailable/alternatives-considered:
+  en: bcd8b323ab2611a6
+  zh: 6d1cc4e4edd30395
+/agent-note-the-account-route-never-offers-bundled-models-while-its-listing-is-unavailable/consequences:
+  en: 54ddd714e5cbb14f
+  zh: b36b41d328093b32

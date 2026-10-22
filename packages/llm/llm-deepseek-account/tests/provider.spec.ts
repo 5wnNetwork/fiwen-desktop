@@ -98,13 +98,14 @@ it('resolves listed capabilities with this build\'s model knowledge', async () =
   expect(server.requests[0]?.headers['user-agent']).toMatch(/^deepseek-harness\//)
 })
 
-it('falls back to the bundled catalog when the listing fails', async () => {
+it('offers no models and reports the outage while the listing has not loaded', async () => {
   const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
   const server = await listing((_request, response) => { response.writeHead(503).end('down') })
   const ctx = await host(server.origin)
   await ctx.plugin(Account, { baseURL: server.baseURL })
-  expect((await ctx.llm.listModels('deepseek-account')).map(row => row.id)).toEqual(['deepseek-flash', 'deepseek-v4-pro'])
-  expect(warn).toHaveBeenCalledExactlyOnceWith('[llm-deepseek-account]', expect.stringContaining('using the bundled catalog') as string)
+  expect(await ctx.llm.listModels('deepseek-account')).toEqual([])
+  expect(ctx.llm.listConfigurableProviders()[0]?.error).toContain('model listing unavailable')
+  expect(warn).toHaveBeenCalledExactlyOnceWith('[llm-deepseek-account]', expect.stringContaining('offering no models until a listing loads') as string)
   await expect(ctx.llm.resolveModelInfo('deepseek-account', 'deepseek-flash')).resolves.toMatchObject({ context: { contextWindow: 1_000_000 } })
 })
 

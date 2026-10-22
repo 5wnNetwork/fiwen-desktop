@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import AuthorizationService from '@deepseek-ai/dsh-authorization'
 import type { AuthorizationInteraction, AuthorizationNotice, AuthorizationPrompt } from '@deepseek-ai/dsh-authorization'
@@ -80,8 +80,15 @@ async function attempt(
   return ui
 }
 
+beforeEach(() => {
+  // The login-time identity enrichment is the one fetch a flow may fire; a
+  // spec that wants it answered stubs its own profile response over this.
+  vi.stubGlobal('fetch', vi.fn(async () => new Response('not found', { status: 404 })))
+})
+
 afterEach(async () => {
   login.mockReset()
+  vi.unstubAllGlobals()
   await Promise.all(dirs.splice(0).map(dir => rm(dir, { recursive: true, force: true })))
 })
 
@@ -230,6 +237,79 @@ describe('pi-ai login flows', () => {
     await attempt(ctx, () => Promise.resolve(), { key: recordKeyFor('anthropic'), account: 'acct-9' })
 
     const accounts = await ctx.authorization.listAccounts(recordKeyFor('anthropic'))
-    expect(accounts).toEqual([{ key: credentialKey('llm-pi-ai', 'anthropic--acct-9'), account: 'acct-9', selected: true }])
+    expect(accounts).toEqual([
+      { key: credentialKey('llm-pi-ai', 'anthropic--acct-9'), account: 'acct-9', expiresAt: 1, selected: true },
+    ])
+  })
+
+  it('writes the profile-read account label onto the committed grant, so repeat sign-ins dedup', async () => {
+    const ctx = await harness()
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(
+      JSON.stringify({ account: { email: 'claude@x.test' } }),
+      { headers: { 'Content-Type': 'application/json' } })))
+
+    const anthropic = recordKeyFor('anthropic')
+    await attempt(ctx, () => Promise.resolve(), { key: anthropic, account: 'acct-9' })
+
+    const first = credentialKey('llm-pi-ai', 'anthropic--acct-9')
+    await expect(ctx.credentials.readRecord(first)).resolves.toEqual({
+      kind: 'grant',
+      payload: { type: 'oauth', access: 'at', refresh: 'rt', expires: 1, label: 'claude@x.test' },
+    })
+    await expect(ctx.authorization.listAccounts(anthropic)).resolves.toEqual([
+      { key: first, account: 'acct-9', label: 'claude@x.test', expiresAt: 1, selected: true },
+    ])
+
+    // Signing the same upstream account in under a new slot replaces the
+    // first entry rather than listing the same account twice.
+    await attempt(ctx, () => Promise.resolve(), { key: anthropic, account: 'acct-1' })
+    await expect(ctx.authorization.listAccounts(anthropic)).resolves.toEqual([
+      { key: credentialKey('llm-pi-ai', 'anthropic--acct-1'), account: 'acct-1', label: 'claude@x.test', expiresAt: 1, selected: true },
+    ])
+    await expect(ctx.credentials.describeRecord(first)).resolves.toMatchObject({ configured: false })
+  })
+
+  it('leaves an api-key commit out of the grant identity read', async () => {
+    const ctx = await harness()
+    const anthropic = recordKeyFor('anthropic')
+    login.mockImplementation(async (providerId: string, _type: AuthType) => {
+      const granted: Credential = { type: 'api_key', key: 'sk-live' }
+      await credentialStoreFrom(ctx).modify(providerId, () => Promise.resolve(granted))
+    })
+
+    const ui = surface()
+    await expect(ctx.authorization.begin({ key: anthropic, method: 'api-key', interaction: ui }))
+      .resolves.toEqual({ status: 'authorized', key: anthropic })
+
+    await expect(ctx.credentials.readRecord(anthropic)).resolves.toEqual({ kind: 'api-key', key: 'sk-live' })
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('does not overwrite a record that stopped being a grant while the profile read ran', async () => {
+    const ctx = await harness()
+    const anthropic = recordKeyFor('anthropic')
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(
+      JSON.stringify({ account: { email: 'claude@x.test' } }),
+      { headers: { 'Content-Type': 'application/json' } })))
+    login.mockImplementation(async (providerId: string, _type: AuthType) => {
+      const granted: Credential = { type: 'oauth', access: 'at', refresh: 'rt', expires: 1 }
+      await credentialStoreFrom(ctx).modify(providerId, () => Promise.resolve(granted))
+    })
+    // The label merge re-reads through modifyRecord; a record rewritten to
+    // another kind between the enrichment read and the merge is left alone
+    // rather than having grant fields spliced onto it.
+    const realRead = ctx.credentials.readRecord.bind(ctx.credentials)
+    vi.spyOn(ctx.credentials, 'readRecord').mockImplementation(async (key) => {
+      const record = await realRead(key)
+      if (key === anthropic && record?.kind === 'grant') {
+        await ctx.credentials.modifyRecord(anthropic, () => Promise.resolve({ kind: 'api-key', key: 'sk-rotated' }))
+      }
+      return record
+    })
+
+    const ui = surface()
+    await expect(ctx.authorization.begin({ key: anthropic, method: 'oauth', interaction: ui }))
+      .resolves.toEqual({ status: 'authorized', key: anthropic })
+    await expect(ctx.credentials.readRecord(anthropic)).resolves.toEqual({ kind: 'api-key', key: 'sk-rotated' })
   })
 })

@@ -102,6 +102,45 @@ list(): readonly AuthorizationEntry[]
 describe(key: CredentialKey): AuthorizationEntry | undefined
 
 /**
+ * Every account slot a flow has stored, for a surface offering account
+ * management. The base record — one authorized before accounts existed —
+ * reports the empty slot; the `--selected` pointer itself never appears.
+ * `selected` reflects the same resolution a request would use: the pointer's
+ * account when its record is stored, else the base record's fallback.
+ * @param key - the flow's record key.
+ * @returns one view per stored account record, base record first.
+ * @throws {AuthorizationError} code `NO_FLOW` when nothing claims the key.
+ */
+async listAccounts(key: CredentialKey): Promise<readonly AuthorizationAccountView[]>
+
+/**
+ * Choose which stored account a flow's requests resolve to. The pointer is
+ * a record inside the flow's own key space, so resolution stays in the
+ * owning plugin's store and the write goes through the same event stream.
+ * @param key - the flow's record key.
+ * @param account - the slot to select; `''` selects the base record.
+ * @throws {AuthorizationError} code `NO_FLOW` when nothing claims the key,
+ *   `INVALID_ACCOUNT` when the slot is not a credential-key segment, or
+ *   `UNKNOWN_ACCOUNT` when no record is stored under it.
+ */
+async selectAccount(key: CredentialKey, account: string): Promise<void>
+
+/**
+ * Ask a flow for one stored account's quota. The probed account defaults to
+ * the selected one — the same resolution a request would use — and a flow
+ * that refreshes its token to answer writes the rotated credential back to
+ * that same record through the supplied persist callback.
+ * @param key - the flow's record key.
+ * @param account - the slot to probe; `''` is the base record, absent resolves the selection.
+ * @param signal - aborts the probe.
+ * @returns the normalized quota, or `undefined` when the flow offers no
+ *   probe or no grant record is stored under the resolved slot.
+ * @throws {AuthorizationError} code `NO_FLOW` when nothing claims the key,
+ *   or `INVALID_ACCOUNT` when the named slot is not a credential-key segment.
+ */
+async quota(key: CredentialKey, account?: string, signal?: AbortSignal): Promise<AuthorizationQuota | undefined>
+
+/**
  * Withdraw the attempt running for a key, if any. Separate from the
  * request's own signal because a request/response transport answers a Cancel
  * button on a second call, with no handle on the first one's signal.
@@ -157,18 +196,46 @@ Host service backing the generated `ctx.remote.authorization` namespace. It turn
 @Remote async describe(key: string): Promise<AuthorizationDescribeView>
 
 /**
+ * Every account a flow has stored, for an account-management surface.
+ * @param key - the flow's record key.
+ * @returns one view per stored account record, base record first.
+ * @throws RemoteError `authorization/rejected` when no flow claims the key.
+ */
+@Remote async listAccounts(key: string): Promise<readonly AuthorizationAccountView[]>
+
+/**
+ * Choose which stored account a flow's requests resolve to.
+ * @param key - the flow's record key.
+ * @param account - the account slot to select; `''` selects the base record.
+ * @throws RemoteError `authorization/rejected` when no flow claims the key,
+ *   the slot is malformed, or no record is stored under it.
+ */
+@Remote async selectAccount(key: string, account: string): Promise<void>
+
+/**
+ * Ask a flow for one stored account's provider quota.
+ * @param key - the flow's record key.
+ * @param account - the account slot to probe; `''` is the base record, absent resolves the selection.
+ * @param signal - caller lifetime; aborting abandons the probe.
+ * @returns the normalized quota, or `undefined` when the flow offers none or nothing is stored.
+ * @throws RemoteError `authorization/rejected` when no flow claims the key or the slot is malformed.
+ */
+@Remote async quota(key: string, account: string | undefined, signal: AbortSignal): Promise<AuthorizationQuota | undefined>
+
+/**
  * Run one attempt to authorize a key, returning when it settles. The call
  * stays open for the whole conversation: notices and prompts arrive as the
  * forwarded events while it runs, the caller's own signal withdrawing the
  * attempt when the connection drops or the caller cancels it.
  * @param key - the credential record to authorize.
  * @param method - which of the flow's methods to run; `undefined` runs its first.
+ * @param account - the account slot to authorize into; `undefined` writes the base record.
  * @param signal - caller lifetime; aborting withdraws the attempt.
  * @returns `authorized` once the record is committed, `cancelled` when the human declined or withdrew.
  * @throws RemoteError `authorization/rejected` when no flow claims the key, the method is
- *   unknown, an attempt is already running, or the flow fails.
+ *   unknown, the account slot is malformed, an attempt is already running, or the flow fails.
  */
-@Remote async begin(key: string, method: string | undefined, signal: AbortSignal): Promise<AuthorizationOutcome>
+@Remote async begin(key: string, method: string | undefined, account: string | undefined, signal: AbortSignal): Promise<AuthorizationOutcome>
 
 /**
  * Deliver the human's answer to a waiting prompt.

@@ -147,7 +147,8 @@ async function selectedAccountSlot(
 ): Promise<string | undefined> {
   const pointer = accountSelectionOf(await credentials.readRecord(selectionKeyFor(key)))
   const slots = stored !== undefined ? stored : await storedAccountSlots(credentials, key)
-  if (pointer !== undefined && slots.includes(pointer)) return pointer
+  const matched = pointer !== undefined && slots.includes(pointer)
+  if (matched) return pointer
   if (slots.includes('')) return ''
   return slots.find(slot => slot !== '')
 }
@@ -269,10 +270,22 @@ export interface AuthorizationFlow {
    * Read a human-facing account label off a record this flow wrote, when the
    * flow's own credential format carries one (an email, an account name). The
    * payload is opaque to the seam; only the flow that wrote it may read it.
+   *
+   * `identity` names the upstream account the credential belongs to — an
+   * email or provider account id, normalized however the flow chooses (the
+   * seam compares them verbatim, so case folding is the flow's own concern).
+   * A commit whose record reports an identity another stored record of the
+   * same flow already reports replaces that record: signing back into an
+   * account refreshes it instead of leaving a second entry. A flow that
+   * cannot name one stores each sign-in as its own account, as before.
+   *
+   * `expiresAt` is the credential's own expiry — an OAuth access token's
+   * `expires` — in epoch milliseconds, so a surface can flag a stale sign-in
+   * without interpreting the payload.
    * @param record - a stored record under this flow's key or an account key.
-   * @returns the label, or undefined when the format carries none.
+   * @returns the description, empty when the format carries nothing readable.
    */
-  describeRecord?(record: CredentialRecord): { label?: string }
+  describeRecord?(record: CredentialRecord): { label?: string; identity?: string; expiresAt?: number }
   /**
    * Answer this provider's quota for one stored credential. The flow owns the
    * upstream probe: it may refresh an expired access token and write the
@@ -441,11 +454,12 @@ export class AuthorizationService extends Service {
     for (const entry of entries) {
       const record = await this.ctx.credentials.readRecord(entry.key)
       if (record === undefined) continue
-      const label = flow.describeRecord?.(record).label
+      const described: { label?: string; expiresAt?: number } = flow.describeRecord?.(record) ?? {}
       views.push({
         key: entry.key,
         account: entry.account,
-        ...label === undefined ? {} : { label },
+        ...described.label === undefined ? {} : { label: described.label },
+        ...described.expiresAt === undefined ? {} : { expiresAt: described.expiresAt },
         selected: entry.account === selected,
       })
     }
@@ -768,6 +782,7 @@ export class AuthorizationService extends Service {
         `authorization flow for "${flow.key}" deleted its credential record instead of committing one`,
         'NOT_COMMITTED')
     }
+    await this.removeDuplicateAccounts(flow, commit)
     // A freshly authorized account becomes the selected one: the human who
     // just completed sign-in is the account they mean to use, and a surface
     // would otherwise have to find the new slot and name it back.
@@ -775,6 +790,38 @@ export class AuthorizationService extends Service {
       await this.writeSelection(flow.key, account)
     }
     return { status: 'authorized', key: commit }
+  }
+
+  /**
+   * Collapse the flow's other stored records that report the just-committed
+   * account's identity: signing back into an account that is already stored
+   * refreshes it instead of leaving a second entry. The committed record is
+   * the survivor — the fresher grant — and its sibling's removal rides the
+   * same `record-updated` event stream the commit did, so surfaces simply
+   * stop listing it. A flow without `describeRecord`, or a record without
+   * an `identity`, cannot prove two records are the same account and keeps
+   * each sign-in as its own, as before.
+   * @param flow - the flow whose attempt committed.
+   * @param commit - the record key the attempt committed.
+   */
+  private async removeDuplicateAccounts(flow: AuthorizationFlow, commit: CredentialKey): Promise<void> {
+    if (flow.describeRecord === undefined) return
+    const committed = await this.ctx.credentials.readRecord(commit)
+    /* v8 ignore next -- the commit contract just confirmed this record is
+       configured; the guard covers a delete racing the seam's own bookkeeping */
+    if (committed === undefined) return
+    const identity = flow.describeRecord(committed).identity
+    if (identity === undefined) return
+    const scope = credentialKeyScope(flow.key)
+    const id = credentialKeyId(flow.key)
+    for (const slot of await storedAccountSlots(this.ctx.credentials, flow.key)) {
+      const sibling = slot === '' ? flow.key : credentialKey(scope, accountRecordId(id, slot))
+      if (sibling === commit) continue
+      const record = await this.ctx.credentials.readRecord(sibling)
+      if (record !== undefined && flow.describeRecord(record).identity === identity) {
+        await this.ctx.credentials.deleteRecord(sibling)
+      }
+    }
   }
 }
 

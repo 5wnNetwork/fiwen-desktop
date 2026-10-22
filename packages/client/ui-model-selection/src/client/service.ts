@@ -18,6 +18,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { SessionBinding } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { WeakMapWithValues } from '@deepseek-ai/dsh-util-values'
+import { ProviderAccountsDirectory } from './accounts.ts'
 import { ModelCatalogDirectory } from './catalog.ts'
 import { ModelDirectory } from './directory.ts'
 
@@ -35,10 +36,12 @@ interface LiveState {
 
 /** The `ctx.modelDirectories` session model-selection service. */
 export class ModelDirectoryResolver extends Service {
-  static inject = ['sessions', 'remote', 'remote.session']
+  static inject = ['sessions', 'remote', 'remote.session', 'remote.authorization']
 
   private readonly live: LiveState = { directories: new WeakMapWithValues() }
   private readonly catalog: ModelCatalogDirectory
+  /** The shared OAuth-account mirror the seat's account pane reads and writes. */
+  readonly accounts: ProviderAccountsDirectory
 
   /**
    * @param ctx - owning root context (the service registers itself as `models`).
@@ -46,15 +49,19 @@ export class ModelDirectoryResolver extends Service {
   constructor(ctx: Context) {
     super(ctx, 'modelDirectories')
     this.catalog = new ModelCatalogDirectory(ctx)
+    this.accounts = new ProviderAccountsDirectory(ctx)
     void this.catalog.load().catch(() => { /* selectors expose the shared error */ })
+    void this.accounts.load()
     ctx.on('connection/reset', () => {
       this.catalog.resetGeneration()
+      this.accounts.resetGeneration()
       for (const directory of this.live.directories.values) directory.resetConnected()
     })
     ctx.remote.$on('llm/adapters-updated', () => { this.catalog.refresh() })
     ctx.remote.$on('settings/document-updated', () => { this.catalog.refresh() })
-    ctx.remote.$on('credentials/record-updated', () => { this.catalog.refresh() })
-    ctx.remote.$on('credentials/reference-updated', () => { this.catalog.refresh() })
+    ctx.remote.$on('credentials/record-updated', () => { this.catalog.refresh(); this.accounts.refresh() })
+    ctx.remote.$on('credentials/reference-updated', () => { this.catalog.refresh(); this.accounts.refresh() })
+    ctx.remote.$on('authorization/settled', () => { this.accounts.refresh() })
   }
 
   /**

@@ -212,7 +212,11 @@
 .dangerButton:disabled,
 .addButton:disabled,
 .linkButton:disabled,
-.addModelButton:disabled {
+.addModelButton:disabled,
+.accountHeader:disabled,
+.accountSelect:disabled,
+.accountMenuButton:disabled,
+.accountAdd:disabled {
   opacity: 0.4;
   cursor: default;
 }
@@ -224,7 +228,11 @@
 .linkButton:focus-visible,
 .addModelButton:focus-visible,
 .iconButton:focus-visible,
-.customizedSummary:focus-visible {
+.customizedSummary:focus-visible,
+.accountHeader:focus-visible,
+.accountSelect:focus-visible,
+.accountMenuButton:focus-visible,
+.accountAdd:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
 }
@@ -879,8 +887,60 @@ select.input {
   gap: 8px;
 }
 
-/* Stored OAuth accounts of one provider: a radio picks the account requests
-   resolve to, and each row keeps its own quota and sign-out controls. */
+/* Stored OAuth accounts of one provider: a disclosure header names the
+   account requests resolve to, and the expanded radiogroup lists every stored
+   account — the whole row selects, a leading check marks the active one, and
+   each row's overflow menu carries the quota refresh and sign-out. */
+.accountBlock {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.accountHeader {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 28px;
+  padding: 2px 6px;
+  border: none;
+  border-radius: var(--dsw-radius-md);
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.accountHeader:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.accountHeaderLabel {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  line-height: 20px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.accountChevron {
+  flex: none;
+  width: 12px;
+  height: 12px;
+  margin-left: auto;
+  color: var(--dsw-alias-label-tertiary);
+}
+
+.accountHeader[aria-expanded='true'] .accountChevron {
+  transform: rotate(180deg);
+}
+
 .accountList {
   display: flex;
   flex-direction: column;
@@ -893,27 +953,96 @@ select.input {
 .accountRow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 4px;
   min-height: 28px;
 }
 
-.accountSelector {
-  display: inline-flex;
+.accountSelect {
+  box-sizing: border-box;
+  display: flex;
   flex: 1 1 auto;
   align-items: center;
   gap: 8px;
   min-width: 0;
+  min-height: 28px;
+  padding: 2px 6px;
+  border: none;
+  border-radius: var(--dsw-radius-md);
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+}
+
+.accountSelect:hover:not(:disabled) {
+  background: var(--dsw-alias-interactive-bg-hover);
+}
+
+.accountCheck {
+  display: grid;
+  flex: 0 0 14px;
+  place-items: center;
+  color: var(--dsw-alias-label-primary);
+}
+
+.accountCheck svg {
+  width: 14px;
+  height: 14px;
+}
+
+.accountMenuButton {
+  box-sizing: border-box;
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: none;
+  border-radius: var(--dsw-radius-md);
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
   cursor: pointer;
 }
 
-.accountSelector input[type='radio'] {
-  flex: none;
-  margin: 0;
-  accent-color: var(--dsw-alias-brand-primary);
+.accountMenuButton:hover:not(:disabled),
+.accountMenuButton[aria-expanded='true'] {
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
 }
 
-.accountSelector input[type='radio']:disabled {
-  cursor: default;
+.accountAdd {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 28px;
+  padding: 2px 6px;
+  border: 0.5px dashed var(--dsw-alias-border-l3);
+  border-radius: var(--dsw-radius-md);
+  background: transparent;
+  color: var(--dsw-alias-label-tertiary);
+  font: inherit;
+  font-size: 13px;
+  line-height: 20px;
+  cursor: pointer;
+  text-align: left;
+}
+
+.accountAdd:hover:not(:disabled) {
+  border-color: var(--dsw-alias-border-l4);
+  background: var(--dsw-alias-interactive-bg-hover);
+  color: var(--dsw-alias-label-primary);
+}
+
+.quotaPending {
+  flex: none;
+  margin-left: auto;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--dsw-alias-label-tertiary);
 }
 
 .accountLabel {
@@ -930,6 +1059,7 @@ select.input {
   flex: none;
   align-items: center;
   gap: 4px;
+  margin-left: auto;
 }
 
 .quotaPlan,
@@ -949,7 +1079,16 @@ select.input {
 }
 
 .quotaFailed {
+  flex: none;
+  margin-left: auto;
   font-size: 11px;
   line-height: 16px;
   color: var(--dsw-alias-state-error-primary);
+}
+
+.accountExpired {
+  flex: none;
+  font-size: 11px;
+  line-height: 16px;
+  color: var(--dsw-alias-state-warn-primary);
 }

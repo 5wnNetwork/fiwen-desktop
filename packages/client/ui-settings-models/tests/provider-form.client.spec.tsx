@@ -5,7 +5,9 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import Schema from '@deepseek-ai/schemastery'
 import { Context } from '@deepseek-ai/cordis'
 import { bindSnapshotSelector, RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
-import type { SettingsNamespaceView } from '@deepseek-ai/dsh-api-remotes/client'
+import type {
+  AuthorizationAccountView, AuthorizationEntryView, RemoteResult, SettingsNamespaceView,
+} from '@deepseek-ai/dsh-api-remotes/client'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import { ModelsSection, providerCopy } from '../src/client/ModelsSection.tsx'
 import type { ModelsSectionInjected, ModelsSectionProps } from '../src/client/ModelsSection.tsx'
@@ -106,6 +108,8 @@ function scriptedFace(options: {
   baseProviders?: Record<string, JsonValue>
   /** Routes the adapter reports as hand-declared; the rest come back as shipped. */
   declaredRoutes?: readonly string[]
+  /** The authorization flows the Host reports, keyed under `llm-pi-ai/<route>`. */
+  authorization?: AuthorizationEntryView[]
   discover?: ReturnType<typeof vi.fn>
   mutate?: ReturnType<typeof vi.fn>
   set?: ReturnType<typeof vi.fn>
@@ -122,7 +126,16 @@ function scriptedFace(options: {
     // subscriptions stay inert in this suite.
     $on: vi.fn(() => () => {}),
     authorization: {
-      list: vi.fn(() => Promise.resolve(remoteOk([]))),
+      list: vi.fn((): Promise<RemoteResult<AuthorizationEntryView[]>> =>
+        Promise.resolve(remoteOk(options.authorization ?? []))),
+      begin: vi.fn(() => Promise.resolve(remoteOk({ status: 'authorized' }))),
+      answer: vi.fn(() => Promise.resolve(remoteOk(true))),
+      decline: vi.fn(() => Promise.resolve(remoteOk(true))),
+      cancel: vi.fn(() => Promise.resolve(remoteOk(undefined))),
+      signOut: vi.fn(() => Promise.resolve(remoteOk(undefined))),
+      listAccounts: vi.fn((): Promise<RemoteResult<AuthorizationAccountView[]>> => Promise.resolve(remoteOk([]))),
+      selectAccount: vi.fn(() => Promise.resolve(remoteOk(undefined))),
+      quota: vi.fn(() => Promise.resolve(remoteOk(undefined))),
     },
     llm: {
       listProviders: vi.fn(() => Promise.resolve(ok(
@@ -969,6 +982,43 @@ describe('hand-declared providers', () => {
     })
     openEditor('acme-gateway')
     expect(fields()).toEqual([en.keyInput, en.customDisplayName, en.baseUrl, en.customApi])
+  })
+
+  it('omits the endpoint field on a route that signs in with an account', async () => {
+    const fields = () => [...document.querySelectorAll('input,select')]
+      .map(el => el.getAttribute('aria-label')).filter(Boolean)
+
+    // A subscription route's endpoint is fixed by the provider's own
+    // implementation: a repointing setting would only send the signed-in
+    // account's requests somewhere that cannot honor them.
+    await mountSection({
+      providers: { anthropic: {} },
+      authorization: [{
+        key: 'llm-pi-ai/anthropic' as AuthorizationEntryView['key'],
+        label: 'Claude',
+        methods: [{ id: 'oauth', label: 'Sign in with Claude' }],
+        inFlight: false,
+        configured: false,
+      }],
+    })
+    openEditor('anthropic')
+    expect(fields()).toEqual([en.keyInput])
+    cleanup()
+
+    // The same route keeps the field when the flow offers keys only: an
+    // unserved OAuth method is the same as none.
+    await mountSection({
+      providers: { anthropic: {} },
+      authorization: [{
+        key: 'llm-pi-ai/anthropic' as AuthorizationEntryView['key'],
+        label: 'Claude',
+        methods: [{ id: 'api-key', label: 'API key' }],
+        inFlight: false,
+        configured: false,
+      }],
+    })
+    openEditor('anthropic')
+    expect(fields()).toEqual([en.keyInput, en.baseUrl])
   })
 
   it('renames a declared route and falls back to its id when the name is cleared', async () => {

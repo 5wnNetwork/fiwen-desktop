@@ -2,11 +2,11 @@
 import type { Context, Volatile } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import type {} from '@deepseek-ai/dsh-settings'
-import { type ContactConfig, ContactConfigFields, CONTACT_CONFIG_GLOBAL } from './contact-config.ts'
+import { type BonusConfig, BonusConfigFields, BONUS_CONFIG_GLOBAL } from './bonus-config.ts'
 import z from '@deepseek-ai/schemastery'
 import { OnboardingSettingsFields, type OnboardingStep, type OnboardingPurpose, type OnboardingProcess } from './onboarding-settings.ts'
-/** Public contact options and live device-local onboarding progress. */
-export interface Config extends ContactConfig {
+/** Public bonus options and live device-local onboarding progress. */
+export interface Config extends BonusConfig {
   /** Onboarding progress format version. */
   version: Volatile<1>
   /** Last accepted onboarding page. */
@@ -25,10 +25,8 @@ export interface Config extends ContactConfig {
 
 /** Configuration projected through the account plugin's shared form. */
 export const Config = z.object({
-  contactFormUrl: ContactConfigFields.contactFormUrl,
-  contactSource: ContactConfigFields.contactSource,
-  bonusAckRetryDelayMs: ContactConfigFields.bonusAckRetryDelayMs,
-  bonusAckRetryMaxDelayMs: ContactConfigFields.bonusAckRetryMaxDelayMs,
+  bonusAckRetryDelayMs: BonusConfigFields.bonusAckRetryDelayMs,
+  bonusAckRetryMaxDelayMs: BonusConfigFields.bonusAckRetryMaxDelayMs,
   version: OnboardingSettingsFields.version.volatile(),
   step: OnboardingSettingsFields.step.volatile(),
   purpose: OnboardingSettingsFields.purpose.volatile(),
@@ -39,7 +37,7 @@ export const Config = z.object({
 })
 
 /**
- * Publish public questionnaire options before browser plugins activate.
+ * Publish public bonus options before browser plugins activate.
  * @param ctx - Host context collecting page initialization data.
  * @param config - validated deployment options.
  */
@@ -48,9 +46,8 @@ export function apply(ctx: Context, config: Config): void {
     scope.effect(() => scope.settings.configure({ auto: false }, ctx.fiber))
   })
   ctx.on('webserver/index-inject', (table) => {
-    table.push({ kind: 'global', name: CONTACT_CONFIG_GLOBAL, value: {
-      contactFormUrl: config.contactFormUrl, contactSource: config.contactSource,
+    table.push({ kind: 'global', name: BONUS_CONFIG_GLOBAL, value: {
       bonusAckRetryDelayMs: config.bonusAckRetryDelayMs, bonusAckRetryMaxDelayMs: config.bonusAckRetryMaxDelayMs,
-    } satisfies ContactConfig })
+    } satisfies BonusConfig })
   })
 }
