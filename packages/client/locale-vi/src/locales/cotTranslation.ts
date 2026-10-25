@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `cotTranslation`; upstream registers it untyped, so keys are checked by the coverage spec. */
 import type { en } from '@deepseek-ai/dsh-experimental-client-ui-cot-translation/src/client/locales.ts'
 
+/** Vietnamese dictionary for `cotTranslation`; upstream registers it untyped, so keys are checked by the coverage spec. */
 export const vi = {
   'provider': 'Dịch vụ dịch thuật',
   'google': 'Google',

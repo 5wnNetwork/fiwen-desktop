@@ -102,6 +102,8 @@ export interface ModelSelection {
   readonly provider: string
   readonly model: string
   readonly reasoningEffort?: string
+  /** Server-side saver mode for backend-routed models; `'default'` or absence defers to the backend. */
+  readonly tokenSaver?: string
 }
 
 /** Host fold state for durable model selection. */
@@ -133,12 +135,21 @@ export interface ModelReasoning {
   readonly defaultEffort?: string
 }
 
+/** Server-side request compression offered for one exact model route. */
+export interface ModelTokenSaver {
+  /** Saver modes the route accepts, in picker order. */
+  readonly modes: readonly string[]
+  /** Concrete mode the route's `'default'` choice resolves to right now. */
+  readonly resolvedDefault: string
+}
+
 /** One model displayed inside its provider group. */
 export interface ModelCatalogModel {
   readonly id: string
   readonly name: string
   readonly description?: string
   readonly reasoning?: ModelReasoning
+  readonly tokenSaver?: ModelTokenSaver
 }
 
 /** One provider and its successfully loaded model catalog. */

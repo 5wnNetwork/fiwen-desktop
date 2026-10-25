@@ -8,7 +8,7 @@ import type { ProfileContext } from '@deepseek-ai/dsh-app-boot'
 import type { McpPayload, SkillPayload } from './wire.ts'
 import type { MarketInstalledView, MarketItemKind } from './types.ts'
 
-/** File inside an installed skill directory recording provenance; its presence marks a market install. */
+/** File inside an installed skill directory recording the item id and version; its presence marks a market install. */
 const MARKER = '.fiwen-market.json'
 /** Patch row id prefix for market-installed MCP servers. */
 const MCP_ROW_PREFIX = 'market-'
@@ -20,6 +20,7 @@ interface LedgerFile {
   readonly installs: Readonly<Record<string, { kind: MarketItemKind; version: string; installedAt: string }>>
 }
 
+/** Filesystem locations the market store reads and writes. */
 export interface MarketStoreLayout {
   /** `<dshHome>/skills` — user-level skill root the filesystem provider already scans. */
   readonly skillsDir: string
@@ -65,7 +66,11 @@ async function skillDirAvailable(dir: string): Promise<boolean> {
   }
 }
 
-/** MCP row ids currently inserted by the market across the profile patch file. */
+/**
+ * MCP row ids currently inserted by the market across the profile patch file.
+ * @param patchPath - profile patch file scanned for `market-<id>` rows.
+ * @returns item ids with a live market row; empty when the file is absent or unparsable.
+ */
 export async function marketPatchIds(patchPath: string): Promise<Set<string>> {
   const ids = new Set<string>()
   let text: string
@@ -90,7 +95,12 @@ export async function marketPatchIds(patchPath: string): Promise<Set<string>> {
   return ids
 }
 
-/** Read the reconciled install list: ledger entries whose artifact still exists. */
+/**
+ * Read the reconciled install list, pruning ledger entries whose artifact disappeared.
+ * @param layout - marketplace skill and ledger directories.
+ * @param patchPath - profile patch file consulted for MCP rows; omitted treats every MCP ledger entry as stale.
+ * @returns ledger entries whose installed artifact still exists.
+ */
 export async function listInstalled(layout: MarketStoreLayout, patchPath: string | undefined): Promise<readonly MarketInstalledView[]> {
   const ledger = await readLedger(layout.marketDir)
   const patchIds = patchPath === undefined ? new Set<string>() : await marketPatchIds(patchPath)
@@ -114,6 +124,10 @@ export async function listInstalled(layout: MarketStoreLayout, patchPath: string
 /**
  * Extract a skill payload under `<skillsDir>/<id>`: stage to a sibling, replace the existing
  * market-owned directory atomically, and stamp the marker.
+ * @param layout - marketplace skill and ledger directories.
+ * @param id - catalog item id; also the installed directory name.
+ * @param version - catalog version recorded in the marker and ledger.
+ * @param payload - skill files and metadata received from the market endpoint.
  * @returns the ledger entry written, or throws.
  */
 export async function installSkill(
@@ -148,7 +162,12 @@ export async function installSkill(
   }
 }
 
-/** Remove a market-installed skill directory; a user-owned directory is left untouched. */
+/**
+ * Remove a market-installed skill directory; a user-owned directory is left untouched.
+ * @param layout - marketplace skill and ledger directories.
+ * @param id - installed directory name whose marker names this item.
+ * @returns whether a market-owned directory was removed.
+ */
 export async function uninstallSkill(layout: MarketStoreLayout, id: string): Promise<boolean> {
   const dir = join(layout.skillsDir, id)
   if ((await readMarker(dir))?.id !== id) return false
@@ -161,7 +180,12 @@ export async function uninstallSkill(layout: MarketStoreLayout, id: string): Pro
   return true
 }
 
-/** The cordis.patch.yml row an MCP payload becomes; `serverName` carries the item slug. */
+/**
+ * The cordis.patch.yml row an MCP payload becomes; `serverName` carries the item slug.
+ * @param id - catalog item id used as the MCP `serverName`.
+ * @param payload - transport and connection fields received from the market endpoint.
+ * @returns the `config` object of an `@deepseek-ai/dsh-mcp-client` patch row.
+ */
 export function mcpRowConfig(id: string, payload: McpPayload): Record<string, unknown> {
   if (payload.transport === 'stdio') {
     return {
@@ -183,6 +207,11 @@ export function mcpRowConfig(id: string, payload: McpPayload): Record<string, un
 /**
  * Insert or replace the `market-<id>` mcp-client row in the profile patch file.
  * @param profile - running profile context; `patchPath` receives the edit.
+ * @param id - catalog item id; its `market-<id>` row is replaced when present.
+ * @param version - catalog version recorded in the ledger.
+ * @param payload - transport and connection fields received from the market endpoint.
+ * @param layout - marketplace ledger directory.
+ * @returns the ledger entry written.
  */
 export async function installMcp(
   profile: ProfileContext, id: string, version: string, payload: McpPayload, layout: MarketStoreLayout,
@@ -234,7 +263,13 @@ function removePatchRow(document: ReturnType<typeof parseDocument>, seq: YAMLSeq
   return false
 }
 
-/** Remove a market-installed MCP row; no-op when absent. */
+/**
+ * Remove a market-installed MCP row; no-op when absent.
+ * @param profile - running profile context; `patchPath` receives the edit.
+ * @param id - catalog item id whose `market-<id>` row is removed.
+ * @param layout - marketplace ledger directory.
+ * @returns whether a market row was removed from the patch file.
+ */
 export async function uninstallMcp(profile: ProfileContext, id: string, layout: MarketStoreLayout): Promise<boolean> {
   const filename = profile.patchPath
   const text = await readFile(filename, 'utf8').catch(() => undefined)

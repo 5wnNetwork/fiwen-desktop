@@ -1,6 +1,6 @@
 /** DeepSeek `GET /models` listing: one authenticated request and per-entry decoding. */
-import { APP_IDENTITY, attributionHeaders, LlmError } from '@deepseek-ai/dsh-llm'
-import type { ModelModality } from '@deepseek-ai/dsh-llm'
+import { APP_IDENTITY, attributionHeaders, isLlmTokenSaverMode, isLlmTokenSaverResolvedMode, LlmError } from '@deepseek-ai/dsh-llm'
+import type { LlmModelTokenSaverInfo, ModelModality } from '@deepseek-ai/dsh-llm'
 import { timeoutOf } from '@deepseek-ai/dsh-timeout'
 
 const LISTED_MODALITIES = ['text', 'image'] as const satisfies readonly ModelModality[]
@@ -24,6 +24,8 @@ export interface ListedFacts {
   readonly maxOutputTokens?: number
   /** Messages system prompt mode, when declared; any value other than `in-history` reads as `leading-only`. */
   readonly systemPromptUpdate?: 'in-history' | 'leading-only'
+  /** Server-side request compression the endpoint offers, when declared. */
+  readonly tokenSaver?: LlmModelTokenSaverInfo
 }
 
 /** Declared capabilities, or why the Messages transport cannot drive the model. */
@@ -98,6 +100,12 @@ function capabilitiesOf(entry: Fields): ListedCapabilities {
     return { usable: false, reason: 'declares an invalid context_window or max_output_tokens' }
   }
   const update = messages.system_prompt_update
+  const saver = fieldsOf(entry.token_saver)
+  const saverModes = (Array.isArray(saver?.modes) ? saver.modes : [])
+    .flatMap(mode => isLlmTokenSaverMode(mode) ? [mode] : [])
+  const tokenSaver = saverModes.length > 0 && isLlmTokenSaverResolvedMode(saver?.resolved_default)
+    ? { modes: saverModes, resolvedDefault: saver.resolved_default }
+    : undefined
   return {
     usable: true,
     facts: {
@@ -105,6 +113,7 @@ function capabilitiesOf(entry: Fields): ListedCapabilities {
       ...contextWindow === undefined ? {} : { contextWindow },
       ...maxOutputTokens === undefined ? {} : { maxOutputTokens },
       ...update === undefined ? {} : { systemPromptUpdate: update === 'in-history' ? 'in-history' : 'leading-only' },
+      ...tokenSaver === undefined ? {} : { tokenSaver },
     },
   }
 }

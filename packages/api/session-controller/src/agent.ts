@@ -10,7 +10,7 @@ import type {
 import type {} from '@deepseek-ai/dsh-agent-default-model'
 import type {} from '@deepseek-ai/dsh-agent-preset-registry'
 import { brandString } from '@deepseek-ai/dsh-brand'
-import { ReasoningEffortId } from '@deepseek-ai/dsh-llm'
+import { isLlmTokenSaverMode, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import type { Session, SessionId } from '@deepseek-ai/dsh-session'
 import type { SessionInspection } from '@deepseek-ai/dsh-session-persistence'
 import { SessionQueryError, type SessionObservation } from '@deepseek-ai/dsh-session-query'
@@ -97,7 +97,7 @@ export type ApiSessionAgentResult =
 
 type InstalledSelection = ModelSelectionRef & {
   current: AgentModelSelection
-  consume(provider: string, model: string, reasoningEffort: string | undefined): boolean
+  consume(provider: string, model: string, reasoningEffort: string | undefined, tokenSaver: string | undefined): boolean
 }
 
 /**
@@ -312,15 +312,17 @@ export class ApiSessionAgentController {
             || loggedHeader.adapterDefaults?.reasoningEffort === true
             ? {}
             : { reasoningEffort: logged.reasoningEffort }),
+          ...(logged.tokenSaver === undefined ? {} : { tokenSaver: logged.tokenSaver }),
         }
       },
       set current(next: AgentModelSelection) {
         picked = next
       },
-      consume(provider: string, model: string, reasoningEffort: string | undefined): boolean {
+      consume(provider: string, model: string, reasoningEffort: string | undefined, tokenSaver: string | undefined): boolean {
         if (picked?.provider !== provider
           || picked.model !== model
-          || picked.reasoningEffort !== reasoningEffort) return false
+          || picked.reasoningEffort !== reasoningEffort
+          || picked.tokenSaver !== tokenSaver) return false
         picked = undefined
         return true
       },
@@ -347,6 +349,7 @@ export class ApiSessionAgentController {
    * @param provider - provider route used by the request.
    * @param model - provider-owned model used by the request.
    * @param reasoningEffort - adapter-owned effort used by the request.
+   * @param tokenSaver - server-side saver mode used by the request.
    * @returns whether the pending selection was consumed.
    */
   consumeSelection(
@@ -354,8 +357,9 @@ export class ApiSessionAgentController {
     provider: string,
     model: string,
     reasoningEffort: string | undefined,
+    tokenSaver: string | undefined,
   ): boolean {
-    return this.selections.get(agent)?.consume(provider, model, reasoningEffort) ?? false
+    return this.selections.get(agent)?.consume(provider, model, reasoningEffort, tokenSaver) ?? false
   }
 
   /**
@@ -606,5 +610,8 @@ function agentModelSelection(selection: ModelSelection): AgentModelSelection {
     ...(selection.reasoningEffort === undefined
       ? {}
       : { reasoningEffort: ReasoningEffortId(selection.reasoningEffort) }),
+    // A stored value outside the known vocabulary cannot name a mode; request
+    // resolution still rejects a valid-but-unadvertised one.
+    ...(isLlmTokenSaverMode(selection.tokenSaver) ? { tokenSaver: selection.tokenSaver } : {}),
   }
 }

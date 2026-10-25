@@ -595,6 +595,23 @@ interface LlmModelReasoningInfo {
 }
 ```
 
+Token saver 是由所属后端宣告的服务端请求压缩能力。与推理档位不同，它的模式是固定的线上词汇表；每条路由的列表声明它接受的子集，以及 `'default'` 当前解析到的具体模式。
+
+```ts type-equiv
+/** One selectable saver mode; `'default'` defers to the backend's administered mode. */
+type LlmTokenSaverMode = 'default' | 'simple' | 'disabled' | 'coding-low' | 'coding-high'
+```
+
+```ts type-equiv
+/** Server-side request compression selectable for one exact provider/model route. */
+interface LlmModelTokenSaverInfo {
+  /** Saver modes the route accepts, in picker order. */
+  modes: readonly LlmTokenSaverMode[]
+  /** Concrete mode the route's `'default'` choice resolves to right now. */
+  resolvedDefault: LlmTokenSaverResolvedMode
+}
+```
+
 ```ts type-equiv
 /** Exact-route model metadata resolved by its owning adapter. */
 interface LlmResolvedModelInfo extends LlmModelInfo {
@@ -604,6 +621,8 @@ interface LlmResolvedModelInfo extends LlmModelInfo {
   defaultMaxTokens?: number
   /** Adapter-owned selectable reasoning levels when exposed. */
   reasoning?: LlmModelReasoningInfo
+  /** Server-side request compression when the route's backend offers it. */
+  tokenSaver?: LlmModelTokenSaverInfo
   /** Declared mid-conversation system prompt handling; absent means only a leading system message is read. */
   systemPromptUpdate?: SystemPromptUpdate
   /** Declared mid-conversation tool declaration handling; absent means every request declares the complete tool list. */
@@ -636,6 +655,11 @@ interface GenerateOptions {
   model: string
   /** Adapter-owned reasoning effort selected for this exact model. */
   reasoningEffort?: ReasoningEffortId
+  /**
+   * Server-side saver mode selected for this exact model; omission lets the
+   * backend apply its administered default, identical to `'default'`.
+   */
+  tokenSaver?: LlmTokenSaverMode
   /**
    * Ordered conversation messages, exactly as the provider sees them. A
    * loop-built request passes the derived history (dsh-agent-loop), whose
@@ -782,6 +806,7 @@ FIXME(call-config-shape)：重新审视其余哪些字段出于缓存目的确�
 /** Concrete generation settings; omitted controls use the selected route's defaults. */
 interface LlmCallControls {
   reasoningEffort?: ReasoningEffortId
+  tokenSaver?: LlmTokenSaverMode
   temperature?: number
   maxTokens?: number
   stop?: string[]

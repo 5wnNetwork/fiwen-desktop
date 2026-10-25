@@ -72,9 +72,13 @@ async function launchElectron(): Promise<void> {
     DSH_DESKTOP_HOST_INSPECT_PORT: String(hostPort),
     DSH_DESKTOP_OPEN_DEVTOOLS: process.env.DSH_DESKTOP_OPEN_DEVTOOLS ?? '1',
     ELECTRON_ENABLE_LOGGING: process.env.ELECTRON_ENABLE_LOGGING ?? '1',
+    // Development targets the local backend (docker compose, :8787) unless
+    // FIWEN_ORIGIN is explicitly set for this launch.
+    FIWEN_ORIGIN: process.env.FIWEN_ORIGIN ?? 'http://localhost:8787',
   }
   console.log(`desktop development: DSH_HOME=${home}`)
   console.log(`desktop development: userData=${userData}`)
+  console.log(`desktop development: FIWEN_ORIGIN=${environment.FIWEN_ORIGIN!}`)
   console.log(`desktop development: inspectors main=${String(mainPort)}, renderer=${String(rendererPort)}, host=${String(hostPort)}`)
   if (process.platform === 'darwin') {
     const executable = prepareDevelopmentApp({ electron, appRoot: APP_ROOT, directory: DEVELOPMENT_ROOT, home, userData,

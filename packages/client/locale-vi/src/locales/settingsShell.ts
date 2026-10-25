@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `settings.shell`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-settings-shell/src/client/locales.ts'
 
+/** Vietnamese dictionary for `settings.shell`, key-checked against upstream `en`. */
 export const vi = {
   'title': 'Shell',
   'description': 'Giới hạn thời gian chạy và lượng đầu ra của mỗi lệnh.',

@@ -92,10 +92,12 @@ function selectionOf(state: ModelDirectoryState, id: string): ModelSelection | u
       const reasoningEffort = sameRoute
         ? state.current?.reasoningEffort ?? model.reasoning?.defaultEffort
         : model.reasoning?.defaultEffort
+      const tokenSaver = sameRoute ? state.current?.tokenSaver : undefined
       return {
         provider: group.id,
         model: model.id,
         ...reasoningEffort === undefined ? {} : { reasoningEffort },
+        ...tokenSaver === undefined ? {} : { tokenSaver },
       }
     }
   }

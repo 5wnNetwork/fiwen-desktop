@@ -325,6 +325,10 @@ let toolCallCounter = 0
  * Stream one request. Mirrors pi-ai's `google-generative-ai` mapping event for
  * event so a transcript read downstream is indistinguishable from a
  * first-party Google route.
+ * @param model - catalog entry the request targets.
+ * @param context - transcript to continue.
+ * @param options - per-request thinking and credential overrides.
+ * @returns the assistant event stream for this request.
  */
 export const antigravityStream = (
   model: Model<Api>,
@@ -507,6 +511,10 @@ export const antigravityStream = (
  * `streamSimple` — the entry point `Models` calls. Resolves pi-ai's reasoning
  * level into the provider's thinking directive exactly as the first-party
  * Google adapter does, then delegates to {@link antigravityStream}.
+ * @param model - catalog entry the request targets.
+ * @param context - transcript to continue.
+ * @param options - simple-stream options carrying the reasoning level.
+ * @returns the assistant event stream for this request.
  */
 export const antigravityStreamSimple = (
   model: Model<Api>,

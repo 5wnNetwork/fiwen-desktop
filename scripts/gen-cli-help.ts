@@ -15,6 +15,9 @@ import { parseTranslationPairingManifest, translationPairSourcePredicate } from 
 import { defaultParallelism } from './parallelism.ts'
 
 const root = resolve(import.meta.dirname, '..')
+
+/** Concurrent help reads each own a full CLI child process; keep the count well under the worker budget. */
+const HELP_READ_PROCESS_LIMIT = 4
 const paths = translationPairPaths('docs/cli-help.md')
 const execFileAsync = promisify(execFile)
 
@@ -179,7 +182,8 @@ export async function collectCliHelp(
 async function collectHelp(): Promise<HelpPage[]> {
   const directory = mkdtempSync(join(tmpdir(), 'dsh-cli-help-'))
   const profiles = Object.keys(PROFILE_TEMPLATES)
-  // Concurrent profile boots share the repository worker budget.
+  // Each read boots a full `tsx` CLI process; cap them below the in-process
+  // worker budget so mutual contention cannot starve one past its timeout.
   const reader = prefetchHelp(async (args, signal) => {
     // Each invocation boots against its own empty Harness and agents homes.
     const home = mkdtempSync(join(directory, 'invocation-'))
@@ -194,7 +198,7 @@ async function collectHelp(): Promise<HelpPage[]> {
     const help = execFileAsync(process.execPath, [
       '--import', 'tsx/esm', 'apps/cli/src/bin.ts', ...args, '--help',
     ], {
-      cwd: root, env: environment, encoding: 'utf8', timeout: 30_000,
+      cwd: root, env: environment, encoding: 'utf8', timeout: 90_000,
       killSignal: 'SIGKILL', maxBuffer: 2 * 1024 * 1024,
     })
     // Killing directly, not through execFile's signal option, settles the read only after the child closes.
@@ -207,7 +211,7 @@ async function collectHelp(): Promise<HelpPage[]> {
     } finally {
       signal.removeEventListener('abort', abort)
     }
-  }, topLevelHelpArgs(profiles), defaultParallelism())
+  }, topLevelHelpArgs(profiles), Math.min(defaultParallelism(), HELP_READ_PROCESS_LIMIT))
   try {
     return await collectCliHelp(reader.readHelp, profiles)
   } finally {

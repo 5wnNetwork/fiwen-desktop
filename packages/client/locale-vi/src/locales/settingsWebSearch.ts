@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `settings.webSearch`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-settings-web-search/src/client/locales.ts'
 
+/** Vietnamese dictionary for `settings.webSearch`, key-checked against upstream `en`. */
 export const vi = {
   'title': 'Tìm kiếm web',
   'description': 'Thiết lập nhà cung cấp tìm kiếm DeepSeek.',

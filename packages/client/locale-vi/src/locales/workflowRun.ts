@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `workflowRun`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-workflow-run/src/client/locales.ts'
 
+/** Vietnamese dictionary for `workflowRun`, key-checked against upstream `en`. */
 export const vi = {
   'run.title': '{name}',
   'run.members.one': '{count} thành viên',

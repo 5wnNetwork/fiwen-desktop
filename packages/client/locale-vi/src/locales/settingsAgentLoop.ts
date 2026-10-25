@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `settings.agentLoop`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-settings-agent-loop/src/client/locales.ts'
 
+/** Vietnamese dictionary for `settings.agentLoop`, key-checked against upstream `en`. */
 export const vi = {
   'title': 'Vòng lặp agent',
   'description': 'Kiểm soát cách agent phát các lời gọi công cụ.',

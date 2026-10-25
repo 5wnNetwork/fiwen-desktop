@@ -12,7 +12,7 @@ import type {
 import type { FileUploadReceiptId } from '@deepseek-ai/dsh-client-file-upload/types'
 import type {} from '@deepseek-ai/dsh-client-file-upload'
 import {
-  ReasoningEffortId, assistantStreamChunks, createUserMessage, freezeMessage,
+  isLlmTokenSaverMode, ReasoningEffortId, assistantStreamChunks, createUserMessage, freezeMessage,
 } from '@deepseek-ai/dsh-llm'
 import type { MessageSource } from '@deepseek-ai/dsh-llm'
 import { buildForkSeed } from '@deepseek-ai/dsh-session/fork'
@@ -159,12 +159,18 @@ export class SessionCommandController {
     return this.agents.serializeImageAdmission(agent, async () => {
       try {
         await this.requireModel(request)
+        if (request.tokenSaver !== undefined && !isLlmTokenSaverMode(request.tokenSaver)) {
+          throw new RemoteError('session/model-unavailable',
+            `unknown token saver "${request.tokenSaver}"`,
+            { provider: request.provider, model: request.model })
+        }
         const resolved = await this.ctx.llm.resolveCallConfig({
           provider: request.provider,
           model: request.model,
           ...(request.reasoningEffort === undefined
             ? {}
             : { reasoningEffort: ReasoningEffortId(request.reasoningEffort) }),
+          ...(request.tokenSaver === undefined ? {} : { tokenSaver: request.tokenSaver }),
         })
         const selected: AgentModelSelection = {
           provider: resolved.provider,
@@ -172,6 +178,7 @@ export class SessionCommandController {
           ...(resolved.reasoningEffort === undefined
             ? {}
             : { reasoningEffort: resolved.reasoningEffort }),
+          ...(resolved.tokenSaver === undefined ? {} : { tokenSaver: resolved.tokenSaver }),
         }
         this.agents.selectForNextRequest(agent, selected)
         void this.ctx.agentDefaultModel.saveSelection(selected).catch((error: unknown) => {

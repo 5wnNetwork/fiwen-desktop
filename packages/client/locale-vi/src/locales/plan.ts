@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `plan`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-plan/src/client/locales.ts'
 
+/** Vietnamese dictionary for `plan`, key-checked against upstream `en`. */
 export const vi = {
   'chip.label': 'Kế hoạch',
   'preview.title': 'Kế hoạch',

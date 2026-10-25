@@ -23,6 +23,7 @@ import type {
   TurnBoundaryProjection,
 } from '@deepseek-ai/dsh-agent'
 import { errorChain, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
+import type { LlmTokenSaverMode } from '@deepseek-ai/dsh-llm'
 import { interruptedTurnClosers, SessionLogOffset, SessionPreparation, SessionSeq } from '@deepseek-ai/dsh-session'
 import type { Session, SessionHeader, SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-system-prompt'
@@ -350,6 +351,7 @@ export class AgentLoop extends Service implements AgentFactory {
       provider: z.string(),
       model: z.string(),
       reasoningEffort: z.string().min(1) as z<ReturnType<typeof ReasoningEffortId>>,
+      tokenSaver: z.union(['default', 'simple', 'disabled', 'coding-low', 'coding-high'] as const) as z<LlmTokenSaverMode>,
       maxTokens: z.number().step(1).min(1).max(Number.MAX_SAFE_INTEGER),
       cwd: z.string(),
       resumeSessionId: z.string(),

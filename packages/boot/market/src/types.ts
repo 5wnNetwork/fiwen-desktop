@@ -29,6 +29,7 @@ export interface MarketText {
   readonly [locale: string]: string
 }
 
+/** Installable catalog item kinds. */
 export type MarketItemKind = 'skill' | 'mcp'
 
 /** One browsable category. */

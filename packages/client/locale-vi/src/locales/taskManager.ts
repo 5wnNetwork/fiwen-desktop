@@ -1,8 +1,8 @@
-/** Vietnamese dictionary for `schedule.manager`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-schedule/src/client/task-manager-locales.ts'
 
 import { frequencyVi } from './frequency.ts'
 
+/** Vietnamese dictionary for `schedule.manager`, key-checked against upstream `en`. */
 export const vi = {
   'panel': 'Automation task',
   'title': 'Automation task',

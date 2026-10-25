@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `approval`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-approval/src/client/locales.ts'
 
+/** Vietnamese dictionary for `approval`, key-checked against upstream `en`. */
 export const vi = {
   'waiting': 'Đang chờ phê duyệt',
   'detail.aria': 'Chi tiết phê duyệt',

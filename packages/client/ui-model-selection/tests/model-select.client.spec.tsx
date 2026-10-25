@@ -1130,3 +1130,183 @@ describe('ModelSelect account pane', () => {
     expect(screen.queryByRole('menu')).toBeNull()
   })
 })
+
+describe('ModelSelect token saver', () => {
+  const tokenSaver = {
+    modes: ['default', 'simple', 'disabled', 'coding-low', 'coding-high'],
+    resolvedDefault: 'simple',
+  }
+  const withSaver = (overrides: Partial<ModelDirectoryState> = {}): ModelDirectoryState => {
+    const base = state()
+    return {
+      ...base,
+      groups: [{
+        ...base.groups[0]!,
+        models: [{ ...base.groups[0]!.models[0]!, tokenSaver }],
+      }],
+      ...overrides,
+    }
+  }
+
+  it('hides the saver row when the routed model advertises none', () => {
+    render(<ModelSelect renderSlot={renderLabel} locked={false} available
+      accounts={accountsOf()} selectAccount={vi.fn()} directory={createSnapshotStore(state())}
+      load={vi.fn()} select={vi.fn()} t={t} />)
+    fireEvent.click(screen.getByRole('button', { name: /选择模型，当前/ }))
+    expect(screen.queryByRole('menuitem', { name: /省流模式/ })).toBeNull()
+    // Only model + effort cells exist.
+    expect(screen.getAllByRole('menuitem')).toHaveLength(2)
+  })
+
+  it('annotates the deferred choice with the resolved default and submits a picked mode', async () => {
+    const directory = createSnapshotStore(withSaver())
+    const select = vi.fn(async (selection: ModelSelection) => {
+      directory.set(withSaver({ current: selection }))
+      return { ok: true as const, value: undefined }
+    })
+    render(<ModelSelect renderSlot={renderLabel} locked={false} available
+      accounts={accountsOf()} selectAccount={vi.fn()} directory={directory}
+      load={vi.fn()} select={select} t={t} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /选择模型，当前/ }))
+    const cell = screen.getByRole('menuitem', { name: /省流模式/ })
+    expect(cell.textContent).toContain('默认 · 简单')
+    fireEvent.click(cell)
+    const rows = screen.getAllByRole('menuitemradio')
+    expect(rows.map(row => row.textContent))
+      .toEqual(['默认 · 简单', '简单', '关闭', '编程（低）', '编程（高）'])
+    expect(rows[0]!.getAttribute('aria-checked')).toBe('true')
+    fireEvent.click(rows[4]!)
+    await waitFor(() => {
+      expect(select).toHaveBeenCalledWith({
+        provider: 'deepseek-official', model: 'deepseek-v4-flash', tokenSaver: 'coding-high',
+      })
+    })
+  })
+
+  it('keeps the current effort on a saver change, and vice versa', async () => {
+    const directory = createSnapshotStore(withSaver({
+      current: { provider: 'deepseek-official', model: 'deepseek-v4-flash', reasoningEffort: 'max' },
+    }))
+    const select = vi.fn(async (selection: ModelSelection) => {
+      directory.set(withSaver({ current: selection }))
+      return { ok: true as const, value: undefined }
+    })
+    render(<ModelSelect renderSlot={renderLabel} locked={false} available
+      accounts={accountsOf()} selectAccount={vi.fn()} directory={directory}
+      load={vi.fn()} select={select} t={t} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /选择模型，当前/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /省流模式/ }))
+    fireEvent.click(screen.getByRole('menuitemradio', { name: /编程（低）/ }))
+    await waitFor(() => {
+      expect(select).toHaveBeenCalledWith({
+        provider: 'deepseek-official', model: 'deepseek-v4-flash',
+        reasoningEffort: 'max', tokenSaver: 'coding-low',
+      })
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: /选择模型，当前/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /推理等级/ }))
+    fireEvent.click(screen.getByRole('menuitemradio', { name: /^Off/ }))
+    await waitFor(() => {
+      expect(select).toHaveBeenCalledWith({
+        provider: 'deepseek-official', model: 'deepseek-v4-flash',
+        reasoningEffort: 'off', tokenSaver: 'coding-low',
+      })
+    })
+  })
+
+  it('submits default explicitly when the deferred row is picked from another mode', async () => {
+    const directory = createSnapshotStore(withSaver({
+      current: { provider: 'deepseek-official', model: 'deepseek-v4-flash', tokenSaver: 'coding-high' },
+    }))
+    const select = vi.fn(async () => ({ ok: true as const, value: undefined }))
+    render(<ModelSelect renderSlot={renderLabel} locked={false} available
+      accounts={accountsOf()} selectAccount={vi.fn()} directory={directory}
+      load={vi.fn()} select={select} t={t} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /选择模型，当前/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /省流模式/ }))
+    const rows = screen.getAllByRole('menuitemradio')
+    expect(rows[4]!.getAttribute('aria-checked')).toBe('true')
+    fireEvent.click(rows[0]!)
+    await waitFor(() => {
+      expect(select).toHaveBeenCalledWith({
+        provider: 'deepseek-official', model: 'deepseek-v4-flash', tokenSaver: 'default',
+      })
+    })
+  })
+
+  it('closes silently when the in-use mode is picked again', () => {
+    const select = vi.fn()
+    render(<ModelSelect renderSlot={renderLabel} locked={false} available
+      accounts={accountsOf()} selectAccount={vi.fn()} directory={createSnapshotStore(withSaver())}
+      load={vi.fn()} select={select} t={t} />)
+    fireEvent.click(screen.getByRole('button', { name: /选择模型，当前/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /省流模式/ }))
+    fireEvent.click(screen.getByRole('menuitemradio', { name: /默认/ }))
+    expect(select).not.toHaveBeenCalled()
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
+
+  it('spins on the chosen saver row only', () => {
+    const directory = createSnapshotStore<ModelDirectoryState>(withSaver())
+    const select = vi.fn((selection: ModelSelection) => {
+      directory.set(withSaver({ status: 'selecting', pending: selection }))
+      return new Promise<undefined>(() => {})
+    })
+    render(<ModelSelect renderSlot={renderLabel} locked={false} available
+      accounts={accountsOf()} selectAccount={vi.fn()}
+      directory={directory} load={vi.fn()} select={select} t={t} />)
+
+    fireEvent.click(screen.getByRole('button', { name: /选择模型|当前/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /省流模式/ }))
+    fireEvent.click(screen.getByRole('menuitemradio', { name: /关闭/ }))
+    expect(screen.getAllByRole('menuitemradio')
+      .filter(row => row.querySelector('[data-state="ongoing"]') !== null)
+      .map(row => row.textContent)).toEqual(['关闭'])
+  })
+
+  it('announces a refused saver selection through the toast and keeps the rows', async () => {
+    const select = vi.fn(async () => ({
+      ok: false as const,
+      error: new RemoteError('session/model-unavailable', 'route gone', { provider: 'deepseek-official', model: 'deepseek-v4-flash' }),
+    }))
+    render(<ModelSelect renderSlot={renderLabel} locked={false} available
+      accounts={accountsOf()} selectAccount={vi.fn()} directory={createSnapshotStore(withSaver())}
+      load={vi.fn()} select={select} t={t} />)
+    fireEvent.click(screen.getByRole('button', { name: /选择模型，当前/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /省流模式/ }))
+    fireEvent.click(screen.getByRole('menuitemradio', { name: /编程（高）/ }))
+    const toast = await screen.findByRole('alert')
+    expect(toast.textContent).toContain('模型操作失败')
+    expect(screen.getAllByRole('menuitemradio')).toHaveLength(5)
+  })
+
+  it('Escape backs out of the saver pane to its root cell', () => {
+    render(<ModelSelect renderSlot={renderLabel} locked={false} available
+      accounts={accountsOf()} selectAccount={vi.fn()} directory={createSnapshotStore(withSaver())}
+      load={vi.fn()} select={vi.fn()} t={t} />)
+    fireEvent.click(screen.getByRole('button', { name: /选择模型，当前/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /省流模式/ }))
+    fireEvent.keyDown(screen.getAllByRole('menuitemradio')[0]!, { key: 'Escape' })
+    // The saver cell regains focus so the next keystroke still reaches the menu.
+    expect(document.activeElement?.textContent).toContain('省流模式')
+    fireEvent.keyDown(document.activeElement!, { key: 'Escape' })
+    expect(screen.queryByRole('menu')).toBeNull()
+  })
+
+  it('shows the empty pane when the metadata disappears while drilled in', () => {
+    const directory = createSnapshotStore(withSaver())
+    render(<ModelSelect renderSlot={renderLabel} locked={false} available
+      accounts={accountsOf()} selectAccount={vi.fn()} directory={directory}
+      load={vi.fn()} select={vi.fn()} t={t} />)
+    fireEvent.click(screen.getByRole('button', { name: /选择模型，当前/ }))
+    fireEvent.click(screen.getByRole('menuitem', { name: /省流模式/ }))
+    expect(screen.getAllByRole('menuitemradio')).toHaveLength(5)
+    act(() => { directory.set(state()) })
+    expect(screen.getByText('当前模型未提供省流模式。')).toBeTruthy()
+    expect(screen.queryByRole('menuitemradio')).toBeNull()
+  })
+})

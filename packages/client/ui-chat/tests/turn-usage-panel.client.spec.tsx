@@ -50,6 +50,24 @@ describe('TurnUsagePanel', () => {
     expect(details.textContent).not.toContain('Total')
   })
 
+  it('renders the localized account-provider label instead of the internal provider id', () => {
+    const usage: TurnTokenUsage = {
+      uncachedInputTokens: 8_225,
+      outputTokens: 35,
+      totalTokens: 8_260,
+      routes: [
+        { provider: 'deepseek-account', model: 'beam' },
+        { provider: 'alpha', model: 'fast' },
+      ],
+    }
+    const view = render(<TurnUsagePanel usage={usage} t={t} />)
+
+    fireEvent.click(view.getByRole('button'))
+    const details = view.getByRole('dialog').querySelector('[data-turn-usage-details]') as HTMLElement
+    expect(details.textContent).toContain('Provider / modelfiwen/beam, alpha/fast')
+    expect(details.textContent).not.toContain('deepseek-account')
+  })
+
   it('omits unavailable optional facts instead of inventing values', () => {
     const usage: TurnTokenUsage = {
       uncachedInputTokens: 120,

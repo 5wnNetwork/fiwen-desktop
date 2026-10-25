@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `sidebarExcel`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/src/client/excel/locales.ts'
 
+/** Vietnamese dictionary for `sidebarExcel`, key-checked against upstream `en`. */
 export const vi = {
   'title': 'Bảng tính',
   'language': 'vi',

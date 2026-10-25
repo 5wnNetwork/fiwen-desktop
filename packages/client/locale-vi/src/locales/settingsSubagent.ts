@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `settings.subagent`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-settings-subagent/src/client/locales.ts'
 
+/** Vietnamese dictionary for `settings.subagent`, key-checked against upstream `en`. */
 export const vi = {
   'overridden': 'Đã ghi đè',
   'reset': 'Đặt lại về mặc định',
@@ -31,6 +31,7 @@ export const vi = {
   'subagentModelSelectionLoadFailed': 'Không thể tải mô hình.',
   'subagentModelSelectionRetry': 'Thử lại',
   'subagentModelSelectionPartial': 'Một số nhà cung cấp mô hình không tải được; các lựa chọn đã lưu vẫn có thể gỡ bỏ.',
+  'subagentModelSelectionProviderAccount': 'fiwen',
   'subagentModelSelectionUnavailable': 'Hiện không khả dụng',
   'subagentModelSelectionUnavailableGroup': 'Đã lưu nhưng hiện không khả dụng',
   'subagentModelSelectionEmpty': 'Chưa có nhà cung cấp nào quảng bá mô hình.',

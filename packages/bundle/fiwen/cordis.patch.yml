@@ -8,7 +8,10 @@
 #
 # One origin serves account sign-in, model inference, web tools, and
 # telemetry. FIWEN_ORIGIN overrides it for development; a loopback value also
-# enables the account plugin's loopback-HTTP opt-in.
+# enables the account plugin's loopback-HTTP opt-in. The account adapter's
+# Messages/listing and the tools API's endpoint take the origin through the
+# launch environment (DEEPSEEK_BASE_URL, DEEPSEEK_WEB_API_BASE_URL), which the
+# desktop shell derives from FIWEN_ORIGIN.
 
 - id: deepseek-account
   config:
@@ -29,12 +32,9 @@
   config:
     credentialOnboarding: false
 
-# The account adapter points its Messages and /models listing traffic at the
-# Fiwen origin's /anthropic prefix.
-- id: llm-deepseek-account
-  config:
-    baseURL: !!js "`${process.env.FIWEN_ORIGIN ?? 'https://desktop.5wn.net'}/anthropic`"
-
+# The account adapter's Messages and /models listing traffic reaches the
+# Fiwen origin's /anthropic prefix through DEEPSEEK_BASE_URL, which the
+# desktop launch environment derives from FIWEN_ORIGIN.
 - id: agent-default-model
   config:
     provider: deepseek-account
@@ -53,7 +53,6 @@
 - id: web-deepseek-api
   config:
     apiKeyEnv: DEEPSEEK_API_KEY
-    baseURL: !!js "`${process.env.FIWEN_ORIGIN ?? 'https://desktop.5wn.net'}/v1/tools`"
 
 # The feedback feature is not part of the product: no Like/Dislike strip or
 # feedback dialog, no /feedback command, and no feedback Session events or

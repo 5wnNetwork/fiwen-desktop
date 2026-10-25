@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `trajectory`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-trajectory/src/client/locales.ts'
 
+/** Vietnamese dictionary for `trajectory`, key-checked against upstream `en`. */
 export const vi = {
   'view.trajectory': 'Quỹ đạo',
   'toolbar.aria': 'Thanh công cụ quỹ đạo',

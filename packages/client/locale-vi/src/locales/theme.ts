@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `settings.theme`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-theme/src/client/locales.ts'
 
+/** Vietnamese dictionary for `settings.theme`, key-checked against upstream `en`. */
 export const vi = {
   'appearance.title': 'Giao diện',
   'appearance.light': 'Sáng',

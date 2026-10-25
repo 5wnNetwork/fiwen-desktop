@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `settings`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-settings-general/src/client/locales.ts'
 
+/** Vietnamese dictionary for `settings`, key-checked against upstream `en`. */
 export const vi = {
   'trigger': 'Cài đặt',
   'shortcut.open': 'Mở cài đặt',

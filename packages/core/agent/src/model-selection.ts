@@ -8,6 +8,7 @@ import {
   boundContextSummary,
   createUserMessage,
   type LlmCallConfig,
+  type LlmTokenSaverMode,
   type ReasoningEffortId,
 } from '@deepseek-ai/dsh-llm'
 import type { PreStepDecision } from './runtime-types.ts'
@@ -26,6 +27,8 @@ export interface ModelSelection {
   model: string
   /** Adapter-owned reasoning effort, or provider/default behavior when absent. */
   reasoningEffort?: ReasoningEffortId
+  /** Server-side saver mode, or the backend's administered default when absent. */
+  tokenSaver?: LlmTokenSaverMode
 }
 
 /** Mutable model selection plus the value captured for the current step. */
@@ -99,14 +102,17 @@ export function installModelSelection(agentCtx: Context, selection: ModelSelecti
       const resolved = await next()
       const selected = selection.assembled
       if (selected === undefined) return resolved
-      const { reasoningEffort: _inheritedEffort, ...withoutInheritedEffort } = resolved
+      const { reasoningEffort: _inheritedEffort, tokenSaver: _inheritedSaver, ...withoutInherited } = resolved
       return {
-        ...withoutInheritedEffort,
+        ...withoutInherited,
         provider: selected.provider,
         model: selected.model,
         ...selected.reasoningEffort === undefined
           ? {}
           : { reasoningEffort: selected.reasoningEffort },
+        ...selected.tokenSaver === undefined
+          ? {}
+          : { tokenSaver: selected.tokenSaver },
       }
     },
   )

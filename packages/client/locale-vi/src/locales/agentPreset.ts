@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `settings.agentPreset`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-agent-preset/src/client/locales.ts'
 
+/** Vietnamese dictionary for `settings.agentPreset`, key-checked against upstream `en`. */
 export const vi = {
   'builtInGroup': 'Tích hợp sẵn',
   'customGroup': 'Tùy chỉnh',

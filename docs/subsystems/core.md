@@ -201,6 +201,8 @@ interface AgentOptions {
   model?: string
   /** Adapter-owned reasoning effort for the selected provider/model route. */
   reasoningEffort?: ReasoningEffortId
+  /** Server-side saver mode for the selected provider/model route. */
+  tokenSaver?: LlmTokenSaverMode
   /** Maximum output tokens for each conversation-model request. */
   maxTokens?: number
 }

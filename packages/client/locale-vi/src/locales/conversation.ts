@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `conversation`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-conversation/src/client/locales.ts'
 
+/** Vietnamese dictionary for `conversation`, key-checked against upstream `en`. */
 export const vi = {
   'shortcut.newline': 'Xuống dòng',
   'shortcut.complementary': 'Dùng thao tác Queue / Steer bổ sung',

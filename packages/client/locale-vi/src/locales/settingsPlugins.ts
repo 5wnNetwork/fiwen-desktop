@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `settings.plugins`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-settings-plugins/src/client/locales.ts'
 
+/** Vietnamese dictionary for `settings.plugins`, key-checked against upstream `en`. */
 export const vi = {
   'nav': 'Plugin tích hợp',
   'title': 'Plugin tích hợp',

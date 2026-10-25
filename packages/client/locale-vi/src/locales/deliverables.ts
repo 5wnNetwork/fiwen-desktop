@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `deliverables`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-deliverables/src/client/locales.ts'
 
+/** Vietnamese dictionary for `deliverables`, key-checked against upstream `en`. */
 export const vi = {
   'presented.nativeUnavailable': 'Tệp này không có đường dẫn Host khả dụng. Hãy xem trước trong thanh bên.',
   'presented.revealError': 'Không thể hiện trong trình quản lý tệp. Thử lại.',

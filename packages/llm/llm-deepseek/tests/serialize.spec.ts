@@ -1,7 +1,7 @@
 /** Request conversion and durable replay validation. */
 import { describe, expect, it, vi } from 'vitest'
 import { createDeveloperMessage, createUserMessage, createAssistantMessage, createMessage, createSystemMessage, createToolResultMessage, ReasoningEffortId, ToolCallId } from '@deepseek-ai/dsh-llm'
-import type { ContentBlock, GenerateOptions, ImageBlock, Message, RequestMessage, RequestUserInput } from '@deepseek-ai/dsh-llm'
+import type { ContentBlock, GenerateOptions, ImageBlock, LlmTokenSaverMode, LlmTokenSaverResolvedMode, Message, RequestMessage, RequestUserInput } from '@deepseek-ai/dsh-llm'
 import { AttachmentId, ImageVariantId } from '@deepseek-ai/dsh-attachment'
 import type { ImageAttachmentRef, RequestImageAttachment } from '@deepseek-ai/dsh-attachment'
 import { resolveAdapterOptions } from '../src/config.ts'
@@ -331,6 +331,12 @@ describe('Messages request conversion', () => {
     expect(serialize(options(), capped, [user()], new Map(), () => undefined).max_tokens).toBe(321)
   })
 
+  it.each(['default', 'simple', 'disabled', 'coding-low', 'coding-high'] as const)(
+    'passes the token saver mode %s to the wire request', (mode) => {
+      expect(body([user()], { tokenSaver: mode }).token_saver).toBe(mode)
+      expect(body([user()]).token_saver).toBeUndefined()
+    })
+
   it.each([
     [result()], [assistant([call()])], [assistant([call()]), user()],
     [assistant([call(), call()]), result()],
@@ -444,6 +450,22 @@ describe('validated configuration', () => {
     expect(modelInfo(inHistoryTools, 'deepseek-official', 'custom').toolUpdate).toBeUndefined()
     expect(modelInfo(resolveAdapterOptions({ thinking: 'disabled' }), 'deepseek-official', MODEL).reasoning?.efforts).toMatchObject([{ id: 'off', name: 'Off' }])
     expect(resolveAdapterOptions({ baseURL: 'https://example.com/anthropic///' }).baseURL).toBe('https://example.com/anthropic///')
+  })
+  it('advertises catalog token saver metadata on the exact model only', () => {
+    const saver = {
+      modes: ['default', 'simple', 'disabled', 'coding-low', 'coding-high'] as LlmTokenSaverMode[],
+      resolvedDefault: 'simple' as LlmTokenSaverResolvedMode,
+    }
+    const catalog = resolveAdapterOptions({ models: [{ id: MODEL, tokenSaver: saver }] })
+    expect(modelInfo(catalog, 'deepseek-official', MODEL).tokenSaver).toEqual(saver)
+    expect(modelInfo(catalog, 'deepseek-official', 'custom').tokenSaver).toBeUndefined()
+    expect(modelInfo(connection, 'deepseek-official', MODEL).tokenSaver).toBeUndefined()
+    expect(() => resolveAdapterOptions({
+      models: [{ id: MODEL, tokenSaver: { modes: ['simple', 'bogus'] as LlmTokenSaverMode[], resolvedDefault: 'simple' as LlmTokenSaverResolvedMode } }],
+    })).toThrow()
+    expect(() => resolveAdapterOptions({
+      models: [{ id: MODEL, tokenSaver: { modes: saver.modes, resolvedDefault: 'bogus' as LlmTokenSaverResolvedMode } }],
+    })).toThrow()
   })
   it.each([
     { thinking: 'disabled', reasoningEffort: 'high' }, { models: [{ id: '' }] },

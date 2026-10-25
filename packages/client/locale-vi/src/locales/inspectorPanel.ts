@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `inspectorPanel`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-experimental-inspector/src/client/bottom/locales.ts'
 
+/** Vietnamese dictionary for `inspectorPanel`, key-checked against upstream `en`. */
 export const vi = {
   'title': 'NodeJS Inspector',
   'toggle': 'Bật/tắt NodeJS Inspector',

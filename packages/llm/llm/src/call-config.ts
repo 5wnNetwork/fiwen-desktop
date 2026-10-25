@@ -8,6 +8,7 @@
 
 import type { GenerateOptions, LlmResolvedModelInfo } from './types.ts'
 import type { ReasoningEffortId } from './brand.ts'
+import type { LlmTokenSaverMode } from './token-saver.ts'
 
 /** Process-local identities of request objects assembled by dsh-agent-loop. */
 const AGENT_LOOP_REQUESTS = new WeakSet<GenerateOptions>()
@@ -15,6 +16,7 @@ const AGENT_LOOP_REQUESTS = new WeakSet<GenerateOptions>()
 /** Concrete generation settings; omitted controls use the selected route's defaults. */
 export interface LlmCallControls {
   reasoningEffort?: ReasoningEffortId
+  tokenSaver?: LlmTokenSaverMode
   temperature?: number
   maxTokens?: number
   stop?: string[]
@@ -69,6 +71,7 @@ export function callConfigEquals(a: LlmCallConfig, b: LlmCallConfig): boolean {
     a.provider !== b.provider
     || a.model !== b.model
     || a.reasoningEffort !== b.reasoningEffort
+    || a.tokenSaver !== b.tokenSaver
     || a.temperature !== b.temperature
     || a.maxTokens !== b.maxTokens
   ) return false

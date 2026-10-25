@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `command`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-commands/src/client/locales.ts'
 
+/** Vietnamese dictionary for `command`, key-checked against upstream `en`. */
 export const vi = {
   'section.add': 'Thêm',
   'section.commands': 'Lệnh',

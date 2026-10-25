@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `skill`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-skill/src/client/locales.ts'
 
+/** Vietnamese dictionary for `skill`, key-checked against upstream `en`. */
 export const vi = {
   'row.title': 'Kỹ năng',
   'row.running': 'Đang tải kỹ năng',

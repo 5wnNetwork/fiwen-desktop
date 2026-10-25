@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `shortcuts`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-shortcuts/src/client/locales.ts'
 
+/** Vietnamese dictionary for `shortcuts`, key-checked against upstream `en`. */
 export const vi = {
   'edit-label': 'Sửa phím tắt cho {command}',
   'record': 'Nhấn một phím tắt',

@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `goal`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-goal/src/client/locales.ts'
 
+/** Vietnamese dictionary for `goal`, key-checked against upstream `en`. */
 export const vi = {
   'phase.active': 'Mục tiêu đang chạy',
   'phase.active.disarmed': 'Mục tiêu không hoạt động',

@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `chat`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-chat/src/client/locale.ts'
 
+/** Vietnamese dictionary for `chat`, key-checked against upstream `en`. */
 export const vi = {
   'message.stepProcess.thinking': 'Đang phân tích yêu cầu',
   'message.stepProcess.read': 'Đang đọc tệp',
@@ -175,6 +175,7 @@ export const vi = {
   'message.turnUsage.title': 'Mức dùng lượt',
   'message.turnUsage.consumed': 'Sử dụng {total}',
   'message.turnUsage.model': 'Nhà cung cấp / mô hình',
+  'message.turnUsage.providerAccount': 'fiwen',
   'message.turnUsage.cacheHit': 'Cache hit',
   'message.turnUsage.input': 'Đầu vào (non-cached)',
   'message.turnUsage.cacheRead': 'Đầu vào (cached)',

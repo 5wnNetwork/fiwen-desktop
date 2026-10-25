@@ -51,7 +51,9 @@ export function SubagentModelSelectionFields(props: SubagentModelSelectionFields
       />
       <span>
         <span className={css.modelName}>{candidate.modelName}</span>
-        <span className={css.route}>{`${candidate.providerName} · ${candidate.provider}/${candidate.model}`}</span>
+        <span className={css.route}>{`${candidate.provider === 'deepseek-account'
+          ? t('subagentModelSelectionProviderAccount')
+          : candidate.providerName} · ${candidate.model}`}</span>
       </span>
       {!candidate.available
         ? <span className={css.unavailable}>{t('subagentModelSelectionUnavailable')}</span>

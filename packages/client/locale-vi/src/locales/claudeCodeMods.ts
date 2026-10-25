@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `claude-code-mods`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-experimental-client-ui-claude-code-mods/src/client/locales.ts'
 
+/** Vietnamese dictionary for `claude-code-mods`, key-checked against upstream `en`. */
 export const vi = {
   'band': 'Claude Code mods',
   'pressing': 'Đang xử lý…',

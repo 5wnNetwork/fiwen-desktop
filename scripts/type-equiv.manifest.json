@@ -98,6 +98,16 @@
     },
     {
       "doc": "docs/subsystems/llm-streaming.md",
+      "symbol": "LlmTokenSaverMode",
+      "source": "packages/llm/llm/src/token-saver.ts"
+    },
+    {
+      "doc": "docs/subsystems/llm-streaming.md",
+      "symbol": "LlmModelTokenSaverInfo",
+      "source": "packages/llm/llm/src/types.ts"
+    },
+    {
+      "doc": "docs/subsystems/llm-streaming.md",
       "symbol": "LlmResolvedModelInfo",
       "source": "packages/llm/llm/src/types.ts"
     },

@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `sidebarRight`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-sidebar-right/src/client/locales.ts'
 
+/** Vietnamese dictionary for `sidebarRight`, key-checked against upstream `en`. */
 export const vi = {
   'command.close': 'Đóng trang hoặc cửa sổ hiện tại',
   'command.refresh': 'Làm mới trang hiện tại',

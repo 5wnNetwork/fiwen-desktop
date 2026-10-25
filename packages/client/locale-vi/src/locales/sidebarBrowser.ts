@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `sidebarBrowser`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-sidebar-browser/src/client/locales.ts'
 
+/** Vietnamese dictionary for `sidebarBrowser`, key-checked against upstream `en`. */
 export const vi = {
   'type.label': 'Trình duyệt',
   'guide.title': 'Trình duyệt',

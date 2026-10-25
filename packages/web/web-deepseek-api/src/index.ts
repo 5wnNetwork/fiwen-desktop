@@ -10,6 +10,7 @@
 import type { Context, Volatile } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type {} from '@deepseek-ai/dsh-agent'
+import { launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
 import type { Session } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-web'
 import { DeepSeekFetchApiProvider } from './fetch.ts'
@@ -27,6 +28,9 @@ export type { DeepSeekSearchApiOptions } from './search.ts'
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'web-deepseek-api'
 
+/** Environment variable the unset `baseURL` resolves through, mirroring `DEEPSEEK_BASE_URL` on the Messages route. */
+const WEB_API_BASE_URL_ENV = 'DEEPSEEK_WEB_API_BASE_URL'
+
 /** The web seam both providers register into. */
 export const inject = ['web']
 
@@ -36,8 +40,8 @@ export interface Config {
   apiKey: Volatile<string | undefined>
   /** Credential reference resolved for each operation; defaults to `DEEPSEEK_API_KEY`. */
   apiKeyEnv: Volatile<string>
-  /** API base including its path prefix; `/search` and `/fetch` are appended. */
-  baseURL: Volatile<string>
+  /** API base including its path prefix; `/search` and `/fetch` are appended. Unset: `DEEPSEEK_WEB_API_BASE_URL`, else the public API. */
+  baseURL: Volatile<string | undefined>
   /** Search API results per search, from 1 through 50; a smaller request bound wins. Defaults to 10. */
   count: Volatile<number>
   /** Send the triggering user question, bounded to 128 characters, as `ori_question`. Defaults to true. */
@@ -47,7 +51,7 @@ export interface Config {
 export const Config = z.object({
   apiKey: z.string().role('secret').volatile(),
   apiKeyEnv: z.string().role('credential-ref').default('DEEPSEEK_API_KEY').volatile(),
-  baseURL: z.string().default(DEEPSEEK_WEB_API_BASE_URL).volatile(),
+  baseURL: z.string().volatile(),
   count: z.number().step(1).min(1).max(50).default(DEEPSEEK_DEFAULT_COUNT).volatile(),
   sendOriginalQuestion: z.boolean().default(true).volatile(),
 })
@@ -70,14 +74,16 @@ function latestUserQuestion(session: Session | undefined): string | undefined {
  * @param config - live settings, read once per operation.
  */
 export function apply(ctx: Context, config: Config): void {
+  const environment = launchEnvironmentOf(ctx)
   const auth = () => deepSeekWebAuth(ctx, { apiKey: config.apiKey.get(), apiKeyEnv: config.apiKeyEnv.get() })
+  const baseURL = () => config.baseURL.get() ?? environment.get(WEB_API_BASE_URL_ENV)?.value ?? DEEPSEEK_WEB_API_BASE_URL
   ctx.web.registerSearchProvider(new DeepSeekSearchApiProvider(() => ({
     ...auth(),
-    baseURL: config.baseURL.get(),
+    baseURL: baseURL(),
     count: config.count.get(),
     ...config.sendOriginalQuestion.get() ? {
       originalQuestion: () => latestUserQuestion(ctx.get('agents')?.currentInitiator()?.session),
     } : {},
   })))
-  ctx.web.registerFetchProvider(new DeepSeekFetchApiProvider(() => ({ ...auth(), baseURL: config.baseURL.get() })))
+  ctx.web.registerFetchProvider(new DeepSeekFetchApiProvider(() => ({ ...auth(), baseURL: baseURL() })))
 }

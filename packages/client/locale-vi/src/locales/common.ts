@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `common`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-locale/src/locales/en.ts'
 
+/** Vietnamese dictionary for `common`, key-checked against upstream `en`. */
 export const vi = {
   'ok': 'OK',
   'cancel': 'Hủy',

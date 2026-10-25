@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `sidebarDocumentPreview`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/src/client/locales.ts'
 
+/** Vietnamese dictionary for `sidebarDocumentPreview`, key-checked against upstream `en`. */
 export const vi = {
   'loading': 'Đang kết xuất tài liệu...',
   'loadMore': 'Tải thêm',

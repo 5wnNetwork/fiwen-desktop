@@ -1,9 +1,9 @@
+import type { frequencyZh } from '@deepseek-ai/dsh-client-ui-schedule/src/client/frequency-locales.ts'
+
 /**
  * Vietnamese shared frequency/cron dictionary, spread into `schedule.catalog`
  * and `schedule.manager` exactly like upstream spreads `frequencyEn`.
  */
-import type { frequencyZh } from '@deepseek-ai/dsh-client-ui-schedule/src/client/frequency-locales.ts'
-
 export const frequencyVi: Record<keyof typeof frequencyZh, string> = {
   'time.locale': 'vi',
   'time.utcPrefix': 'UTC',

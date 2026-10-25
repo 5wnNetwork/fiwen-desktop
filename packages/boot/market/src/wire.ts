@@ -3,7 +3,9 @@ import type { MarketCategoryView, MarketItemDetail, MarketItemKind, MarketItemVi
 
 /** A malformed backend body; `path` and `reason` describe the first violated rule. */
 export class MarketWireError extends Error {
+  /** JSON path of the first violated rule. */
   readonly path: string
+  /** Why the value at {@link path} was rejected. */
   readonly reason: string
 
   constructor(path: string, reason: string) {
@@ -83,6 +85,7 @@ export interface SkillFile {
   readonly encoding?: 'utf8' | 'base64'
 }
 
+/** The install payload of one skill item as the backend serves it. */
 export interface SkillPayload {
   readonly files: readonly SkillFile[]
 }
@@ -95,6 +98,8 @@ export type McpPayload =
 /**
  * Whether a served skill path stays inside its install directory: relative POSIX separators only,
  * no `.`/`..` segments, backslashes, drive letters, or NUL.
+ * @param path - skill-relative file path received from the market endpoint.
+ * @returns whether `path` is safe to extract under an install directory.
  */
 export function safeSkillPath(path: string): boolean {
   if (path === '' || path.startsWith('/') || path.includes('\\') || path.includes(':')) return false
@@ -154,12 +159,17 @@ function mcpPayloadAt(value: unknown, path: string): McpPayload {
   fail(`${path}.transport`, 'must be "stdio" or "http"')
 }
 
+/** One page of the catalog listing response. */
 export interface MarketItemList {
   readonly items: readonly MarketItemView[]
   readonly total: number
 }
 
-/** Parse or throw `MarketWireError`; the caller maps the failure to `market/invalid-response`. */
+/**
+ * Parse or throw `MarketWireError`; the caller maps the failure to `market/invalid-response`.
+ * @param body - decoded JSON of the catalog listing response.
+ * @returns the validated item list.
+ */
 export function parseList(body: unknown): MarketItemList {
   const object = objectAt(body, '$')
   if (!Array.isArray(object.items)) fail('$.items', 'must be an array')
@@ -167,6 +177,11 @@ export function parseList(body: unknown): MarketItemList {
   return { items, total: numberAt(object.total, '$.total') }
 }
 
+/**
+ * Parse or throw `MarketWireError`; the caller maps the failure to `market/invalid-response`.
+ * @param body - decoded JSON of the categories response.
+ * @returns the validated categories in served order.
+ */
 export function parseCategories(body: unknown): readonly MarketCategoryView[] {
   const object = objectAt(body, '$')
   if (!Array.isArray(object.categories)) fail('$.categories', 'must be an array')
@@ -181,6 +196,11 @@ export function parseCategories(body: unknown): readonly MarketCategoryView[] {
   })
 }
 
+/**
+ * Parse or throw `MarketWireError`; the caller maps the failure to `market/invalid-response`.
+ * @param body - decoded JSON of the item detail response.
+ * @returns the validated item detail.
+ */
 export function parseDetail(body: unknown): MarketItemDetail {
   const object = objectAt(body, '$')
   const item = objectAt(object.item, '$.item')
@@ -191,6 +211,7 @@ export function parseDetail(body: unknown): MarketItemDetail {
   }
 }
 
+/** The install payload response of one catalog item, kind-discriminated. */
 export interface InstallResult {
   readonly id: string
   readonly kind: MarketItemKind
@@ -199,6 +220,11 @@ export interface InstallResult {
   readonly payload: SkillPayload | McpPayload
 }
 
+/**
+ * Parse or throw `MarketWireError`; the caller maps the failure to `market/invalid-response`.
+ * @param body - decoded JSON of the install payload response.
+ * @returns the validated install payload.
+ */
 export function parseInstall(body: unknown): InstallResult {
   const object = objectAt(body, '$')
   const item = objectAt(object.item, '$.item')

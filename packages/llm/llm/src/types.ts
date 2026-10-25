@@ -8,6 +8,7 @@ import type { Branded } from '@deepseek-ai/dsh-brand'
 import type { FileAttachmentRef, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import type { MessageId, ToolCallId, ProviderRequestId, ReasoningEffortId } from './brand.ts'
 import type { Message, UserMessage } from './message.ts'
+import type { LlmTokenSaverMode, LlmTokenSaverResolvedMode } from './token-saver.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Events {
@@ -411,6 +412,14 @@ export interface LlmModelReasoningInfo {
   defaultEffort?: ReasoningEffortId
 }
 
+/** Server-side request compression selectable for one exact provider/model route. */
+export interface LlmModelTokenSaverInfo {
+  /** Saver modes the route accepts, in picker order. */
+  modes: readonly LlmTokenSaverMode[]
+  /** Concrete mode the route's `'default'` choice resolves to right now. */
+  resolvedDefault: LlmTokenSaverResolvedMode
+}
+
 /**
  * How a model applies a system prompt that changes mid-conversation.
  * `'in-history'`: the model reads the latest `system` message at any position
@@ -438,6 +447,8 @@ export interface LlmResolvedModelInfo extends LlmModelInfo {
   defaultMaxTokens?: number
   /** Adapter-owned selectable reasoning levels when exposed. */
   reasoning?: LlmModelReasoningInfo
+  /** Server-side request compression when the route's backend offers it. */
+  tokenSaver?: LlmModelTokenSaverInfo
   /** Declared mid-conversation system prompt handling; absent means only a leading system message is read. */
   systemPromptUpdate?: SystemPromptUpdate
   /** Declared mid-conversation tool declaration handling; absent means every request declares the complete tool list. */
@@ -538,6 +549,11 @@ export interface GenerateOptions {
   model: string
   /** Adapter-owned reasoning effort selected for this exact model. */
   reasoningEffort?: ReasoningEffortId
+  /**
+   * Server-side saver mode selected for this exact model; omission lets the
+   * backend apply its administered default, identical to `'default'`.
+   */
+  tokenSaver?: LlmTokenSaverMode
   /**
    * Ordered conversation messages, exactly as the provider sees them. A
    * loop-built request passes the derived history (dsh-agent-loop), whose

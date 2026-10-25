@@ -29,6 +29,8 @@ export type WireRequest = {
   system?: string
   thinking: { type: 'enabled' | 'disabled' }
   output_config?: { effort: 'low' | 'high' | 'max' }
+  /** Fiwen backend extension: server-side request compression; ignored by upstream endpoints that do not read it. */
+  token_saver?: string
   temperature?: number
   stop_sequences?: string[]
   tools?: {

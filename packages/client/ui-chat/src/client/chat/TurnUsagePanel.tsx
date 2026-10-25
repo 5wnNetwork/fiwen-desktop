@@ -35,7 +35,9 @@ export function TurnUsagePanel({ usage, t }: TurnUsagePanelProps) {
     ? null
     : formatCacheHitPercent(usage.cacheReadTokens, usage.totalTokens - usage.outputTokens, 1)
   const total = formatCompactCount(usage.totalTokens, t)
-  const routes = usage.routes?.map(route => `${route.provider}/${route.model}`).join(', ') ?? ''
+  const routes = usage.routes?.map(route =>
+    `${route.provider === 'deepseek-account' ? t('message.turnUsage.providerAccount') : route.provider}/${route.model}`,
+  ).join(', ') ?? ''
 
   return (
     <span ref={rootRef} className={css.root}>

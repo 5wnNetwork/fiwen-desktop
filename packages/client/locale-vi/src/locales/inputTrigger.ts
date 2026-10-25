@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `slash.menu`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-input-trigger/src/client/locales.ts'
 
+/** Vietnamese dictionary for `slash.menu`, key-checked against upstream `en`. */
 export const vi = {
   'command': 'Lệnh',
   'skill': 'Kỹ năng',

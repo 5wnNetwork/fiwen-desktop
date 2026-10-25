@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `model`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-model-selection/src/client/locales.ts'
 
+/** Vietnamese dictionary for `model`, key-checked against upstream `en`. */
 export const vi = {
   'provider.account': 'Tài khoản Fiwen',
   'command.label': 'Mô hình',
@@ -11,12 +11,18 @@ export const vi = {
   'trigger.selectAria': 'Chọn mô hình',
   'trigger.aria': 'Chọn mô hình, hiện tại {model}',
   'trigger.ariaEffort': 'Chọn mô hình, hiện tại {model}, mức suy luận {effort}',
-  'menu.aria': 'Mô hình, mức suy luận và tài khoản',
+  'menu.aria': 'Mô hình, mức suy luận, tiết kiệm token và tài khoản',
   'menu.model': 'Mô hình',
   'menu.effort': 'Mức suy luận',
+  'menu.saver': 'Tiết kiệm token',
   'menu.account': 'Tài khoản',
   'account.default': 'Mặc định',
   'effort.providerDefault': 'Mặc định',
+  'saver.mode.default': 'Mặc định',
+  'saver.mode.simple': 'Đơn giản',
+  'saver.mode.disabled': 'Tắt',
+  'saver.mode.coding-low': 'Lập trình (thấp)',
+  'saver.mode.coding-high': 'Lập trình (cao)',
   'status.loading': 'Đang làm mới danh sách mô hình…',
   'error.action': 'Thao tác mô hình thất bại: {message}',
   'error.sessionInUse': 'Session này đang được sử dụng, có thể bởi bạn có nhiều hơn 1 app FiwenDesktop đang hoạt động đồng thời. Hãy thử tắt chúng và thử lại.',
@@ -27,5 +33,6 @@ export const vi = {
   'search.empty': 'Không có mô hình phù hợp.',
   'empty.models': 'Không có mô hình nào.',
   'empty.efforts': 'Mô hình này không có mức suy luận.',
+  'empty.savers': 'Mô hình này không có chế độ tiết kiệm token.',
   'empty.accounts': 'Chưa có tài khoản đăng nhập.',
 } satisfies Partial<Record<keyof typeof en, string>>

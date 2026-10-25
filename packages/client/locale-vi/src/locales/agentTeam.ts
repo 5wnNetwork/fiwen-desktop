@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `agent-team`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-experimental-client-ui-agent-team/src/client/locales.ts'
 
+/** Vietnamese dictionary for `agent-team`, key-checked against upstream `en`. */
 export const vi = {
   'trigger': 'Nhóm agent',
   'loading': 'Đang tải Nhóm…',

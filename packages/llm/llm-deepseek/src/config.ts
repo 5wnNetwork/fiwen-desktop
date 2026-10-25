@@ -5,9 +5,10 @@ import z from '@deepseek-ai/schemastery'
 import { isVolatile } from '@deepseek-ai/cosmokit'
 import { resolveRetryPolicy, RetryPolicySchema } from '@deepseek-ai/dsh-llm'
 import type { ModelModality, RetryPolicyConfig } from '@deepseek-ai/dsh-llm'
+import { isLlmTokenSaverMode, isLlmTokenSaverResolvedMode } from '@deepseek-ai/dsh-llm'
 import type { LaunchEnvironmentSnapshot } from '@deepseek-ai/dsh-launch-environment'
 import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
-import type { DeepSeekCatalogModel, DeepSeekConnectionOptions } from './types.ts'
+import type { DeepSeekCatalogModel, DeepSeekCatalogTokenSaver, DeepSeekConnectionOptions } from './types.ts'
 import { DEFAULT_MODELS } from './models.ts'
 import { DEFAULT_STREAM_IDLE_TIMEOUT_MS, DEFAULT_CONTEXT_WINDOW, DEFAULT_MAX_TOKENS, DEFAULT_MAX_INLINE_REQUEST_IMAGE_BYTES, DEFAULT_IMAGE_OFFLOAD_BYTE_QUANTUM, DEFAULT_INLINE_IMAGE_OFFLOAD_BYTE_QUANTUM, DEFAULT_IMAGE_OFFLOAD_COUNT_QUANTUM, DEFAULT_FILE_EXPIRY_SECONDS, DEFAULT_FILE_REFRESH_MARGIN_SECONDS, DEFAULT_FILE_QUOTA_CLEANUP_BATCH, DEFAULT_FILES_API_TIMEOUT_MS } from './defaults.ts'
 import { DEFAULT_MAX_IMAGES_PER_REQUEST, DEFAULT_MAX_REQUEST_FILES_BYTES, DEFAULT_REQUEST_IMAGE_MAX_BYTES } from './request-pricing.ts'
@@ -79,6 +80,10 @@ export const catalogModelFields = {
   imageMaxBytes: z.number().step(1).min(1),
   systemPromptUpdate: z.const('in-history'),
   toolUpdate: z.union(['in-history', 'addition-only'] as const),
+  tokenSaver: (z.object({
+    modes: z.array(z.union(['default', 'simple', 'disabled', 'coding-low', 'coding-high'] as const)).min(1).required(),
+    resolvedDefault: z.union(['simple', 'disabled', 'coding-low', 'coding-high'] as const).required(),
+  }) as z<DeepSeekCatalogTokenSaver | undefined>).default(undefined),
 }
 
 const catalogModel: z<DeepSeekCatalogModel> = z.object({
@@ -177,6 +182,13 @@ function resolveModels(models: readonly DeepSeekCatalogModel[] | undefined): Dee
     if (toolUpdate !== undefined && toolUpdate !== 'in-history' && toolUpdate !== 'addition-only') {
       throw new Error(`llm-deepseek: catalog model "${model.id}" toolUpdate must be "in-history" or "addition-only" when present`)
     }
+    const tokenSaver = model.tokenSaver
+    if (tokenSaver !== undefined
+      && (tokenSaver.modes.length === 0
+        || tokenSaver.modes.some(mode => !isLlmTokenSaverMode(mode))
+        || !isLlmTokenSaverResolvedMode(tokenSaver.resolvedDefault))) {
+      throw new Error(`llm-deepseek: catalog model "${model.id}" tokenSaver must declare known modes and a concrete resolvedDefault`)
+    }
     if (seen.has(model.id)) throw new Error(`llm-deepseek: duplicate catalog model "${model.id}"`)
     seen.add(model.id)
     return {
@@ -187,6 +199,9 @@ function resolveModels(models: readonly DeepSeekCatalogModel[] | undefined): Dee
       ...model.maxTokens === undefined ? {} : { maxTokens: model.maxTokens },
       ...model.systemPromptUpdate === undefined ? {} : { systemPromptUpdate: model.systemPromptUpdate },
       ...model.toolUpdate === undefined ? {} : { toolUpdate: model.toolUpdate },
+      ...model.tokenSaver === undefined ? {} : {
+        tokenSaver: { modes: [...model.tokenSaver.modes], resolvedDefault: model.tokenSaver.resolvedDefault },
+      },
       inputModalities: [...inputModalities],
       ...hasImage
         ? {

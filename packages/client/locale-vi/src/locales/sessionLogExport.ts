@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `session-log-download`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-session-log-export/src/client/locales.ts'
 
+/** Vietnamese dictionary for `session-log-download`, key-checked against upstream `en`. */
 export const vi = {
   'header.more': 'Thao tác khác',
   'menu.download': 'Tải nhật ký session',

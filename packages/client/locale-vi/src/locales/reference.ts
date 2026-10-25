@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `reference`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-reference/src/client/locales.ts'
 
+/** Vietnamese dictionary for `reference`, key-checked against upstream `en`. */
 export const vi = {
   'section.files': 'Tệp & thư mục',
   'section.subagents': 'Subagent',

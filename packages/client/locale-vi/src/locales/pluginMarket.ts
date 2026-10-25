@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `pluginMarket`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-plugin-market/src/client/locales.ts'
 
+/** Vietnamese dictionary for `pluginMarket`, key-checked against upstream `en`. */
 export const vi = {
   'title': 'Khám phá',
   'refresh': 'Làm mới',

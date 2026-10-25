@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `settings.permission`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-permission-presets/src/client/locales.ts'
 
+/** Vietnamese dictionary for `settings.permission`, key-checked against upstream `en`. */
 export const vi = {
   'title': 'Quyền',
   'description': 'Chọn chế độ quyền mặc định cho session mới',

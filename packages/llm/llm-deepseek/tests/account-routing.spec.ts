@@ -231,7 +231,11 @@ it('cancels an account child without stopping its API-key parent', async () => {
 
 it('lists each DeepSeek route only when its own credential is present', async () => {
   vi.stubEnv('DEEPSEEK_API_KEY', '')
-  vi.stubGlobal('fetch', vi.fn((input: string | URL | Request) => Promise.resolve(listingRequest(input) ?? new Response(null, { status: 500 }))))
+  // The account route offers only what its listing advertises; signed out, no listing request runs.
+  const listing = Response.json({ data: [{ id: 'deepseek-flash', api_capabilities: { anthropic_messages: {} }, input_modalities: ['text'] }] })
+  vi.stubGlobal('fetch', vi.fn((input: string | URL | Request) => Promise.resolve(
+    new URL(input instanceof Request ? input.url : input).pathname === '/models' ? listing.clone() : new Response(null, { status: 500 }),
+  )))
   const ctx = await harness()
   let token: string | undefined
   ctx.provide('deepseekAccount', { resolveToken: async (url: string) => new URL(url).origin === 'https://api.deepseek.com' ? token : undefined } as DeepSeekAccount)

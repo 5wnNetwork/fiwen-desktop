@@ -589,6 +589,23 @@ interface LlmModelReasoningInfo {
 }
 ```
 
+Token saver is a server-side request-compression capability the owning backend advertises. Unlike reasoning effort, its modes are a fixed wire vocabulary; each route's listing declares the subset it accepts and the concrete mode `'default'` resolves to.
+
+```ts type-equiv
+/** One selectable saver mode; `'default'` defers to the backend's administered mode. */
+type LlmTokenSaverMode = 'default' | 'simple' | 'disabled' | 'coding-low' | 'coding-high'
+```
+
+```ts type-equiv
+/** Server-side request compression selectable for one exact provider/model route. */
+interface LlmModelTokenSaverInfo {
+  /** Saver modes the route accepts, in picker order. */
+  modes: readonly LlmTokenSaverMode[]
+  /** Concrete mode the route's `'default'` choice resolves to right now. */
+  resolvedDefault: LlmTokenSaverResolvedMode
+}
+```
+
 ```ts type-equiv
 /** Exact-route model metadata resolved by its owning adapter. */
 interface LlmResolvedModelInfo extends LlmModelInfo {
@@ -598,6 +615,8 @@ interface LlmResolvedModelInfo extends LlmModelInfo {
   defaultMaxTokens?: number
   /** Adapter-owned selectable reasoning levels when exposed. */
   reasoning?: LlmModelReasoningInfo
+  /** Server-side request compression when the route's backend offers it. */
+  tokenSaver?: LlmModelTokenSaverInfo
   /** Declared mid-conversation system prompt handling; absent means only a leading system message is read. */
   systemPromptUpdate?: SystemPromptUpdate
   /** Declared mid-conversation tool declaration handling; absent means every request declares the complete tool list. */
@@ -630,6 +649,11 @@ interface GenerateOptions {
   model: string
   /** Adapter-owned reasoning effort selected for this exact model. */
   reasoningEffort?: ReasoningEffortId
+  /**
+   * Server-side saver mode selected for this exact model; omission lets the
+   * backend apply its administered default, identical to `'default'`.
+   */
+  tokenSaver?: LlmTokenSaverMode
   /**
    * Ordered conversation messages, exactly as the provider sees them. A
    * loop-built request passes the derived history (dsh-agent-loop), whose
@@ -776,6 +800,7 @@ FIXME(call-config-shape): revisit which remaining fields are genuinely epoch-lev
 /** Concrete generation settings; omitted controls use the selected route's defaults. */
 interface LlmCallControls {
   reasoningEffort?: ReasoningEffortId
+  tokenSaver?: LlmTokenSaverMode
   temperature?: number
   maxTokens?: number
   stop?: string[]

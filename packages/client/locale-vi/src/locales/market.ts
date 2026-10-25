@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `market`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-market/src/client/locales.ts'
 
+/** Vietnamese dictionary for `market`, key-checked against upstream `en`. */
 export const vi = {
   'title': 'Chợ',
   'refresh': 'Làm mới',

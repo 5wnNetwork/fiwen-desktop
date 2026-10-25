@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `documentMarkdown`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/src/client/markdown/locales.ts'
 
+/** Vietnamese dictionary for `documentMarkdown`, key-checked against upstream `en`. */
 export const vi = {
   'viewer.label': 'Markdown',
   'code.copy': 'Sao chép',

@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `subagent`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-subagent/src/client/locales.ts'
 
+/** Vietnamese dictionary for `subagent`, key-checked against upstream `en`. */
 export const vi = {
   'duration.seconds': '{seconds}s',
   'duration.minutes': '{minutes}m {seconds}s',

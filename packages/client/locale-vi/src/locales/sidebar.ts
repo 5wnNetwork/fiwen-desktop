@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `sidebar`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-sidebar/src/client/locales.ts'
 
+/** Vietnamese dictionary for `sidebar`, key-checked against upstream `en`. */
 export const vi = {
   'session.new': 'Session mới',
   'session.new.label': 'Session mới',

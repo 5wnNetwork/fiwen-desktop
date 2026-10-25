@@ -154,6 +154,7 @@ export function serialize(
     max_tokens: options.maxTokens ?? model?.maxTokens ?? connection.maxTokens,
     thinking: { type: effort === 'off' ? 'disabled' : 'enabled' },
     ...effort === 'off' ? {} : { output_config: { effort: effort as 'low' | 'high' | 'max' } },
+    ...options.tokenSaver === undefined ? {} : { token_saver: options.tokenSaver },
     ...system.length === 0 ? {} : { system },
     ...options.temperature === undefined ? {} : { temperature: options.temperature },
     ...options.stop === undefined ? {} : { stop_sequences: options.stop },

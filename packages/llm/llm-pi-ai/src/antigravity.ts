@@ -565,6 +565,7 @@ const MODEL_LIST = ANTIGRAVITY_MODELS.map(spec => ({
  * implementation does not serve. The model list is static, matching what the
  * IDE ships; upstream `fetchAvailableModels` is intentionally not consulted so
  * the served catalog stays the one this adapter was verified against.
+ * @returns the Antigravity provider registration.
  */
 export function antigravityProvider(): Provider {
   return {

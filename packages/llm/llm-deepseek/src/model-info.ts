@@ -77,6 +77,7 @@ export function modelInfo(
     defaultMaxTokens: configured?.maxTokens ?? connection.maxTokens,
     ...configured?.systemPromptUpdate === undefined ? {} : { systemPromptUpdate: configured.systemPromptUpdate },
     ...configured?.toolUpdate === undefined ? {} : { toolUpdate: configured.toolUpdate },
+    ...configured?.tokenSaver === undefined ? {} : { tokenSaver: configured.tokenSaver },
     ...connection.defaults.thinking === 'disabled'
       ? {
         reasoning: {

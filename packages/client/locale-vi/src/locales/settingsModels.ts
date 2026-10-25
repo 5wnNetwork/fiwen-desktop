@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `settings.models`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-settings-models/src/client/locales.ts'
 
+/** Vietnamese dictionary for `settings.models`, key-checked against upstream `en`. */
 export const vi = {
   'nav': 'Mô hình',
   'deepSeekAccount': 'Tài khoản Fiwen',

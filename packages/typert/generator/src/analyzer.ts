@@ -2740,8 +2740,16 @@ class FaceAnalyzer {
     const target = packageExportTargets(registration.manifest)
       .find(([subpath]) => subpath === module.subpath)?.[1]
     if (target === undefined) return undefined
-    const sourceFile = this.sourceFiles.get(realPath(sourcePathForExport(registration.root, target))) as ts.SourceFile
-    const moduleSymbol = this.checker.getSymbolAtLocation(sourceFile) as ts.Symbol
+    const exportPath = sourcePathForExport(registration.root, target)
+    const sourceFile = this.sourceFiles.get(realPath(exportPath))
+    if (sourceFile === undefined) {
+      throw new TypertAnalysisError(
+        `typert(${this.face}): ${module.package} export ${module.subpath} resolves to source ${exportPath}`
+        + ` outside the ${face} program; check the workspace path mappings`,
+      )
+    }
+    const moduleSymbol = this.checker.getSymbolAtLocation(sourceFile)
+    if (moduleSymbol === undefined) return undefined
     const exported = this.checker.getExportsOfModule(moduleSymbol)
       .find(candidate => candidate.name === requestedName && this.resolveSymbol(candidate) === symbol)
     return exported?.name

@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `cordis`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-cordis/src/client/locales.ts'
 
+/** Vietnamese dictionary for `cordis`, key-checked against upstream `en`. */
 export const vi = {
   'row.defineTitle': 'Đăng ký plugin Cordis',
   'a11y.preparing': 'Đang chuẩn bị lời gọi công cụ Cordis',

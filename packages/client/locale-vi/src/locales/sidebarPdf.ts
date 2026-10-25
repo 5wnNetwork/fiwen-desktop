@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `sidebarPdf`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/src/client/pdf/locales.ts'
 
+/** Vietnamese dictionary for `sidebarPdf`, key-checked against upstream `en`. */
 export const vi = {
   'title': 'PDF',
   'pageImage': 'Trang PDF {page}',

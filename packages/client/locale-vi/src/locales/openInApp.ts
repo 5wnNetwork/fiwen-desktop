@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `open-in-app`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-open-in-app/src/client/locales.ts'
 
+/** Vietnamese dictionary for `open-in-app`, key-checked against upstream `en`. */
 export const vi = {
   'open.title': 'Mở trong {app}',
   'path.appDefault': '{app} (mặc định)',

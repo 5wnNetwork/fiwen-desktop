@@ -18,6 +18,7 @@ export type SubagentSettingsLocaleKey =
   | 'subagentModelSelectionToggle' | 'subagentModelSelectionChoose' | 'subagentModelSelectionAllowed'
   | 'subagentModelSelectionLoading' | 'subagentModelSelectionLoadFailed' | 'subagentModelSelectionRetry'
   | 'subagentModelSelectionPartial' | 'subagentModelSelectionUnavailable'
+  | 'subagentModelSelectionProviderAccount'
   | 'subagentModelSelectionUnavailableGroup' | 'subagentModelSelectionEmpty'
   | 'subagentModelSelectionRequired' | 'subagentModelSelectionConflict' | 'subagentModelSelectionOff'
 
@@ -52,6 +53,7 @@ export const en: Record<SubagentSettingsLocaleKey, string> = {
   subagentModelSelectionLoadFailed: 'Models could not be loaded.',
   subagentModelSelectionRetry: 'Retry',
   subagentModelSelectionPartial: 'Some model providers could not be loaded; saved choices remain removable.',
+  subagentModelSelectionProviderAccount: 'fiwen',
   subagentModelSelectionUnavailable: 'Currently unavailable',
   subagentModelSelectionUnavailableGroup: 'Saved but currently unavailable',
   subagentModelSelectionEmpty: 'No model provider currently advertises a model.',
@@ -91,6 +93,7 @@ export const zh: Record<SubagentSettingsLocaleKey, string> = {
   subagentModelSelectionLoadFailed: '无法加载模型。',
   subagentModelSelectionRetry: '重试',
   subagentModelSelectionPartial: '部分模型提供方暂时无法加载；已保存的选择仍可移除。',
+  subagentModelSelectionProviderAccount: 'fiwen',
   subagentModelSelectionUnavailable: '当前不可用',
   subagentModelSelectionUnavailableGroup: '已保存但当前不可用',
   subagentModelSelectionEmpty: '当前没有模型提供方公布模型。',

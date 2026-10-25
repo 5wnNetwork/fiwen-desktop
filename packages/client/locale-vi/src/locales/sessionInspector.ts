@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `session-inspector`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-experimental-session-inspector/src/client/locales.ts'
 
+/** Vietnamese dictionary for `session-inspector`, key-checked against upstream `en`. */
 export const vi = {
   'tab.title': 'Nhật ký session',
   'tab.description': 'Phân tích nhật ký thô và tin nhắn trò chuyện đã nhóm của session hiện tại trong thanh bên.',

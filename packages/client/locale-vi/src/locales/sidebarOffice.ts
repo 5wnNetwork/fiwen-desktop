@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `sidebarOffice`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-sidebar-documentpreview/src/client/office/locales.ts'
 
+/** Vietnamese dictionary for `sidebarOffice`, key-checked against upstream `en`. */
 export const vi = {
   'title': 'Tài liệu Office',
   'loading': 'Đang kết xuất tài liệu...',

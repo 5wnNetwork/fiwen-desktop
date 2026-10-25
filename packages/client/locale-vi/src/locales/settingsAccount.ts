@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `settings.account`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-settings-account/src/client/locales.ts'
 
+/** Vietnamese dictionary for `settings.account`, key-checked against upstream `en`. */
 export const vi = {
   'modelSignInRequired': 'Mô hình không khả dụng. Hãy đăng nhập rồi thử lại.',
   'sessionExpired': 'Bạn đã đăng xuất khỏi tài khoản, vui lòng đăng nhập lại.',

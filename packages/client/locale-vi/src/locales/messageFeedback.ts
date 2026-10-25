@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `feedback`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-message-feedback/src/client/locales.ts'
 
+/** Vietnamese dictionary for `feedback`, key-checked against upstream `en`. */
 export const vi = {
   'action.like': 'Phản hồi tốt',
   'action.likeActive': 'Bỏ đánh giá',

@@ -33,6 +33,7 @@ import type { ResolvedRetryPolicy } from './retry-policy.ts'
 import type { ProviderRequestId } from './brand.ts'
 import { callConfigEquals } from './call-config.ts'
 import type { ConfigureCall, LlmCallConfig, LlmCallConfigAdapterDefaults } from './call-config.ts'
+import { isLlmTokenSaverMode, isLlmTokenSaverResolvedMode } from './token-saver.ts'
 import { HarnessError, INVALID_CREDENTIAL_CODE } from './error.ts'
 import { normalizeLlmFailure } from './adapter-failure.ts'
 import { normalizeApiKey } from './api-key.ts'
@@ -53,6 +54,8 @@ export * from './retry-policy.ts'
 export { BlockAssembler } from './assembler.ts'
 export { callConfigEquals, isAgentLoopRequest, markAgentLoopRequest } from './call-config.ts'
 export type { ConfigureCall, LlmCallConfig, LlmCallConfigAdapterDefaults, LlmCallControls } from './call-config.ts'
+export { isLlmTokenSaverMode, isLlmTokenSaverResolvedMode, LLM_TOKEN_SAVER_MODES } from './token-saver.ts'
+export type { LlmTokenSaverMode, LlmTokenSaverResolvedMode } from './token-saver.ts'
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
@@ -843,6 +846,21 @@ export class LlmRuntime extends TypertRemoteService {
       ...resolved.systemPromptUpdate === undefined ? {} : { systemPromptUpdate: resolved.systemPromptUpdate },
       ...resolved.toolUpdate === undefined ? {} : { toolUpdate: resolved.toolUpdate },
     }
+    const tokenSaver = resolved.tokenSaver
+    if (tokenSaver !== undefined) {
+      if (tokenSaver.modes.length === 0
+        || tokenSaver.modes.some(mode => !isLlmTokenSaverMode(mode))
+        || !isLlmTokenSaverResolvedMode(tokenSaver.resolvedDefault)) {
+        throw new LlmError(
+          `adapter returned invalid token saver metadata for provider "${provider}" model "${model}"`,
+          'INVALID_MODEL_TOKEN_SAVER',
+        )
+      }
+      info.tokenSaver = {
+        modes: [...tokenSaver.modes],
+        resolvedDefault: tokenSaver.resolvedDefault,
+      }
+    }
     const reasoning = resolved.reasoning
     if (reasoning === undefined) return info
     if (reasoning.efforts.length === 0) {
@@ -939,6 +957,16 @@ export class LlmRuntime extends TypertRemoteService {
           )
         }
         if (requested !== effective) resolvedConfig = { ...defaulted, reasoningEffort: effective }
+      }
+    }
+    const requestedSaver = resolvedConfig.tokenSaver
+    if (requestedSaver !== undefined) {
+      const saver = info.tokenSaver
+      if (saver === undefined || !saver.modes.includes(requestedSaver)) {
+        throw new LlmError(
+          `provider "${config.provider}" model "${config.model}" does not support token saver "${requestedSaver}"`,
+          'UNSUPPORTED_TOKEN_SAVER',
+        )
       }
     }
     return {

@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `sidebarFiles`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-sidebar-files/src/client/locales.ts'
 
+/** Vietnamese dictionary for `sidebarFiles`, key-checked against upstream `en`. */
 export const vi = {
   'shortcut.noSession': 'Hãy chọn một session trước',
   'type.label': 'Tệp',

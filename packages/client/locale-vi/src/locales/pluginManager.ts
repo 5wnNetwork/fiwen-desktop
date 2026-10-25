@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `pluginManager`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-plugin-manager/src/client/locales.ts'
 
+/** Vietnamese dictionary for `pluginManager`, key-checked against upstream `en`. */
 export const vi = {
   'panel': 'Plugin',
   'title': 'Plugin',

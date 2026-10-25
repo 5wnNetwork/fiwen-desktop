@@ -1,8 +1,8 @@
-/** Vietnamese dictionary for `schedule.catalog`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-schedule/src/client/locales.ts'
 
 import { frequencyVi } from './frequency.ts'
 
+/** Vietnamese dictionary for `schedule.catalog`, key-checked against upstream `en`. */
 export const vi = {
   'trigger.label': 'Lời nhắc',
   'list.loading': 'Đang tải lời nhắc…',

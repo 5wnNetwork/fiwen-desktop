@@ -14,6 +14,7 @@ const modelSelectionSchema = z.object({
   provider: z.string().min(1),
   model: z.string().min(1),
   reasoningEffort: z.string().min(1).optional(),
+  tokenSaver: z.string().min(1).optional(),
 }) as unknown as z.ZodType<ModelSelection>
 
 const modelSelectionProjectionStateSchema = z.object({
@@ -48,6 +49,9 @@ function applyModelSelectionProjection(
     ...(event.data.header.config.reasoningEffort === undefined
       ? {}
       : { reasoningEffort: String(event.data.header.config.reasoningEffort) }),
+    ...(event.data.header.config.tokenSaver === undefined
+      ? {}
+      : { tokenSaver: String(event.data.header.config.tokenSaver) }),
   }
   const pending = sameSelection(state.pending, lastUsed) ? null : state.pending
   return sameSelection(state.lastUsed, lastUsed) && pending === state.pending
@@ -71,7 +75,8 @@ function sameSelection(left: ModelSelection | null, right: ModelSelection | null
   return left === right || (left !== null && right !== null
     && left.provider === right.provider
     && left.model === right.model
-    && left.reasoningEffort === right.reasoningEffort)
+    && left.reasoningEffort === right.reasoningEffort
+    && left.tokenSaver === right.tokenSaver)
 }
 
 /**

@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `voice-input`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-experimental-client-ui-voice-input/src/client/locales.ts'
 
+/** Vietnamese dictionary for `voice-input`, key-checked against upstream `en`. */
 export const vi = {
   'dictate': 'Đọc bằng giọng nói',
   'setupPrompt.title': 'Thiết lập nhập giọng nói trước khi ghi âm',

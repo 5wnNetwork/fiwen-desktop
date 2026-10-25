@@ -1,9 +1,10 @@
 /**
  * ModelSelect: the composer's named model seat (`conversation.input.model`).
- * Two-level selection per figma 496:26454's MenuDropdown: the root menu is
- * the Model / Effort row pair (label + current value + a right chevron),
- * each drilling into its own list — the provider-grouped model list over
- * the shared directory, and the effort levels. The trigger (313:14108's
+ * Two-level selection per figma 496:26454's MenuDropdown: the root menu's
+ * rows (label + current value + a right chevron — Model, Effort, Token saver,
+ * Account) each drill into their own list — the provider-grouped model list
+ * over the shared directory, the effort levels, the saver modes the routed
+ * endpoint advertises, and the provider's accounts. The trigger (313:14108's
  * ToggleButton) shows both: model name + effort in the caption tone.
  * Model catalogs above four entries show search, which retains focus while
  * ↑/↓ cycle the highlighted result; Enter and Tab accept it. Smaller model
@@ -41,12 +42,22 @@ import {
   IconDataOutlineRegular, IconWarningOutlineRegular, Input, rankByName, StateDot, Toast,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { PropsLocale, PropsRenderSlots, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
+import type { ModelKey } from './locales.ts'
 import type { ModelLabelOwner, ModelSelectInjected } from './slots.ts'
 import css from './ModelSelect.module.css'
 import { orderModelProviders } from './provider-order.ts'
 
 /** Which pane the dropdown shows: the root rows or one drilled-in list. */
-type Pane = 'root' | 'model' | 'effort' | 'account'
+type Pane = 'root' | 'model' | 'effort' | 'saver' | 'account'
+
+/** Locale key of one saver mode; an unlisted wire mode renders as its id. */
+const SAVER_MODE_KEYS: Record<string, ModelKey> = {
+  'default': 'saver.mode.default',
+  'simple': 'saver.mode.simple',
+  'disabled': 'saver.mode.disabled',
+  'coding-low': 'saver.mode.coding-low',
+  'coding-high': 'saver.mode.coding-high',
+}
 
 /** One dynamic effort row; undefined means preserve the provider default. */
 interface EffortChoice {
@@ -155,6 +166,18 @@ export function ModelSelect(
         label: effort.name,
       })),
     ], [reasoning, t])
+  const saver = currentChoice?.model.tokenSaver
+  /** The mode a request uses; the backend resolves an unset selection's 'default'. */
+  const effectiveSaver = state.current?.tokenSaver ?? 'default'
+  const saverModeLabel = (mode: string): string => {
+    const key = SAVER_MODE_KEYS[mode]
+    if (key === undefined) return mode
+    const label = t(key)
+    return mode === 'default' && saver !== undefined
+      ? `${label} · ${saverModeLabel(saver.resolvedDefault)}`
+      : label
+  }
+  const saverLabel = saverModeLabel(effectiveSaver)
   const { pending } = state
   const busy = pending !== null
   // The routed provider's account flow; undefined when it offers none.
@@ -163,7 +186,8 @@ export function ModelSelect(
     : accountsState.byProvider.get(state.current.provider)
   const accountViews = providerAccounts?.accounts ?? []
   const selectedAccount = accountViews.find(view => view.selected)
-  const accountCellIndex = 1 + (reasoning === undefined ? 0 : 1)
+  const saverCellIndex = 1 + (reasoning === undefined ? 0 : 1)
+  const accountCellIndex = saverCellIndex + (saver === undefined ? 0 : 1)
 
   const reload = (): void => {
     lastActionRef.current = 'load'
@@ -191,7 +215,7 @@ export function ModelSelect(
 
   // Pane switches unmount the focused row; restore focus inside the menu so
   // keyboard navigation remains available.
-  const paneFocus = useRef<'drill' | 'model' | 'effort' | 'account' | null>(null)
+  const paneFocus = useRef<'drill' | 'model' | 'effort' | 'saver' | 'account' | null>(null)
   const previousShowSearch = useRef(showSearch)
   useEffect(() => {
     const changedSearchMode = previousShowSearch.current !== showSearch
@@ -213,9 +237,11 @@ export function ModelSelect(
       ;(target ?? triggerRef.current)?.focus()
       return
     }
-    const cell = itemRefs.current[intent === 'effort' ? 1 : intent === 'account' ? accountCellIndex : 0]
+    const cell = itemRefs.current[intent === 'effort'
+      ? 1
+      : intent === 'saver' ? saverCellIndex : intent === 'account' ? accountCellIndex : 0]
     ;(cell !== null && cell !== undefined && !cell.disabled ? cell : triggerRef.current)?.focus()
-  }, [open, pane, showSearch, accountCellIndex])
+  }, [open, pane, showSearch, saverCellIndex, accountCellIndex])
 
   useEffect(() => {
     const viewport = groupsRef.current
@@ -431,8 +457,23 @@ export function ModelSelect(
       provider: state.current.provider,
       model: state.current.model,
       ...effort === undefined ? {} : { reasoningEffort: effort },
+      ...state.current.tokenSaver === undefined ? {} : { tokenSaver: state.current.tokenSaver },
     }
     submit(selection)
+  }
+
+  const chooseSaver = (mode: string): void => {
+    if (state.current === null) return
+    if (effectiveSaver === mode) {
+      closeAfterSelection()
+      return
+    }
+    submit({
+      provider: state.current.provider,
+      model: state.current.model,
+      ...state.current.reasoningEffort === undefined ? {} : { reasoningEffort: state.current.reasoningEffort },
+      tokenSaver: mode,
+    })
   }
 
   /** An account row's display name: the flow's label, else its slot, else the base record's name. */
@@ -553,6 +594,13 @@ export function ModelSelect(
                 <button ref={itemRef()} type="button" role="menuitem" className={css.cell} onClick={() => { drill('effort') }}>
                   <span className={css.cellLabel}>{t('menu.effort')}</span>
                   <span className={css.cellValue}>{effortLabel}</span>
+                  <IconChevronRightOutlineRegular className={css.cellChevron} />
+                </button>
+              )}
+              {saver !== undefined && (
+                <button ref={itemRef()} type="button" role="menuitem" className={css.cell} onClick={() => { drill('saver') }}>
+                  <span className={css.cellLabel}>{t('menu.saver')}</span>
+                  <span className={css.cellValue}>{saverLabel}</span>
                   <IconChevronRightOutlineRegular className={css.cellChevron} />
                 </button>
               )}
@@ -700,6 +748,41 @@ export function ModelSelect(
                         && pending.model === state.current.model && pending.reasoningEffort === level.effort
                         ? <StateDot state="ongoing" />
                         : effectiveEffort === level.effort ? <IconCheckOutlineRegular /> : null}
+                    </span>
+                  </button>
+                ))}
+            </>
+          )}
+
+          {pane === 'saver' && (
+            <>
+              {state.error !== null && lastActionRef.current === 'load' && (
+                <div className={css.error}>
+                  <span>{t('error.action', { message: state.error })}</span>
+                  <button type="button" className={css.retry} onClick={reload}>{t('action.reload')}</button>
+                </div>
+              )}
+              {saver === undefined
+                ? <div className={css.empty}>{t('empty.savers')}</div>
+                : saver.modes.map(mode => (
+                  <button
+                    ref={itemRef()}
+                    type="button"
+                    role="menuitemradio"
+                    aria-checked={effectiveSaver === mode}
+                    className={clsx(css.option, effectiveSaver === mode && css.selected)}
+                    key={mode}
+                    disabled={busy}
+                    onClick={() => { chooseSaver(mode) }}
+                  >
+                    <span className={css.optionCopy}>
+                      <span className={css.modelName}>{saverModeLabel(mode)}</span>
+                    </span>
+                    <span className={css.check}>
+                      {pending !== null && pending.provider === state.current?.provider
+                        && pending.model === state.current.model && pending.tokenSaver === mode
+                        ? <StateDot state="ongoing" />
+                        : effectiveSaver === mode ? <IconCheckOutlineRegular /> : null}
                     </span>
                   </button>
                 ))}

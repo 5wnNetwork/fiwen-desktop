@@ -9,6 +9,7 @@ import type {
   ModelCatalog,
   ModelReasoning,
   ModelSelection,
+  ModelTokenSaver,
 } from './types.ts'
 
 /**
@@ -39,11 +40,15 @@ export async function buildModelCatalog(
               ? {}
               : { defaultEffort: resolved.reasoning.defaultEffort }),
           }
+        const tokenSaver: ModelTokenSaver | undefined = resolved.tokenSaver === undefined
+          ? undefined
+          : { modes: [...resolved.tokenSaver.modes], resolvedDefault: resolved.tokenSaver.resolvedDefault }
         return {
           id: model.id,
           name: model.name,
           ...(model.description === undefined ? {} : { description: model.description }),
           ...(reasoning === undefined ? {} : { reasoning }),
+          ...(tokenSaver === undefined ? {} : { tokenSaver }),
         }
       }))
       return {

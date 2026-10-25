@@ -108,12 +108,24 @@ describe('Subagent model selection fields', () => {
           available: true,
           selected: false,
         },
+        {
+          key: 'deepseek-account\0beam',
+          provider: 'deepseek-account',
+          model: 'beam',
+          providerName: 'Fiwen Account',
+          modelName: 'Beam',
+          available: true,
+          selected: false,
+        },
       ],
       catalogStatus: 'ready',
     })
 
     expect(screen.getByRole('switch').getAttribute('aria-checked')).toBe('true')
     expect(screen.getByText('Alpha API', { exact: true })).toBeTruthy()
+    expect(screen.getByText('Alpha API · fast')).toBeTruthy()
+    expect(screen.getByText('fiwen · beam')).toBeTruthy()
+    expect(screen.queryByText(/deepseek-account/)).toBeNull()
     fireEvent.click(screen.getByRole('checkbox', { name: /Fast/ }))
     fireEvent.click(screen.getByRole('checkbox', { name: /Deep/ }))
     expect(actions.toggleModel).toHaveBeenCalledWith('alpha\0fast')

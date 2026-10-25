@@ -57,6 +57,9 @@ function listed(base: DeepSeekCatalogModel, entry: ListingEntry, facts: ListedFa
     ...facts.contextWindow === undefined ? {} : { contextWindow: facts.contextWindow },
     ...facts.maxOutputTokens === undefined ? {} : { maxTokens: Math.min(routeMaxTokens, facts.maxOutputTokens) },
     ...facts.systemPromptUpdate === 'in-history' ? { systemPromptUpdate: 'in-history' as const } : {},
+    ...facts.tokenSaver === undefined
+      ? {}
+      : { tokenSaver: { modes: [...facts.tokenSaver.modes], resolvedDefault: facts.tokenSaver.resolvedDefault } },
     inputModalities: [...facts.inputModalities],
   })
 }

@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `question`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-user-questions/src/client/locales.ts'
 
+/** Vietnamese dictionary for `question`, key-checked against upstream `en`. */
 export const vi = {
   'error.incomplete': 'Hãy hoàn thành câu hỏi này trước.',
   'error.unanswered': 'Hãy chọn một tùy chọn hoặc nhập câu trả lời tùy chỉnh.',

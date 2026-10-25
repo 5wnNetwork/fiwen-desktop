@@ -155,6 +155,14 @@ const SERVICE_ROLES: ServiceRole[] = [
     note: 'Fetches and validates the index sources the user configures; installation goes through the plugin manager.',
   },
   {
+    key: 'market',
+    pkg: 'market',
+    title: 'Fiwen marketplace catalog and installs',
+    mode: 'core',
+    consumers: ['client-ui-market'],
+    note: 'Browses the curated Fiwen catalog and owns the local install ledger; skill and MCP payloads land through its Remote face.',
+  },
+  {
     key: 'profileContext',
     pkg: 'app-boot',
     title: 'Launcher-owned profile data',
@@ -320,6 +328,13 @@ const SERVICE_ROLES: ServiceRole[] = [
     title: 'Host credential-surface Remote controller',
     mode: 'core',
     note: 'Projects the credential-reference seam onto the generated Remote namespace: batch fan-out, view projection, and refusal mapping live here, not on the seam Definition.',
+  },
+  {
+    key: 'authorizationController',
+    pkg: 'api-settings-controller',
+    title: 'Host authorization-surface Remote controller',
+    mode: 'core',
+    note: 'Projects the provider-authorization seam onto the generated Remote namespace under the `authorization` namespace, beside the credential and settings controllers.',
   },
   {
     key: 'settingsController',

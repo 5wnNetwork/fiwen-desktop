@@ -1,5 +1,5 @@
 /** Model catalog and request-local dependencies for DeepSeek Messages. */
-import type { LlmModelInfo, ModelModality, SystemPromptUpdate, ToolUpdate, ResolvedRetryPolicy, ImageAttachmentAccess } from '@deepseek-ai/dsh-llm'
+import type { LlmModelInfo, LlmTokenSaverMode, LlmTokenSaverResolvedMode, ModelModality, SystemPromptUpdate, ToolUpdate, ResolvedRetryPolicy, ImageAttachmentAccess } from '@deepseek-ai/dsh-llm'
 import type { AttachmentStore, ImageAttachmentRef } from '@deepseek-ai/dsh-attachment'
 import type { AnonymousUserId } from '@deepseek-ai/dsh-anonymous-user-id'
 import type { DeepSeekLlmApiExtensionRequest, PreparedDeepSeekLlmApiExtensions } from '@deepseek-ai/dsh-deepseek-llm-api-extensions'
@@ -40,6 +40,22 @@ export interface DeepSeekCatalogModel {
    * complete tool list on every request.
    */
   toolUpdate?: ToolUpdate
+  /**
+   * Server-side request compression the endpoint offers; declared by the
+   * account listing or deployment overrides, omitted by endpoints without it.
+   */
+  tokenSaver?: DeepSeekCatalogTokenSaver | undefined
+}
+
+/**
+ * Catalog-declared saver capability: the mutable counterpart of
+ * `LlmModelTokenSaverInfo`, matching the arrays schema parsing produces.
+ */
+export interface DeepSeekCatalogTokenSaver {
+  /** Saver modes the route accepts, in picker order. */
+  modes: LlmTokenSaverMode[]
+  /** Concrete mode the route's `'default'` choice resolves to right now. */
+  resolvedDefault: LlmTokenSaverResolvedMode
 }
 
 /**

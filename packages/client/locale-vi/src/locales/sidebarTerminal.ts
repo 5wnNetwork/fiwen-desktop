@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `sidebarTerminal`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-sidebar-terminal/src/client/locales.ts'
 
+/** Vietnamese dictionary for `sidebarTerminal`, key-checked against upstream `en`. */
 export const vi = {
   'shortcut.noSession': 'Hãy chọn một session trước',
   'recoveryFailed': 'Khôi phục terminal thất bại: {message}',

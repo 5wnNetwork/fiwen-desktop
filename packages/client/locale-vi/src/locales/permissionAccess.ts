@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `permission.access`, key-checked against upstream `accessEn`. */
 import type { accessEn } from '@deepseek-ai/dsh-client-ui-permission-presets/src/client/locales.ts'
 
+/** Vietnamese dictionary for `permission.access`, key-checked against upstream `accessEn`. */
 export const vi = {
   'mode': 'Chế độ truy cập, hiện tại: {name}',
   'close': 'Đóng',

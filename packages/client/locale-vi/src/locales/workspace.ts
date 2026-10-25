@@ -1,6 +1,6 @@
-/** Vietnamese dictionary for `uiWorkspace`, key-checked against upstream `en`. */
 import type { en } from '@deepseek-ai/dsh-client-ui-workspace/src/client/locales.ts'
 
+/** Vietnamese dictionary for `uiWorkspace`, key-checked against upstream `en`. */
 export const vi = {
   'defaultWorkspace.failed': 'Không thể tạo workspace mặc định. Dùng Chọn workspace để chọn một thư mục.',
   'draft.workspaceRequired': 'Hãy chọn một workspace trước.',

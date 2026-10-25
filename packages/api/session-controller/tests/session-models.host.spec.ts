@@ -13,7 +13,7 @@ import AttachmentStore from '@deepseek-ai/dsh-attachment'
 import LlmRuntime, { LlmAdapter, ReasoningEffortId } from '@deepseek-ai/dsh-llm'
 import type {
   GenerateOptions, LlmCallConfig, LlmCallConfigAdapterDefaults, LlmModelInfo,
-  LlmModelReasoningInfo, LlmProviderInfo, LlmResolvedModelInfo, StreamChunk,
+  LlmModelReasoningInfo, LlmModelTokenSaverInfo, LlmProviderInfo, LlmResolvedModelInfo, StreamChunk,
   UserMessage,
 } from '@deepseek-ai/dsh-llm'
 import SessionStore from '@deepseek-ai/dsh-session'
@@ -45,6 +45,7 @@ class CatalogAdapter extends LlmAdapter {
     private readonly models: readonly LlmModelInfo[] | Error,
     private readonly reasoning?: LlmModelReasoningInfo,
     private readonly exactError?: Error,
+    private readonly tokenSaver?: LlmModelTokenSaverInfo,
   ) {
     super()
   }
@@ -66,6 +67,7 @@ class CatalogAdapter extends LlmAdapter {
       id: model,
       name: model,
       ...this.reasoning === undefined ? {} : { reasoning: this.reasoning },
+      ...this.tokenSaver === undefined ? {} : { tokenSaver: this.tokenSaver },
     })
   }
 
@@ -561,6 +563,73 @@ describe('Web session model selection', () => {
     })
     expect(currentSelection(ctx, sessionId))
       .toEqual({ provider: 'deepseek-official', model: 'deepseek-reasoner', reasoningEffort: 'max' })
+    await ctx.fiber.dispose()
+  })
+
+  it('projects catalog saver metadata and persists a saver selection into the request config', async () => {
+    const { ctx, agent, sessionId } = await harness()
+    const SAVER: LlmModelTokenSaverInfo = {
+      modes: ['default', 'simple', 'disabled', 'coding-low', 'coding-high'],
+      resolvedDefault: 'simple',
+    }
+    ctx.llm.registerAdapter(['saver-provider'], new CatalogAdapter('Saver Provider', [
+      { provider: 'saver-provider', id: 'saver-model', name: 'Saver Model' },
+    ], undefined, undefined, SAVER))
+    ctx.llm.registerAdapter(['saver-narrow'], new CatalogAdapter('Narrow Saver', [
+      { provider: 'saver-narrow', id: 'narrow-model', name: 'Narrow Model' },
+    ], undefined, undefined, { modes: ['default', 'simple'], resolvedDefault: 'simple' }))
+    const remote = createSessionTestRemote(ctx, {
+      defaultModelSelection: () => ({ provider: 'deepseek-official', model: 'deepseek-chat' }),
+      cwd: '/tmp',
+    })
+    const signal = new AbortController().signal
+
+    const catalog = expectValue(await remote.modelCatalog())
+    expect(catalog.groups.find(group => group.id === 'saver-provider')?.models[0])
+      .toMatchObject({ tokenSaver: { modes: SAVER.modes, resolvedDefault: 'simple' } })
+
+    const selected = expectValue(await remote.selectModel(request({
+      sessionId, provider: 'saver-provider', model: 'saver-model', tokenSaver: 'coding-high',
+    })))
+    expect(selected.selected).toEqual({
+      provider: 'saver-provider', model: 'saver-model', tokenSaver: 'coding-high',
+    })
+    expect(currentSelection(ctx, sessionId)).toEqual({
+      provider: 'saver-provider', model: 'saver-model', tokenSaver: 'coding-high',
+    })
+
+    const seed: LlmCallConfig = { provider: 'seed', model: 'seed' }
+    await expect(agentEvents(ctx, agent).waterfall(
+      'agent/request', { turn: 1, step: 0, signal }, () => Promise.resolve(seed),
+    )).resolves.toEqual(seed)
+    await ctx.systemPrompt.assemble()
+    await expect(agentEvents(ctx, agent).waterfall(
+      'agent/request', { turn: 1, step: 1, signal }, () => Promise.resolve(seed),
+    )).resolves.toMatchObject({
+      provider: 'saver-provider', model: 'saver-model', tokenSaver: 'coding-high',
+    })
+
+    expect(await remote.selectModel(request({
+      sessionId, provider: 'saver-provider', model: 'saver-model', tokenSaver: 'bogus',
+    }))).toMatchObject({
+      ok: false,
+      error: {
+        code: 'session/model-unavailable',
+        message: 'unknown token saver "bogus"',
+      },
+    })
+    expect(await remote.selectModel(request({
+      sessionId, provider: 'saver-narrow', model: 'narrow-model', tokenSaver: 'coding-high',
+    }))).toMatchObject({
+      ok: false,
+      error: {
+        code: 'session/model-unavailable',
+        message: 'provider "saver-narrow" model "narrow-model" does not support token saver "coding-high"',
+      },
+    })
+    expect(currentSelection(ctx, sessionId)).toEqual({
+      provider: 'saver-provider', model: 'saver-model', tokenSaver: 'coding-high',
+    })
     await ctx.fiber.dispose()
   })
 

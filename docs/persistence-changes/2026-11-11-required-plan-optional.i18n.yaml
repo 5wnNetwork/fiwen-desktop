@@ -1,0 +1,28 @@
+# Bilingual-pair consistency record for 2026-11-11-required-plan-optional.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/persistence-changes/2026-11-11-required-plan-optional.md
+/:
+  en: 3d5a424ae7d7e46b
+  zh: c22a8e4a62d8cc1a
+/2026-11-11-required-plan-optional:
+  en: b96f828439c62814
+  zh: 4a45085307b3a016
+/2026-11-11-required-plan-optional/summary:
+  en: aed3d004b106ed4a
+  zh: 31c1fd940073ea94
+/2026-11-11-required-plan-optional/table-of-contents:
+  en: 6cf314a069ceb451
+  zh: 9adff678e9ecab3b
+/2026-11-11-required-plan-optional/declaration:
+  en: 6907136f28e48c90
+  zh: 02f8298485f3d8e7
+/2026-11-11-required-plan-optional/compatibility:
+  en: 697cb541e92915b1
+  zh: 39bf6d9dbb1b48d0
+/2026-11-11-required-plan-optional/verification:
+  en: dac2d8a11ead2080
+  zh: 735519055f9fcd21
+/2026-11-11-required-plan-optional/dev-note:
+  en: b75c8458928b72b9
+  zh: 003ba4e17b4b5269
