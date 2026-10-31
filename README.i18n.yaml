@@ -3,32 +3,29 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write README.md
 /fiwen:
-  en: af92ed04e3e70eee
-  zh: 1656f310eb8cb10d
+  en: 35d14f5204d3e9ef
+  zh: 599712a8d04db333
 /fiwen/developer-preview:
   en: dc888f7021e0cb4e
   zh: fd678f10b8882439
 /fiwen/run:
   en: 4e0248e4c6474fc6
-  zh: eb2fb8d78c7d6bc0
-/fiwen/run/run-from-npm:
-  en: e22005cd42e6cbad
-  zh: 0f536f4208df1d60
+  zh: 5491f0aa70750247
 /fiwen/run/run-from-source:
-  en: 391becf80877c49f
-  zh: e52a350246a4cb9d
+  en: 2d7734432d3e2b21
+  zh: 63df5f4184b0a4ca
 /fiwen/community-and-support:
-  en: 89249ab232f45c76
-  zh: 43509c484ac3236d
+  en: 6c6ff10a2593d08a
+  zh: 4779a981b25ca4ad
 /fiwen/contributing:
   en: cabc2d3e9f8898bd
   zh: 83b6d238bae29ce3
 /fiwen/development:
   en: 803ca2b11b497bed
   zh: 8b4071eb0e7783ef
-/fiwen/citation:
-  en: 6704e9e5a8d49a91
-  zh: 85c9cdd8d56f8e9d
+/fiwen/upstream-project:
+  en: 1b47a42aeec6d9ce
+  zh: 0704bf00571b8d31
 /fiwen/license:
   en: 926995344fc1c72b
   zh: c92fab5abf85932f

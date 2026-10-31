@@ -2,11 +2,11 @@
 
 English | [中文](README.zh.md)
 
-Fiwen (`fwnd`) is an open-source agent harness developed by [DeepSeek AI](https://deepseek.com).
+Fiwen (`fwnd`) is a community fork of [DeepSeek AI](https://deepseek.com)'s open-source agent harness, maintained at [5wnNetwork/fiwen-desktop](https://github.com/5wnNetwork/fiwen-desktop).
 
-It is built on an **everything-is-a-plugin** architecture and powered by [Cordis](https://github.com/cordiverse/cordis), whose design is described in [_A Programming Paradigm for Spatiotemporal Composability_](https://arxiv.org/abs/2608.25512).
+It keeps the upstream **everything-is-a-plugin** architecture powered by [Cordis](https://github.com/cordiverse/cordis), whose design is described in [_A Programming Paradigm for Spatiotemporal Composability_](https://arxiv.org/abs/2608.25512).
 
-Documentation: [https://deepseek-harness.github.io/deepseek-harness/](https://deepseek-harness.github.io/deepseek-harness/)
+Documentation for this fork lives in this repository: start with the [development guide](docs/development.md) and [architecture documentation](docs/architecture.md).
 
 ## Developer preview
 
@@ -16,23 +16,13 @@ Review the [safety notice](SAFETY.md) before running the project.
 
 ## Run
 
-### Run from `npm`
-
-Install `Node.js`, then run:
-
-```sh
-npx @deepseek-ai/dsh web
-```
-
-The command starts the Web UI at `http://127.0.0.1:3080` by default and opens it in the default browser for a local launch. An SSH launch only prints the host URL because the SSH client or editor owns the local forwarded address. Pass `--no-open` to run the server without opening a browser. See [Web UI guide](docs/user/guide/index.md).
-
 ### Run from source
 
-To run from a repository checkout:
+To run this fork from a checkout:
 
 ```sh
-git clone https://github.com/deepseek-ai/deepseek-harness.git
-cd deepseek-harness
+git clone https://github.com/5wnNetwork/fiwen-desktop.git
+cd fiwen-desktop
 pnpm install
 pnpm run build
 pnpm fwnd web
@@ -40,11 +30,12 @@ pnpm fwnd web
 
 `pnpm run build` prepares the repository artifacts. `pnpm fwnd web` uses those built artifacts without rebuilding.
 
+The upstream npm package `@deepseek-ai/dsh` belongs to DeepSeek AI and is **not** this fork's release. Running `npx @deepseek-ai/dsh web` installs upstream software, not the code in this repository. Desktop installers are built from [apps/desktop](apps/desktop/README.md).
+
 ## Community and support
 
-- Submit feedback or bug reports through [GitHub Discussions](https://github.com/deepseek-ai/deepseek-harness/discussions).
-- Add the [`dsh-plugin`](https://github.com/topics/dsh-plugin) topic to your plugin repository for discoverability.
-- Join <a href="https://discord.gg/4MrtZUhpxg">Fiwen Discord community</a>.
+- Report bugs and feature requests for this fork through this repository's [issues](https://github.com/5wnNetwork/fiwen-desktop/issues).
+- The upstream project's Discord community and `dsh-plugin` GitHub topic belong to DeepSeek AI and are not maintained by this fork.
 
 ## Contributing
 
@@ -58,7 +49,9 @@ Start with the [development guide](docs/development.md) and [architecture docume
 
 For agents, follow [AGENTS.md](AGENTS.md).
 
-## Citation
+## Upstream project
+
+Fiwen was created by DeepSeek AI at [deepseek-ai/deepseek-harness](https://github.com/deepseek-ai/deepseek-harness). Cite the upstream project when referring to its design:
 
 ```bibtex
 @misc{deepseek-harness2026,
