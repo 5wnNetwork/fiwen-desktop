@@ -15,7 +15,7 @@ All notable changes to this fork are recorded here. The format follows [Keep a C
 ### Changed
 
 - CI treats Windows coverage as a blocking gate by adding `windows-coverage` to the `all-checks-passed` aggregation.
-- The real-API e2e workflow skips at job level when `DEEPSEEK_API_KEY_EXTERNAL` is absent instead of failing the run or reporting a false green.
+- Real-API end-to-end workflows and their provider-key preflights are removed; keyless sandbox e2e and recorded-session snapshots remain the CI signal.
 - Release rehearsals in `release.yml` and `release-vendor.yml` recognize the `5wnNetwork/fiwen-desktop` repository guard.
 - The master `serial / macos` reference job is enabled again; it targets the generic `macos-latest` GitHub-hosted label.
 - `FIWEN_ORIGIN` is documented in the desktop `.env` and packaging templates so test-channel packaging and smoke checks can target a non-production backend. Installed builds still resolve it from their process environment; a baked per-channel origin remains an open release item.

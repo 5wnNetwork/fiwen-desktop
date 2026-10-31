@@ -509,7 +509,7 @@ jobs:
         run: uv run --python 3.10 --group test --project python/sdk pytest
 
   # The reusable builder owns each published executable, wheel, clean-install,
-  # keyless black-box, and trusted real-API path. Linux/Windows x64 block PRs;
+  # and keyless black-box path. Linux/Windows x64 block PRs;
   # Linux ARM64 and both macOS architectures run in ci-master.yml.
   python-runtime:
     if: github.event_name == 'pull_request'
@@ -519,8 +519,6 @@ jobs:
     with:
       targets: node24-linux-x64,node24-win-x64
       ci: true
-    secrets:
-      DEEPSEEK_API_KEY_EXTERNAL: ${{ secrets.DEEPSEEK_API_KEY_EXTERNAL }}
 
   # Native builds and process tests block pull requests independently of coverage.
   # Observational checks reuse the successful build and remain non-blocking.
