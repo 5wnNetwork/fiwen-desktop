@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { access, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Context, Service } from '@deepseek-ai/cordis'
@@ -20,6 +20,7 @@ let root: string | undefined
 
 afterEach(async () => {
   vi.unstubAllGlobals()
+  vi.restoreAllMocks()
   if (root !== undefined) await rm(root, { recursive: true, force: true })
   root = undefined
 })
@@ -60,6 +61,11 @@ function serve(...responses: (Response | Error | ((url: string, init: RequestIni
   })
   vi.stubGlobal('fetch', fetch)
   return fetch
+}
+
+async function previewOf(market: Market, id: string) {
+  const preview = await market.previewInstall(id)
+  return preview
 }
 
 async function failure(promise: Promise<unknown>) {
@@ -121,17 +127,23 @@ it('installs a skill payload and announces market/changed', async () => {
   const { ctx, market } = await mount()
   let changes = 0
   ctx.on('market/changed', () => { changes++ })
-  serve(() => json({
+  const fetch = serve(() => json({
     item: {
       id: 'web-tools', kind: 'skill', version: '1.0.0', name: 'Web Tools',
       payload: { files: [{ path: 'SKILL.md', content: '# hi' }] },
     },
   }))
-  const installed = await market.installItem('web-tools')
+  const preview = await previewOf(market, 'web-tools')
+  expect(fetch).toHaveBeenCalledTimes(1)
+  expect(preview).toMatchObject({ id: 'web-tools', kind: 'skill', version: '1.0.0', skillFiles: ['SKILL.md'] })
+  await expect(access(join(root as string, 'skills', 'web-tools'))).rejects.toMatchObject({ code: 'ENOENT' })
+  expect(changes).toBe(0)
+  const installed = await market.installItem(preview.token)
   expect(installed).toMatchObject({ id: 'web-tools', kind: 'skill' })
   expect(changes).toBe(1)
   expect(await readFile(join(root as string, 'skills', 'web-tools', 'SKILL.md'), 'utf8')).toBe('# hi')
   expect(await market.installed()).toEqual([installed])
+  expect(fetch).toHaveBeenCalledTimes(1)
 })
 
 it('installs an MCP payload as a profile patch row', async () => {
@@ -142,7 +154,7 @@ it('installs an MCP payload as a profile patch row', async () => {
       payload: { transport: 'http', url: 'https://m.example/mcp' },
     },
   }))
-  const installed = await market.installItem('notes')
+  const installed = await market.installItem((await previewOf(market, 'notes')).token)
   expect(installed.kind).toBe('mcp')
   const patch = await readFile(join(root as string, 'cordis.patch.yml'), 'utf8')
   expect(patch).toContain('id: market-notes')
@@ -152,7 +164,7 @@ it('installs an MCP payload as a profile patch row', async () => {
 it('refuses installs without a token and reports conflicts and profile absence', async () => {
   const { market } = await mount()
   serve(() => json({}, 401))
-  await expect(failure(market.installItem('x'))).resolves.toMatchObject({ code: 'market/auth-required' })
+  await expect(failure(market.previewInstall('x'))).resolves.toMatchObject({ code: 'market/auth-required' })
 })
 
 it('refuses to replace a user-owned skill directory', async () => {
@@ -162,7 +174,8 @@ it('refuses to replace a user-owned skill directory', async () => {
   serve(() => json({
     item: { id: 'mine', kind: 'skill', version: '1.0.0', name: 'M', payload: { files: [{ path: 'SKILL.md', content: 'x' }] } },
   }))
-  await expect(failure(market.installItem('mine'))).resolves.toMatchObject({ code: 'market/conflict', details: { reason: 'skill-dir' } })
+  const preview = await previewOf(market, 'mine')
+  await expect(failure(market.installItem(preview.token))).resolves.toMatchObject({ code: 'market/conflict', details: { reason: 'skill-dir' } })
   expect(await readFile(join(root as string, 'skills', 'mine', 'SKILL.md'), 'utf8')).toBe('user')
 })
 
@@ -171,13 +184,14 @@ it('refuses MCP installs without a profile', async () => {
   serve(() => json({
     item: { id: 'notes', kind: 'mcp', version: '1.0.0', name: 'N', payload: { transport: 'http', url: 'https://x' } },
   }))
-  await expect(failure(market.installItem('notes'))).resolves.toMatchObject({ code: 'market/no-profile' })
+  const preview = await previewOf(market, 'notes')
+  await expect(failure(market.installItem(preview.token))).resolves.toMatchObject({ code: 'market/no-profile' })
 })
 
 it('refuses a malformed install payload', async () => {
   const { market } = await mount()
   serve(() => json({ item: { id: 'x', kind: 'skill', version: '1', name: 'x', payload: { files: [{ path: '../a', content: 'b' }] } } }))
-  await expect(failure(market.installItem('x'))).resolves.toMatchObject({ code: 'market/invalid-response' })
+  await expect(failure(market.previewInstall('x'))).resolves.toMatchObject({ code: 'market/invalid-response' })
 })
 
 it('uninstalls what it installed and reports false for foreign artifacts', async () => {
@@ -187,7 +201,7 @@ it('uninstalls what it installed and reports false for foreign artifacts', async
   serve(() => json({
     item: { id: 'web-tools', kind: 'skill', version: '1.0.0', name: 'W', payload: { files: [{ path: 'SKILL.md', content: 'x' }] } },
   }))
-  await market.installItem('web-tools')
+  await market.installItem((await previewOf(market, 'web-tools')).token)
   expect(await market.uninstallItem('web-tools')).toBe(true)
   expect(changes).toBe(2)
   expect(await market.uninstallItem('web-tools')).toBe(false)
@@ -204,13 +218,14 @@ it('reports invalid-response when the body is not JSON', async () => {
 
 it('refuses malformed install ids and propagates unexpected filesystem failures', async () => {
   const { market } = await mount()
-  await expect(failure(market.installItem('Bad Id'))).resolves.toMatchObject({ code: 'market/not-found' })
+  await expect(failure(market.previewInstall('Bad Id'))).resolves.toMatchObject({ code: 'market/not-found' })
   serve(() => json({
     item: { id: 'x', kind: 'skill', version: '1', name: 'X', payload: { files: [{ path: 'a', content: 'b' }] } },
   }))
+  const preview = await previewOf(market, 'x')
   await rm(join(root as string, 'skills'), { recursive: true, force: true })
   await writeFile(join(root as string, 'skills'), 'not a dir', 'utf8')
-  await expect(market.installItem('x')).rejects.toThrow()
+  await expect(market.installItem(preview.token)).rejects.toThrow()
 })
 
 it('reports profile-unavailable when the patch file cannot be written', async () => {
@@ -221,10 +236,130 @@ it('reports profile-unavailable when the patch file cannot be written', async ()
   serve(() => json({
     item: { id: 'notes', kind: 'mcp', version: '1.0.0', name: 'N', payload: { transport: 'http', url: 'https://x' } },
   }))
-  await expect(failure(market.installItem('notes'))).resolves.toMatchObject({ code: 'market/profile-unavailable' })
+  const preview = await previewOf(market, 'notes')
+  await expect(failure(market.installItem(preview.token))).resolves.toMatchObject({ code: 'market/profile-unavailable' })
 })
 
 it('reports false uninstalling an MCP row without a profile', async () => {
   const { market } = await mount({ profile: false })
   expect(await market.uninstallItem('notes')).toBe(false)
+})
+
+it('previews stdio MCP args in full but env keys only', async () => {
+  const { market } = await mount()
+  serve(() => json({
+    item: {
+      id: 'mcp-cmd', kind: 'mcp', version: '1.0.0', name: 'Cmd',
+      payload: { transport: 'stdio', command: 'node', args: ['server.js', '--path', 'a b'], env: { API_TOKEN: 'secret-env' } },
+    },
+  }))
+  const preview = await previewOf(market, 'mcp-cmd')
+  expect(preview.mcp).toEqual({ transport: 'stdio', command: 'node', args: ['server.js', '--path', 'a b'], envKeys: ['API_TOKEN'] })
+  expect(JSON.stringify(preview)).not.toContain('secret-env')
+})
+
+it('previews http MCP header keys only', async () => {
+  const { market } = await mount()
+  serve(() => json({
+    item: {
+      id: 'mcp-http', kind: 'mcp', version: '1.0.0', name: 'H',
+      payload: { transport: 'http', url: 'https://h.example/mcp', headers: { Authorization: 'secret-header' } },
+    },
+  }))
+  const preview = await previewOf(market, 'mcp-http')
+  expect(preview.mcp).toEqual({ transport: 'http', url: 'https://h.example/mcp', headerKeys: ['Authorization'] })
+  expect(JSON.stringify(preview)).not.toContain('secret-header')
+})
+
+it('previews skill file paths but never file contents', async () => {
+  const { market } = await mount()
+  serve(() => json({
+    item: {
+      id: 'web-tools', kind: 'skill', version: '1.0.0', name: 'W',
+      payload: { files: [{ path: 'SKILL.md', content: 'secret-body' }] },
+    },
+  }))
+  const preview = await previewOf(market, 'web-tools')
+  expect(preview.skillFiles).toEqual(['SKILL.md'])
+  expect(JSON.stringify(preview)).not.toContain('secret-body')
+})
+
+it('bounds the preview map and evicts the oldest unconfirmed preview', async () => {
+  const { market } = await mount()
+  const ids = Array.from({ length: 33 }, (_unused, index) => `item-${String(index)}`)
+  serve(...ids.map(id => json({
+    item: { id, kind: 'skill', version: '1.0.0', name: id, payload: { files: [{ path: 'SKILL.md', content: 'x' }] } },
+  })))
+  const previews: { token: string }[] = []
+  for (const id of ids) previews.push(await previewOf(market, id))
+  await expect(failure(market.installItem(previews[0]!.token))).resolves.toMatchObject({ code: 'market/preview-expired' })
+  await expect(market.installItem(previews[1]!.token)).resolves.toMatchObject({ id: ids[1] })
+})
+
+it('rejects unknown, slugs as, and replayed tokens', async () => {
+  const { market } = await mount()
+  await expect(failure(market.installItem('web-tools'))).resolves.toMatchObject({ code: 'market/preview-expired' })
+  await expect(failure(market.installItem('00000000000000000000000000000000'))).resolves.toMatchObject({ code: 'market/preview-expired' })
+  serve(() => json({
+    item: { id: 'web-tools', kind: 'skill', version: '1.0.0', name: 'W', payload: { files: [{ path: 'SKILL.md', content: 'x' }] } },
+  }))
+  const preview = await previewOf(market, 'web-tools')
+  await market.installItem(preview.token)
+  await expect(failure(market.installItem(preview.token))).resolves.toMatchObject({ code: 'market/preview-expired' })
+})
+
+it('expires preview tokens at ten minutes', async () => {
+  const { market } = await mount()
+  const base = 1_800_000_000_000
+  const now = vi.spyOn(Date, 'now').mockReturnValue(base)
+  serve(() => json({
+    item: { id: 'web-tools', kind: 'skill', version: '1.0.0', name: 'W', payload: { files: [{ path: 'SKILL.md', content: 'x' }] } },
+  }))
+  const preview = await previewOf(market, 'web-tools')
+  now.mockReturnValue(base + 10 * 60_000 - 1)
+  await market.installItem(preview.token)
+  now.mockReturnValue(base)
+  serve(() => json({
+    item: { id: 'web-tools', kind: 'skill', version: '1.0.0', name: 'W', payload: { files: [{ path: 'SKILL.md', content: 'x' }] } },
+  }))
+  const expired = await previewOf(market, 'web-tools')
+  now.mockReturnValue(base + 10 * 60_000)
+  await expect(failure(market.installItem(expired.token))).resolves.toMatchObject({ code: 'market/preview-expired' })
+})
+
+it('rejects a preview whose payload id differs from the requested slug', async () => {
+  const { market } = await mount()
+  serve(() => json({
+    item: { id: 'other', kind: 'skill', version: '1.0.0', name: 'W', payload: { files: [{ path: 'SKILL.md', content: 'x' }] } },
+  }))
+  await expect(failure(market.previewInstall('web-tools'))).resolves.toMatchObject({ code: 'market/invalid-response' })
+})
+
+it('installs the cached payload even when the returned preview is mutated', async () => {
+  const { market } = await mount()
+  serve(() => json({
+    item: {
+      id: 'mcp-cmd', kind: 'mcp', version: '1.0.0', name: 'Cmd',
+      payload: { transport: 'stdio', command: 'node', args: ['server.js', '--path', 'a b'] },
+    },
+  }))
+  const preview = await previewOf(market, 'mcp-cmd')
+  if (preview.mcp?.transport !== 'stdio') throw new Error('expected stdio preview')
+  ;(preview.mcp.args as string[]).push('--evil')
+  await market.installItem(preview.token)
+  const patch = await readFile(join(root as string, 'cordis.patch.yml'), 'utf8')
+  expect(patch).toContain('a b')
+  expect(patch).not.toContain('evil')
+})
+
+it('rejects a preview completing after the service is disposed', async () => {
+  const { ctx, market } = await mount()
+  let resolveFetch: (response: Response) => void = () => {}
+  vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>((res) => { resolveFetch = res })))
+  const pending = market.previewInstall('web-tools')
+  await ctx.fiber.dispose()
+  resolveFetch(json({
+    item: { id: 'web-tools', kind: 'skill', version: '1', name: 'W', payload: { files: [{ path: 'SKILL.md', content: 'x' }] } },
+  }))
+  await expect(failure(pending)).resolves.toMatchObject({ code: 'market/preview-expired' })
 })

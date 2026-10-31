@@ -37,7 +37,8 @@ The Remote methods are:
 
 - `catalog(query)` returns one catalog page plus the category rail: `kind` (`skill` or `mcp`), `category`, `q` text, `sort` (`popular` by total downloads, `unique` by installing accounts, `newest`, `name`), and `offset`/`limit` paging.
 - `detail(id)` returns one item's detail view, including its long description. Item payloads never appear in catalog or detail reads.
-- `installItem(id)` posts the install to the backend — which counts the download and, once per account, the unique download — then writes the returned payload locally and returns the recorded install. Installs require a signed-in account; `market/auth-required` refuses them otherwise.
+- `previewInstall(id)` fetches the install payload — which the backend counts as a download and, once per account, the unique download — and returns a review summary (file paths for skills; command, arguments, and environment variable *names* for stdio MCP; URL and header *names* for http MCP) plus a single-use token valid for ten minutes. Nothing is written locally, and env/header values never leave the Host. Installs require a signed-in account; `market/auth-required` refuses them otherwise.
+- `installItem(token)` consumes a preview token and writes the cached payload locally — the skill directory or the `market-<id>` MCP row — without another fetch. Unknown, expired, or reused tokens fail with `market/preview-expired`; request a fresh preview before retrying.
 - `uninstallItem(id)` removes the local artifact: the market-owned skill directory or the `market-<id>` MCP row. User-owned directories are never touched.
 - `installed()` lists what this machine reports installed, reconciled against the artifacts that still exist.
 
@@ -69,6 +70,8 @@ None.
 
 - **Installs are whole-version replacements** — an item's installed files or MCP row are replaced as a unit; there is no per-file update or diff view.
 - **Installed items are device-local** — `installed()` reconciles this machine only; the same account's installs on another device do not appear.
+- **Review hides payload values** — the confirmation lists environment/header names and skill file paths, but values and file contents stay on the backend. A stdio `env` key that can change interpreter or loader behavior (`NODE_OPTIONS`, `LD_PRELOAD`, `PYTHONSTARTUP`, and similar) is rejected at the wire boundary so the hidden value cannot execute code.
+- **Previews are bounded** — at most 32 unconfirmed previews are retained per Host; the oldest is evicted and then fails as `market/preview-expired`.
 
 <a id="dev-note"></a>
 ### Dev Note

@@ -66,7 +66,10 @@ it('mounts through a bundle patch, installs an MCP row the Loader picks up, and 
     const market = ctx.get('market')!
     expect(market).toBeInstanceOf(Market)
     expect(mounts()).toEqual(['base'])
-    await market.installItem('notes')
+    const preview = await market.previewInstall('notes')
+    expect(readFileSync(profile.patchPath, 'utf8')).not.toContain('market-notes')
+    expect(mounts()).toEqual(['base'])
+    await market.installItem(preview.token)
     expect(readFileSync(profile.patchPath, 'utf8')).toContain('id: market-notes')
     // The same path HMR runs after its patch-file watch fires.
     await recomposeProfile(ctx, readProfilePatches('test', profile), 'test')

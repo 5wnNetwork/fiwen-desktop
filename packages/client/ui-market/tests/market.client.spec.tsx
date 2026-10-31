@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { MarketItemDetail, MarketItemView } from '@deepseek-ai/dsh-api-remotes/client'
+import type { MarketInstallPreview, MarketItemDetail, MarketItemView } from '@deepseek-ai/dsh-api-remotes/client'
 import { bindSnapshotSelector } from '@deepseek-ai/dsh-client-test-runtime'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { LocaleSnapshot } from '@deepseek-ai/dsh-client-locale/client'
@@ -28,7 +28,7 @@ const READY: MarketState = {
   status: 'ready', query: { sort: 'popular' }, answered: { sort: 'popular' },
   categories: [{ id: 'tools', title: { en: 'Tools', zh: '工具' }, sortOrder: 0 }],
   items: [item('alpha'), item('beta', { kind: 'mcp' })], total: 2, failure: null,
-  installed: {}, busy: {}, workFailure: null,
+  installed: {}, busy: {}, workFailure: null, preview: null,
 }
 
 function renderTab(state: Partial<MarketState> = {}, dictionary: Record<MarketLocaleKey, string> = en) {
@@ -37,7 +37,8 @@ function renderTab(state: Partial<MarketState> = {}, dictionary: Record<MarketLo
   const locale = createSnapshotStore<LocaleSnapshot>({ active: language, locales: [], revision: 0 })
   const actions = {
     ensure: vi.fn(), search: vi.fn(), more: vi.fn(), refresh: vi.fn(), retry: vi.fn(),
-    install: vi.fn(), uninstall: vi.fn(), detail: vi.fn((): Promise<MarketItemDetail | null> => Promise.resolve(null)),
+    install: vi.fn(), confirmInstall: vi.fn(), cancelInstall: vi.fn(),
+    uninstall: vi.fn(), detail: vi.fn((): Promise<MarketItemDetail | null> => Promise.resolve(null)),
   }
   const props = {
     t: translator(dictionary), ...actions,
@@ -80,6 +81,9 @@ describe('MarketSection', () => {
     expect(actions.uninstall).toHaveBeenCalledWith('alpha')
     set({ busy: { beta: 'install' } })
     expect(screen.getByText(en.installing)).toBeTruthy()
+    set({ busy: { beta: 'preview' }, installed: {} })
+    expect(screen.getByText(en.preparingInstall)).toBeTruthy()
+    expect(screen.getByRole('button', { name: en.installTitle.replace('{name}', 'alpha') }).hasAttribute('disabled')).toBe(true)
   })
 
   it('sends kind, sort, and category choices through search', () => {
@@ -207,5 +211,65 @@ describe('MarketSection', () => {
   it('defaults a missing failure kind to the fetch message', () => {
     renderTab({ status: 'error', failure: null })
     expect(screen.getByRole('alert').textContent).toContain(en.readFailed)
+  })
+
+  it('reviews an stdio MCP preview, confirming or cancelling by token', () => {
+    const preview: MarketInstallPreview = {
+      token: 'token-mcp', id: 'beta', kind: 'mcp', version: '2.1.0',
+      mcp: { transport: 'stdio', command: 'node', args: ['server.js', '--path', 'a b', 'x'.repeat(120)], envKeys: ['API_TOKEN', 'HOME'] },
+    }
+    const { actions, set } = renderTab()
+    fireEvent.click(screen.getByRole('button', { name: en.installTitle.replace('{name}', 'beta') }))
+    expect(actions.install).toHaveBeenCalledWith('beta')
+    set({ preview })
+    const dialog = screen.getByRole('dialog')
+    expect(dialog.textContent).toMatchInlineSnapshot(`
+      "Review installation: betaReview this connection before installing. A local command runs on your machine when enabled.Version: 2.1.0Command and arguments"node" "server.js" "--path" "a b" "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"Environment variable namesAPI_TOKEN
+      HOMEValues for these names are supplied by the marketplace and are not shown.CancelConfirm install"
+    `)
+    expect(dialog.textContent).not.toContain('secret')
+    expect(dialog.textContent).toContain('"a b"')
+    expect(dialog.textContent).toContain(en.installHiddenValues)
+    expect(within(dialog).getAllByRole('button', { name: en.cancelInstall }).at(-1)).toBe(document.activeElement)
+    fireEvent.click(within(dialog).getByRole('button', { name: en.confirmInstall }))
+    expect(actions.confirmInstall).toHaveBeenCalledOnce()
+    expect(actions.cancelInstall).not.toHaveBeenCalled()
+    set({ preview: null })
+    fireEvent.click(screen.getByRole('button', { name: en.installTitle.replace('{name}', 'beta') }))
+    set({ preview })
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' })
+    expect(actions.cancelInstall).toHaveBeenCalledOnce()
+    set({ preview: null })
+    fireEvent.click(screen.getByRole('button', { name: en.installTitle.replace('{name}', 'beta') }))
+    set({ preview })
+    const footerCancel = within(screen.getByRole('dialog')).getAllByRole('button', { name: en.cancelInstall }).at(-1)!
+    fireEvent.click(footerCancel)
+    expect(actions.cancelInstall).toHaveBeenCalledTimes(2)
+    expect(actions.confirmInstall).toHaveBeenCalledOnce()
+  })
+
+  it('reviews an http MCP preview and a skill preview, showing names never secrets', () => {
+    const { actions, set } = renderTab()
+    set({
+      preview: {
+        token: 't', id: 'beta', kind: 'mcp', version: '1.0.0',
+        mcp: { transport: 'http', url: 'https://mcp.example/x', headerKeys: ['Authorization'] },
+      },
+    })
+    let dialog = screen.getByRole('dialog')
+    expect(dialog.textContent).toContain('https://mcp.example/x')
+    expect(dialog.textContent).toContain('Authorization')
+    expect(dialog.textContent).not.toContain('secret')
+    expect(dialog.textContent).toContain(en.installHiddenValues)
+    set({
+      preview: { token: 't2', id: 'alpha', kind: 'skill', version: '1.0.0', skillFiles: ['SKILL.md', 'refs/guide.md'] },
+    })
+    dialog = screen.getByRole('dialog')
+    expect(dialog.textContent).toContain('SKILL.md')
+    expect(dialog.textContent).toContain('refs/guide.md')
+    expect(dialog.textContent).toContain(en.reviewSkillDescription)
+    expect(dialog.textContent).toContain(en.installSkillContentsHidden)
+    fireEvent.click(within(dialog).getAllByRole('button', { name: en.cancelInstall })[0]!)
+    expect(actions.cancelInstall).toHaveBeenCalledOnce()
   })
 })

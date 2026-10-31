@@ -1657,11 +1657,18 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         throws: ['{RemoteError} `market/not-found` for a missing or delisted item.'],
       },
       {
-        signature: '@Remote async installItem(id: string): Promise<MarketInstalledView>',
-        description: 'Install one item: records the install server-side, then writes the artifact locally — the skill directory or the MCP patch row — and records it in the local ledger. Named `installItem` because the Client namespace service owns a private `install`.',
+        signature: '@Remote async previewInstall(id: string): Promise<MarketInstallPreview>',
+        description: 'Fetch an install payload for review without writing local artifacts. The backend counts this request as a download.',
         parameters: [{ name: 'id', description: 'catalog slug.' }],
-        returns: 'the recorded install.',
-        throws: ['{RemoteError} `market/auth-required`, `market/not-found`, `market/conflict`, `market/no-profile`, `market/profile-unavailable`, `market/invalid-response`, `market/fetch-failed`.'],
+        returns: 'a preview with a single-use token valid for ten minutes; environment and header values stay on the Host.',
+        throws: ['{RemoteError} `market/auth-required`, `market/not-found`, `market/invalid-response`, `market/fetch-failed`.'],
+      },
+      {
+        signature: '@Remote async installItem(token: string): Promise<MarketInstalledView>',
+        description: 'Consume a preview token and install its cached payload, then publish `market/changed`.',
+        parameters: [{ name: 'token', description: 'single-use token from `previewInstall`; obtain user confirmation before calling.' }],
+        returns: 'the recorded local install. No backend request is made.',
+        throws: ['{RemoteError} `market/preview-expired` for an unknown, consumed, or expired token; `market/conflict`, `market/no-profile`, or `market/profile-unavailable` for an install failure. A failed attempt consumes the token; request a new preview before retrying.'],
       },
       {
         signature: '@Remote async uninstallItem(id: string): Promise<boolean>',
@@ -6287,6 +6294,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'MarketInstalledView',
     declaration: 'export interface MarketInstalledView {\n    readonly id: string;\n    readonly kind: MarketItemKind;\n    readonly version: string;\n    readonly installedAt: string;\n}',
+  },
+  {
+    name: 'MarketInstallPreview',
+    declaration: 'export interface MarketInstallPreview {\n    readonly token: string;\n    readonly id: string;\n    readonly kind: \'skill\' | \'mcp\';\n    readonly version: string;\n    readonly mcp?: {\n        readonly transport: \'stdio\';\n        readonly command: string;\n        readonly args: readonly string[];\n        readonly envKeys: readonly string[];\n    } | {\n        readonly transport: \'http\';\n        readonly url: string;\n        readonly headerKeys: readonly string[];\n    };\n    readonly skillFiles?: readonly string[];\n}',
   },
   {
     name: 'MarketInstallTarget',

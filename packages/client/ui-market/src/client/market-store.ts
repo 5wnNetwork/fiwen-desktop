@@ -3,7 +3,8 @@ import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import { createSnapshotStore, type SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { HostObservable } from '@deepseek-ai/dsh-client-ui-slots'
 import type {
-  MarketCategoryView, MarketInstalledView, MarketItemDetail, MarketItemView, MarketSearchQuery, MarketText, RemoteFailure,
+  MarketCategoryView, MarketInstalledView, MarketInstallPreview, MarketItemDetail, MarketItemView, MarketSearchQuery,
+  MarketText, RemoteFailure,
 } from '@deepseek-ai/dsh-api-remotes/client'
 import type { LocaleSnapshot } from '@deepseek-ai/dsh-client-locale/client'
 
@@ -17,7 +18,7 @@ export const INITIAL_QUERY: MarketSearchQuery = { sort: 'popular' }
 export type CatalogFailure = 'fetch' | 'invalid'
 
 /** Why the last install or uninstall failed. */
-export type WorkFailure = 'auth' | 'conflict' | 'no-profile' | 'other'
+export type WorkFailure = 'auth' | 'conflict' | 'no-profile' | 'preview-expired' | 'other'
 
 /** Shared Marketplace state. */
 export interface MarketState {
@@ -34,7 +35,9 @@ export interface MarketState {
   /** The installed ids this machine reports, refreshed on `market/changed` and after every work call. */
   readonly installed: Readonly<Record<string, MarketInstalledView>>
   /** Items with an install or uninstall running, mapped to the work kind. */
-  readonly busy: Readonly<Record<string, 'install' | 'uninstall'>>
+  readonly busy: Readonly<Record<string, 'install' | 'uninstall' | 'preview'>>
+  /** The install awaiting user review; env/header values never appear here. */
+  readonly preview: MarketInstallPreview | null
   /** The last refused install or uninstall, shown until the next action. */
   readonly workFailure: { readonly id: string; readonly work: 'install' | 'uninstall'; readonly kind: WorkFailure } | null
 }
@@ -59,8 +62,12 @@ export interface MarketFace {
   readonly refresh: () => void
   /** Run the last failed catalog read again. */
   readonly retry: () => void
-  /** Install one item by catalog slug. */
+  /** Fetch a preview for user review. */
   readonly install: (id: string) => void
+  /** Confirm the open preview and install its cached payload. */
+  readonly confirmInstall: () => void
+  /** Dismiss the open preview without installing. */
+  readonly cancelInstall: () => void
   /** Uninstall one item by catalog slug. */
   readonly uninstall: (id: string) => void
   /** Read one item's detail through the catalog remote. */
@@ -69,7 +76,7 @@ export interface MarketFace {
 
 const INITIAL: MarketState = {
   status: 'idle', query: INITIAL_QUERY, answered: null, categories: [], items: [], total: 0, failure: null,
-  installed: {}, busy: {}, workFailure: null,
+  installed: {}, busy: {}, workFailure: null, preview: null,
 }
 
 function catalogFailure(failure: RemoteFailure): CatalogFailure {
@@ -82,6 +89,7 @@ function workFailure(failure: RemoteFailure): WorkFailure {
     case 'market/conflict': return 'conflict'
     case 'market/no-profile':
     case 'market/profile-unavailable': return 'no-profile'
+    case 'market/preview-expired': return 'preview-expired'
     default: return 'other'
   }
 }
@@ -122,7 +130,14 @@ export class MarketController {
       },
       refresh: () => { void this.load(this.state().answered ?? INITIAL_QUERY, 0) },
       retry: () => { this.failed() },
-      install: (id) => { void this.work(id, 'install') },
+      install: (id) => { void this.preview(id) },
+      confirmInstall: () => {
+        const preview = this.state().preview
+        if (preview === null || this.disposed) return
+        this.patch({ preview: null })
+        void this.work(preview.id, 'install', preview.token)
+      },
+      cancelInstall: () => { this.patch({ preview: null }) },
       uninstall: (id) => { void this.work(id, 'uninstall') },
       detail: async (id) => {
         const answer = await this.ctx.remote.market.detail(id)
@@ -180,13 +195,29 @@ export class MarketController {
     this.patch({ installed })
   }
 
+  /** Fetch one install payload's preview for user review. */
+  private async preview(id: string): Promise<void> {
+    if (this.disposed || this.state().busy[id] !== undefined || this.state().preview !== null || Object.values(this.state().busy).includes('preview')) return
+    this.patch({ busy: { ...this.state().busy, [id]: 'preview' }, workFailure: null })
+    const answer = await this.ctx.remote.market.previewInstall(id)
+    // oxlint-disable-next-line typescript/no-unnecessary-condition -- dispose() can run during the await.
+    if (this.disposed) return
+    const { [id]: _removed, ...busy } = this.state().busy
+    if (!answer.ok) {
+      this.patch({ busy, workFailure: { id, work: 'install', kind: workFailure(answer.error) } })
+      return
+    }
+    this.patch({ busy, preview: answer.value })
+  }
+
   /** Run one install or uninstall, tracking it in `busy` and reporting its refusal in `workFailure`. */
-  private async work(id: string, kind: 'install' | 'uninstall'): Promise<void> {
-    if (this.state().busy[id] !== undefined) return
+  private async work(id: string, kind: 'install' | 'uninstall', token?: string): Promise<void> {
+    if (this.disposed || (kind === 'install' && token === undefined) || this.state().busy[id] !== undefined) return
     this.patch({ busy: { ...this.state().busy, [id]: kind }, workFailure: null })
-    const answer = kind === 'install'
-      ? await this.ctx.remote.market.installItem(id)
+    const answer = kind === 'install' && token !== undefined
+      ? await this.ctx.remote.market.installItem(token)
       : await this.ctx.remote.market.uninstallItem(id)
+    // oxlint-disable-next-line typescript/no-unnecessary-condition -- dispose() can run during the await.
     if (this.disposed) {
       return
     } else {

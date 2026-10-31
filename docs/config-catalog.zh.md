@@ -2216,7 +2216,7 @@ export interface LspLocalServerConfig {
 
 ## `@deepseek-ai/dsh-market`
 
-- `source`: [`packages/boot/market/src/index.ts:37`](../packages/boot/market/src/index.ts)
+- `source`: [`packages/boot/market/src/index.ts:40`](../packages/boot/market/src/index.ts)
 
 ```ts config-catalog
 /** Marketplace service configuration. */
@@ -4425,7 +4425,7 @@ export interface Config {
   apiKey: Volatile<string | undefined>
   /** Credential reference resolved for each operation; defaults to `DEEPSEEK_API_KEY`. */
   apiKeyEnv: Volatile<string>
-  /** API base including its path prefix; `/search` and `/fetch` are appended. Unset resolves through `DEEPSEEK_WEB_API_BASE_URL`, then the public API. */
+  /** API base including its path prefix; `/search` and `/fetch` are appended. Unset: `DEEPSEEK_WEB_API_BASE_URL`, else the public API. */
   baseURL: Volatile<string | undefined>
   /** Search API results per search, from 1 through 50; a smaller request bound wins. Defaults to 10. */
   count: Volatile<number>

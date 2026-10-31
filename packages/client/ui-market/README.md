@@ -26,7 +26,7 @@ English | [中文](README.zh.md)
 
 Open **Plugins** and select **Marketplace**. The toolbar holds the search field, the **Type** menu (**All**, **Skills**, **MCP tools**), the **Sort** menu (**Downloads**, **Installs**, **Newest**, **Name**), and a refresh button. Category pills, with **All** first, follow when the catalog declares categories.
 
-Each card shows the icon, localized title, a kind tag, a one-line summary, and downloads, installs, and version, with one action: **Install**, or **Installed** — which uninstalls on a second thought. Selecting a card opens the item's page with its long description and facts: type, version, author, homepage link, and category. The page's back link returns to the list with its search, filters, and sort intact.
+Each card shows the icon, localized title, a kind tag, a one-line summary, and downloads, installs, and version, with one action: **Install**, or **Installed** — which uninstalls on a second thought. Selecting a card opens the item's page with its long description and facts: type, version, author, homepage link, and category. The page's back link returns to the list with its search, filters, and sort intact. **Install** opens a review dialog showing the command and arguments and environment variable names, the URL and header names, or the skill's file paths; **Confirm install** writes the reviewed payload and **Cancel** leaves local files unchanged.
 
 The Host `market.catalog` searches, filters, orders, and pages; the tab sends the search text 250 ms after typing stops. The list loads 50 items and adds 50 with each **Show more**. Install and uninstall need a signed-in Fiwen account; a refusal — sign-in required, a same-named user skill or MCP server, or an environment without a writable profile — shows its reason under the toolbar until the next action.
 
@@ -37,7 +37,7 @@ Reading the catalog shows card skeletons. A failed read shows a short sentence w
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
 
-The plugin registers the `market` entry, labelled **Marketplace**, into `plugins.tab`, the tab slot that [`ui-plugin-manager`](../ui-plugin-manager/README.md) declares. A React-free controller owns the query, the loaded pages, the installed set, and per-item work in a snapshot store; catalog text resolves through the locale service's fallback chain, so a deployment language pack can translate item titles. The unsent search text and the open item are component state. Icons load lazily with `referrerpolicy="no-referrer"` and fall back to the default artwork.
+The plugin registers the `market` entry, labelled **Marketplace**, into `plugins.tab`, the tab slot that [`ui-plugin-manager`](../ui-plugin-manager/README.md) declares. A React-free controller owns the query, the loaded pages, the installed set, and per-item work and the pending install preview in a snapshot store; catalog text resolves through the locale service's fallback chain, so a deployment language pack can translate item titles. The unsent search text and the open item are component state. Icons load lazily with `referrerpolicy="no-referrer"` and fall back to the default artwork.
 
 -----
 

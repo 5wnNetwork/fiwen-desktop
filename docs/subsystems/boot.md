@@ -159,15 +159,22 @@ Browse and install marketplace items. `deepseekAccount` authenticates installs w
 @Remote async detail(id: string): Promise<MarketItemDetail>
 
 /**
- * Install one item: records the install server-side, then writes the artifact locally — the skill
- * directory or the MCP patch row — and records it in the local ledger. Named `installItem` because
- * the Client namespace service owns a private `install`.
+ * Fetch an install payload for review without writing local artifacts. The backend counts this request as a download.
  * @param id - catalog slug.
- * @returns the recorded install.
- * @throws {RemoteError} `market/auth-required`, `market/not-found`, `market/conflict`,
- * `market/no-profile`, `market/profile-unavailable`, `market/invalid-response`, `market/fetch-failed`.
+ * @returns a preview with a single-use token valid for ten minutes; environment and header values stay on the Host.
+ * @throws {RemoteError} `market/auth-required`, `market/not-found`, `market/invalid-response`, `market/fetch-failed`.
  */
-@Remote async installItem(id: string): Promise<MarketInstalledView>
+@Remote async previewInstall(id: string): Promise<MarketInstallPreview>
+
+/**
+ * Consume a preview token and install its cached payload, then publish `market/changed`.
+ * @param token - single-use token from `previewInstall`; obtain user confirmation before calling.
+ * @returns the recorded local install. No backend request is made.
+ * @throws {RemoteError} `market/preview-expired` for an unknown, consumed, or expired token;
+ * `market/conflict`, `market/no-profile`, or `market/profile-unavailable` for an install failure.
+ * A failed attempt consumes the token; request a new preview before retrying.
+ */
+@Remote async installItem(token: string): Promise<MarketInstalledView>
 
 /**
  * Remove one installed item: the skill directory or the MCP patch row, and its ledger entry.

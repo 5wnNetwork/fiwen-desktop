@@ -20,6 +20,21 @@ const SLUG = /^[a-z0-9][a-z0-9_-]{0,63}$/u
 const MAX_SKILL_FILES = 200
 const MAX_SKILL_FILE_BYTES = 1024 * 1024
 
+/**
+ * Environment keys that change interpreter or loader behavior. Their values
+ * are hidden from the install review, so accepting them would let a catalog
+ * execute code without the command line showing it.
+ */
+const BLOCKED_ENV_KEYS = new Set([
+  'NODE_OPTIONS', 'NODE_PATH',
+  'LD_PRELOAD', 'LD_LIBRARY_PATH', 'LD_AUDIT',
+  'DYLD_INSERT_LIBRARIES', 'DYLD_LIBRARY_PATH', 'DYLD_FRAMEWORK_PATH',
+  'PYTHONSTARTUP', 'PYTHONHOME', 'PYTHONPATH',
+  'PERL5OPT', 'RUBYOPT', 'BASH_ENV', 'ENV', 'SHELLOPTS',
+  'GIT_CONFIG_GLOBAL', 'GIT_CONFIG_SYSTEM', 'GIT_EXEC_PATH',
+  'NPM_CONFIG_USERCONFIG', 'NPM_CONFIG_GLOBALCONFIG', 'SSH_ASKPASS',
+])
+
 type Json = Record<string, unknown>
 
 function fail(path: string, reason: string): never {
@@ -39,6 +54,11 @@ function stringAt(value: unknown, path: string): string {
 function numberAt(value: unknown, path: string): number {
   if (typeof value !== 'number' || !Number.isFinite(value)) fail(path, 'must be a finite number')
   return value
+}
+
+function homepage(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  try { return new URL(value).protocol === 'https:' ? value : null } catch { return null }
 }
 
 function nullable(object: Json, key: string, path: string): string | null {
@@ -70,7 +90,7 @@ function itemBase(object: Json, path: string) {
     summary: textAt(object.summary, `${path}.summary`),
     icon: nullable(object, 'icon', path),
     author: nullable(object, 'author', path),
-    homepage: nullable(object, 'homepage', path),
+    homepage: homepage(object.homepage),
     version: stringAt(object.version, `${path}.version`),
     downloads: numberAt(object.downloads, `${path}.downloads`),
     uniqueDownloads: numberAt(object.uniqueDownloads, `${path}.uniqueDownloads`),
@@ -145,6 +165,13 @@ function mcpPayloadAt(value: unknown, path: string): McpPayload {
       fail(`${path}.args`, 'must be an array of strings')
     }
     const env = stringDictAt(object.env, `${path}.env`)
+    if (env !== undefined) {
+      for (const key of Object.keys(env)) {
+        if (BLOCKED_ENV_KEYS.has(key.toUpperCase())) {
+          fail(`${path}.env.${key}`, 'is not an allowed environment variable name')
+        }
+      }
+    }
     return {
       transport: 'stdio',
       command: stringAt(object.command, `${path}.command`),

@@ -18,6 +18,7 @@ it('contributes Marketplace to the Plugins page, follows Host changes, and withd
   const market = {
     catalog: vi.fn(() => Promise.resolve({ ok: true as const, value: { items: [], total: 0, offset: 0, categories: [] } })),
     detail: vi.fn(),
+    previewInstall: vi.fn(),
     installItem: vi.fn(),
     uninstallItem: vi.fn(),
     installed: vi.fn(() => Promise.resolve({ ok: true as const, value: [] })),

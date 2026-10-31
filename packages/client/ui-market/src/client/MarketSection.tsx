@@ -2,10 +2,10 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import {
   Button, IconChevronDownOutlineRegular, IconChevronLeftOutlineRegular, IconRefreshOutlineRegular,
-  IconSearchOutlineRegular, IconWarningOutlineRegular, Input, Menu, Pill, PluginArtworkDefault, StateDot, Tag, Tooltip,
+  IconSearchOutlineRegular, IconWarningOutlineRegular, Input, Menu, Modal, Pill, PluginArtworkDefault, StateDot, Tag, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import type { MarketItemDetail, MarketItemKind, MarketItemView } from '@deepseek-ai/dsh-api-remotes/client'
+import type { MarketInstallPreview, MarketItemDetail, MarketItemKind, MarketItemView } from '@deepseek-ai/dsh-api-remotes/client'
 import type { CatalogFailure, MarketFace, MarketState, WorkFailure } from './market-store.ts'
 import css from './MarketSection.module.css'
 
@@ -31,6 +31,7 @@ const WORK_FAILURE_KEYS = {
   auth: 'signInRequired',
   conflict: 'conflictSkill',
   'no-profile': 'noProfile',
+  'preview-expired': 'previewExpired',
   other: 'installFailed',
 } as const satisfies Record<WorkFailure, string>
 
@@ -72,6 +73,7 @@ function ItemAction({ item, title, state, t, face }: {
   readonly face: MarketActions
 }): ReactNode {
   const busy = state.busy[item.id]
+  if (busy === 'preview') return <Button variant="outline" size="sm" disabled>{t('preparingInstall')}</Button>
   if (busy === 'install') return <Button variant="outline" size="sm" disabled>{t('installing')}</Button>
   if (busy === 'uninstall') return <Button variant="ghost" size="sm" disabled>{t('uninstalling')}</Button>
   if (state.installed[item.id] !== undefined) {
@@ -81,10 +83,48 @@ function ItemAction({ item, title, state, t, face }: {
       </Button>
     )
   }
+  const previewBusy = state.preview !== null || Object.values(state.busy).includes('preview')
   return (
-    <Button variant="outline" size="sm" aria-label={t('installTitle', { name: title })} onClick={() => { face.install(item.id) }}>
+    <Button variant="outline" size="sm" aria-label={t('installTitle', { name: title })} disabled={previewBusy} onClick={() => { face.install(item.id) }}>
       {t('install')}
     </Button>
+  )
+}
+
+function InstallConfirmation({ preview, t, onConfirm, onCancel }: {
+  readonly preview: MarketInstallPreview | null
+  readonly t: Translate
+  readonly onConfirm: () => void
+  readonly onCancel: () => void
+}): ReactNode {
+  if (preview === null) return null
+  return (
+    <Modal open title={t('reviewInstallTitle', { name: preview.id })} closeLabel={t('cancelInstall')}
+      description={t(preview.kind === 'mcp' ? 'reviewMcpDescription' : 'reviewSkillDescription')}
+      onClose={onCancel} className={css.installDialog ?? ''} contentClassName={css.installContent ?? ''}
+      footer={<>
+        <Button variant="ghost" data-modal-autofocus onClick={onCancel}>{t('cancelInstall')}</Button>
+        <Button variant="primary" onClick={onConfirm}>{t('confirmInstall')}</Button>
+      </>}>
+      <p className={css.meta}>{t('factVersion')}: {preview.version}</p>
+      {preview.mcp?.transport === 'stdio' ? <>
+        <h3 className={css.sectionTitle}>{t('installCommand')}</h3>
+        <pre className={css.installCode}>{[preview.mcp.command, ...preview.mcp.args].map(value => JSON.stringify(value)).join(' ')}</pre>
+        <h3 className={css.sectionTitle}>{t('installEnvKeys')}</h3>
+        <pre className={css.installCode}>{preview.mcp.envKeys.length === 0 ? t('installNoKeys') : preview.mcp.envKeys.join('\n')}</pre>
+        <p className={css.meta}>{t('installHiddenValues')}</p>
+      </> : preview.mcp?.transport === 'http' ? <>
+        <h3 className={css.sectionTitle}>{t('installUrl')}</h3>
+        <pre className={css.installCode}>{preview.mcp.url}</pre>
+        <h3 className={css.sectionTitle}>{t('installHeaderKeys')}</h3>
+        <pre className={css.installCode}>{preview.mcp.headerKeys.length === 0 ? t('installNoKeys') : preview.mcp.headerKeys.join('\n')}</pre>
+        <p className={css.meta}>{t('installHiddenValues')}</p>
+      </> : <>
+        <h3 className={css.sectionTitle}>{t('installSkillFiles')}</h3>
+        <pre className={css.installCode}>{preview.skillFiles?.join('\n')}</pre>
+        <p className={css.meta}>{t('installSkillContentsHidden')}</p>
+      </>}
+    </Modal>
   )
 }
 
@@ -313,13 +353,15 @@ export function MarketSection(props: MarketSectionProps): ReactNode {
     setOpened({ id, detail: null })
     void face.detail(id).then((detail) => { setOpened({ id, detail }) })
   }
-  if (opened !== null) {
-    if (opened.detail !== null) {
-      return (
-        <DetailView detail={opened.detail} state={state} t={t} face={face} onBack={() => { setOpened(null) }} />
-      )
-    }
-    return <ListSkeleton label={t('loading')} />
-  }
-  return <Browser state={state} t={t} face={face} onOpen={open} />
+  const content = opened === null
+    ? <Browser state={state} t={t} face={face} onOpen={open} />
+    : opened.detail === null
+      ? <ListSkeleton label={t('loading')} />
+      : <DetailView detail={opened.detail} state={state} t={t} face={face} onBack={() => { setOpened(null) }} />
+  return (
+    <>
+      {content}
+      <InstallConfirmation preview={state.preview} t={t} onConfirm={face.confirmInstall} onCancel={face.cancelInstall} />
+    </>
+  )
 }

@@ -584,6 +584,9 @@ const PORT = portArg >= 0 ? Number(process.argv[portArg + 1]) : 4319
 
 export function start(port = PORT) {
   return createServer((req, res) => {
+  const listeningPort = req.socket.localPort
+  const hosts = [`127.0.0.1:${listeningPort}`, `localhost:${listeningPort}`]
+  if (!hosts.includes(req.headers.host)) { res.writeHead(403).end('forbidden'); return }
   const url = new URL(req.url ?? '/', 'http://127.0.0.1')
   if (req.method === 'GET' && url.pathname === '/api/entries') {
     try {
@@ -597,11 +600,31 @@ export function start(port = PORT) {
     return
   }
   if (req.method === 'POST' && url.pathname === '/api/save') {
-    let body = ''
-    req.on('data', c => { body += c })
+    const origin = req.headers.origin
+    if (!(req.headers['content-type'] ?? '').startsWith('application/json') || (origin !== undefined && !hosts.some(host => origin === `http://${host}`))) {
+      res.writeHead(403).end('forbidden')
+      return
+    }
+    const limit = 1024 * 1024
+    if (Number(req.headers['content-length'] ?? 0) > limit) { res.writeHead(413).end('payload too large'); return }
+    let size = 0
+    let tooLarge = false
+    const chunks = []
+    req.on('data', chunk => {
+      if (tooLarge) return
+      size += chunk.length
+      if (size > limit) {
+        tooLarge = true
+        chunks.length = 0
+        res.writeHead(413).end('payload too large')
+        return
+      }
+      chunks.push(chunk)
+    })
     req.on('end', () => {
+      if (tooLarge) return
       try {
-        const { status, body: payload } = handleSave(JSON.parse(body))
+        const { status, body: payload } = handleSave(JSON.parse(Buffer.concat(chunks).toString('utf8')))
         res.writeHead(status, { 'content-type': 'application/json; charset=utf-8' })
         res.end(JSON.stringify(payload))
       } catch (error) {

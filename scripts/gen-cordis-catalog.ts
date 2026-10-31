@@ -317,6 +317,7 @@ export const LINK_MAP: Readonly<Record<string, string>> = {
   MarketItemDetail: 'boot.md',
   MarketItemView: 'boot.md',
   MarketInstalledView: 'boot.md',
+  MarketInstallPreview: 'boot.md',
   MarketSearchQuery: 'boot.md',
   ChangeResult: 'boot.md',
   InstallBundleOptions: 'boot.md',

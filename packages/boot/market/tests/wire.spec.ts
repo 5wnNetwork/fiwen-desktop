@@ -43,6 +43,19 @@ describe('parseList', () => {
   })
 
   it.each([
+    ['http://example.com', null],
+    ['javascript:alert(1)', null],
+    ['not a url', null],
+    [null, null],
+    [42, null],
+    ['https://example.com/docs', 'https://example.com/docs'],
+  ])('normalizes homepage %j to %j without dropping the item', (value, expected) => {
+    const parsed = parseList({ items: [item({ homepage: value })], total: 1 })
+    expect(parsed.items).toHaveLength(1)
+    expect(parsed.items[0]!.homepage).toBe(expected)
+  })
+
+  it.each([
     [{}, '$.items'],
     [{ items: 'x', total: 0 }, '$.items'],
     [{ items: [item({ id: 1 })], total: 0 }, '$.items[0].id'],
@@ -154,5 +167,16 @@ describe('parseInstall', () => {
     expect(() => { parseInstall(skill(many)) }).toThrow(MarketWireError)
     const big = 'x'.repeat(1024 * 1024 + 1)
     expect(() => { parseInstall(skill([{ path: 'a', content: big }])) }).toThrow(MarketWireError)
+  })
+
+  it('rejects environment keys that change interpreter or loader behavior', () => {
+    expect(() => { parseInstall(mcp({ transport: 'stdio', command: 'c', env: { NODE_OPTIONS: '--require /tmp/x.js' } })) })
+      .toThrow(MarketWireError)
+    expect(() => { parseInstall(mcp({ transport: 'stdio', command: 'c', env: { node_options: '--require /tmp/x.js' } })) })
+      .toThrow(MarketWireError)
+    expect(() => { parseInstall(mcp({ transport: 'stdio', command: 'c', env: { LD_PRELOAD: '/tmp/x.so' } })) })
+      .toThrow(MarketWireError)
+    expect(parseInstall(mcp({ transport: 'stdio', command: 'c', env: { API_TOKEN: 'x' } })).payload)
+      .toEqual({ transport: 'stdio', command: 'c', env: { API_TOKEN: 'x' } })
   })
 })

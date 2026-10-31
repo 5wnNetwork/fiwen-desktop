@@ -37,7 +37,8 @@ Remote 方法：
 
 - `catalog(query)` 返回一页目录及分类栏：`kind`（`skill` 或 `mcp`）、`category`、`q` 文本、`sort`（按总下载量的 `popular`、按安装账户数的 `unique`、`newest`、`name`）以及 `offset`/`limit` 分页。
 - `detail(id)` 返回单个条目的详情视图，含长描述。目录与详情读取都不携带条目负载。
-- `installItem(id)` 向后端登记安装——计入下载量，且每个账户只计一次去重下载——再把返回的负载写入本机并返回登记结果。安装要求已登录账户，否则以 `market/auth-required` 拒绝。
+- `previewInstall(id)` 拉取安装负载（技能为文件路径；stdio MCP 为命令、参数和环境变量*名称*；http MCP 为 URL 和请求头*名称*）以及一个十分钟内有效的单次令牌。本地不写入任何内容，环境变量和请求头的值不离开 Host。安装需要已登录的账号；否则 `market/auth-required` 拒绝。
+- `installItem(token)` 消耗预览令牌并写入缓存的负载 `market-<id>` MCP 行。未知、过期或已使用的令牌返回 `market/preview-expired`；请重新获取预览后再试。
 - `uninstallItem(id)` 移除本地制品：市场拥有的技能目录或 `market-<id>` MCP 行。用户自有的目录从不会被触碰。
 - `installed()` 列出本机报告已安装的条目，并与磁盘上仍存在的制品对账。
 
@@ -69,6 +70,8 @@ Remote 方法：
 
 - **安装是整版本替换** —— 条目的文件或 MCP 行按整体替换；没有逐文件更新或差异视图。
 - **已安装条目是设备本地的** —— `installed()` 只与本机对账；同一账户在其他设备上的安装不会出现。
+- **确认界面隐藏载荷值** —— 确认框只列出环境变量/请求头名称和技能文件路径，值与文件内容保留在后端。可能改变解释器或加载器行为的 stdio `env` 键（如 `NODE_OPTIONS`、`LD_PRELOAD`、`PYTHONSTARTUP` 等）会在 wire 边界被拒绝，避免隐藏值执行代码。
+- **预览数量有上限** —— 每个 Host 最多保留 32 个未确认预览；最旧的会被淘汰，随后以 `market/preview-expired` 失败。
 
 <a id="dev-note"></a>
 ### 开发备注

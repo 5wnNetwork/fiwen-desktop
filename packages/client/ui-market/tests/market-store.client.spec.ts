@@ -1,7 +1,7 @@
 import { Context } from '@deepseek-ai/cordis'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
 import { RemoteError, TestRemote } from '@deepseek-ai/dsh-client-test-runtime'
-import type { MarketCatalogResult, MarketInstalledView, MarketItemDetail, MarketItemView, MarketSearchQuery } from '@deepseek-ai/dsh-api-remotes/client'
+import type { MarketCatalogResult, MarketInstalledView, MarketInstallPreview, MarketItemDetail, MarketItemView, MarketSearchQuery } from '@deepseek-ai/dsh-api-remotes/client'
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { MarketController, PAGE_SIZE } from '../src/client/market-store.ts'
 
@@ -29,7 +29,10 @@ function setup() {
   const market = {
     catalog: vi.fn((_query: MarketSearchQuery): Promise<Answer<MarketCatalogResult>> => ok(page([item('a')]))),
     detail: vi.fn((id: string): Promise<Answer<MarketItemDetail>> => ok({ ...item(id), description: { en: 'about' } })),
-    installItem: vi.fn((id: string): Promise<Answer<MarketInstalledView>> => ok({ id, kind: 'skill', version: '1.0.0', installedAt: '2026-01-01T00:00:00Z' })),
+    previewInstall: vi.fn((id: string): Promise<Answer<MarketInstallPreview>> =>
+      ok({ token: `token-${id}`, id, kind: 'skill', version: '1', skillFiles: ['SKILL.md'] })),
+    installItem: vi.fn((token: string): Promise<Answer<MarketInstalledView>> =>
+      ok({ id: token.slice('token-'.length), kind: 'skill', version: '1.0.0', installedAt: '2026-01-01T00:00:00Z' })),
     uninstallItem: vi.fn((_id: string): Promise<Answer<boolean>> => ok(true)),
     installed: vi.fn((): Promise<Answer<MarketInstalledView[]>> => ok([])),
   }
@@ -89,24 +92,49 @@ describe('MarketController', () => {
     face.ensure()
     await vi.waitFor(() => { expect(snapshot().installed.a?.id).toBe('a') })
     face.install('b')
+    expect(snapshot().busy.b).toBe('preview')
+    await vi.waitFor(() => { expect(snapshot().preview?.id).toBe('b') })
+    expect(market.installItem).not.toHaveBeenCalled()
+    face.confirmInstall()
     expect(snapshot().busy.b).toBe('install')
     await vi.waitFor(() => { expect(snapshot().busy.b).toBeUndefined() })
-    expect(market.installItem).toHaveBeenCalledWith('b')
-    market.installItem.mockImplementationOnce(() => fail('market/conflict'))
-    face.install('c')
-    await vi.waitFor(() => { expect(snapshot().workFailure).toMatchObject({ id: 'c', work: 'install', kind: 'conflict' }) })
-    market.installItem.mockImplementationOnce(() => fail('market/auth-required'))
-    face.install('d')
-    await vi.waitFor(() => { expect(snapshot().workFailure).toMatchObject({ kind: 'auth' }) })
-    market.installItem.mockImplementationOnce(() => fail('market/no-profile'))
-    face.install('e')
-    await vi.waitFor(() => { expect(snapshot().workFailure).toMatchObject({ kind: 'no-profile' }) })
-    market.installItem.mockImplementationOnce(() => fail('market/profile-unavailable'))
-    face.install('f')
-    await vi.waitFor(() => { expect(snapshot().workFailure).toMatchObject({ kind: 'no-profile' }) })
-    market.installItem.mockImplementationOnce(() => fail('market/fetch-failed'))
-    face.install('g')
-    await vi.waitFor(() => { expect(snapshot().workFailure).toMatchObject({ kind: 'other' }) })
+    expect(market.installItem).toHaveBeenCalledWith('token-b')
+    for (const [id, code, kind] of [
+      ['c', 'market/conflict', 'conflict'],
+      ['d', 'market/auth-required', 'auth'],
+      ['e', 'market/no-profile', 'no-profile'],
+      ['f', 'market/profile-unavailable', 'no-profile'],
+      ['g', 'market/fetch-failed', 'other'],
+      ['h', 'market/preview-expired', 'preview-expired'],
+    ] as const) {
+      market.installItem.mockImplementationOnce(() => fail(code))
+      face.install(id)
+      await vi.waitFor(() => { expect(snapshot().preview?.id).toBe(id) })
+      face.confirmInstall()
+      await vi.waitFor(() => { expect(snapshot().workFailure).toMatchObject({ id, work: 'install', kind }) })
+    }
+    market.previewInstall.mockImplementationOnce(() => fail('market/auth-required'))
+    face.install('i')
+    await vi.waitFor(() => { expect(snapshot().workFailure).toMatchObject({ id: 'i', work: 'install', kind: 'auth' }) })
+    market.previewInstall.mockImplementationOnce(() => fail('market/invalid-response'))
+    face.install('j')
+    await vi.waitFor(() => { expect(snapshot().workFailure).toMatchObject({ id: 'j', kind: 'other' }) })
+  })
+
+  it('cancelling a preview never calls installItem; confirming twice calls it once', async () => {
+    const { face, market, snapshot } = setup()
+    face.ensure()
+    await vi.waitFor(() => { expect(snapshot().status).toBe('ready') })
+    face.install('a')
+    await vi.waitFor(() => { expect(snapshot().preview?.id).toBe('a') })
+    face.cancelInstall()
+    expect(snapshot().preview).toBeNull()
+    expect(market.installItem).not.toHaveBeenCalled()
+    face.install('a')
+    await vi.waitFor(() => { expect(snapshot().preview?.id).toBe('a') })
+    face.confirmInstall()
+    face.confirmInstall()
+    await vi.waitFor(() => { expect(market.installItem).toHaveBeenCalledTimes(1) })
   })
 
   it('uninstalls tracked items and re-reads the set on changed()', async () => {
@@ -134,13 +162,29 @@ describe('MarketController', () => {
     face.ensure()
     controller.dispose()
     expect(snapshot().status).toBe('loading')
+    const { controller: second, face: face2, market: market2, snapshot: snapshot2 } = setup()
     const pending = Promise.withResolvers<Answer<MarketInstalledView>>()
-    market.installItem.mockImplementation(() => pending.promise)
-    face.install('a')
-    controller.dispose()
+    market2.installItem.mockImplementation(() => pending.promise)
+    face2.install('a')
+    await vi.waitFor(() => { expect(snapshot2().preview?.id).toBe('a') })
+    face2.confirmInstall()
+    second.dispose()
     pending.resolve(ok({ id: 'a', kind: 'skill', version: '1', installedAt: 'x' }))
     await pending.promise
-    expect(snapshot().busy.a).toBe('install')
+    expect(snapshot2().busy.a).toBe('install')
+  })
+
+  it('does not publish a preview that settles after disposal', async () => {
+    const { controller, face, market, snapshot } = setup()
+    const pending = Promise.withResolvers<Answer<MarketInstallPreview>>()
+    market.previewInstall.mockImplementation(() => pending.promise)
+    face.install('a')
+    expect(snapshot().busy.a).toBe('preview')
+    controller.dispose()
+    pending.resolve(ok({ token: 'token-a', id: 'a', kind: 'skill', version: '1', skillFiles: ['SKILL.md'] }))
+    await pending.promise
+    expect(snapshot().preview).toBeNull()
+    expect(snapshot().busy.a).toBe('preview')
   })
 
   it('ignores a stale catalog read once a newer query starts', async () => {
@@ -183,6 +227,8 @@ describe('MarketController', () => {
     expect(market.catalog).toHaveBeenCalledTimes(2)
     face.install('a')
     face.install('a')
+    await vi.waitFor(() => { expect(market.previewInstall).toHaveBeenCalledTimes(1) })
+    face.confirmInstall()
     await vi.waitFor(() => { expect(market.installItem).toHaveBeenCalledTimes(1) })
   })
 })

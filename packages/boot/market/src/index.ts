@@ -15,11 +15,12 @@ import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typer
 import { resolveDshHome } from '@deepseek-ai/dsh-home-paths'
 import z from '@deepseek-ai/schemastery'
 import { join } from 'node:path'
+import { randomBytes } from 'node:crypto'
 import type {} from '@deepseek-ai/dsh-deepseek-account'
 import type {} from '@deepseek-ai/dsh-app-boot'
-import type { MarketCatalogResult, MarketInstalledView, MarketItemDetail, MarketSearchQuery } from './types.ts'
+import type { MarketCatalogResult, MarketInstalledView, MarketInstallPreview, MarketItemDetail, MarketSearchQuery } from './types.ts'
 import { installMcp, installSkill, listInstalled, uninstallMcp, uninstallSkill, type MarketStoreLayout } from './install.ts'
-import { parseCategories, parseDetail, parseInstall, parseList } from './wire.ts'
+import { parseCategories, parseDetail, parseInstall, parseList, type InstallResult, type McpPayload, type SkillPayload } from './wire.ts'
 
 export type * from './types.ts'
 
@@ -32,6 +33,8 @@ declare module '@deepseek-ai/cordis' {
 
 const SLUG = /^[a-z0-9][a-z0-9_-]{0,63}$/u
 const TOKEN_HEADER = 'x-dsh-auth-token'
+/** Bound the in-memory preview map; each entry holds a full install payload. */
+const MAX_PREVIEWS = 32
 
 /** Marketplace service configuration. */
 export interface Config {
@@ -51,6 +54,8 @@ export interface Config {
  */
 export default class Market extends TypertRemoteService {
   private readonly layout: MarketStoreLayout
+  private readonly previews = new Map<string, { readonly result: InstallResult; readonly expiresAt: number }>()
+  private disposed = false
 
   static Config = z.object({
     origin: z.string().default('https://desktop.5wn.net'),
@@ -65,6 +70,14 @@ export default class Market extends TypertRemoteService {
     this.layout = {
       skillsDir: config.skillsDir ?? join(home, 'skills'),
       marketDir: config.marketDir ?? join(home, 'market'),
+    }
+    ctx.effect(() => () => { this.disposed = true; this.previews.clear() }, 'market: install previews')
+  }
+
+  private prunePreviews(): void {
+    const now = Date.now()
+    for (const [token, entry] of this.previews) {
+      if (entry.expiresAt <= now) this.previews.delete(token)
     }
   }
 
@@ -139,24 +152,59 @@ export default class Market extends TypertRemoteService {
   }
 
   /**
-   * Install one item: records the install server-side, then writes the artifact locally — the skill
-   * directory or the MCP patch row — and records it in the local ledger. Named `installItem` because
-   * the Client namespace service owns a private `install`.
+   * Fetch an install payload for review without writing local artifacts. The backend counts this request as a download.
    * @param id - catalog slug.
-   * @returns the recorded install.
-   * @throws {RemoteError} `market/auth-required`, `market/not-found`, `market/conflict`,
-   * `market/no-profile`, `market/profile-unavailable`, `market/invalid-response`, `market/fetch-failed`.
+   * @returns a preview with a single-use token valid for ten minutes; environment and header values stay on the Host.
+   * @throws {RemoteError} `market/auth-required`, `market/not-found`, `market/invalid-response`, `market/fetch-failed`.
    */
   @Remote
-  async installItem(id: string): Promise<MarketInstalledView> {
+  async previewInstall(id: string): Promise<MarketInstallPreview> {
+    this.prunePreviews()
     if (!SLUG.test(id)) throw new RemoteError('market/not-found', `No marketplace item ${id}`, { id })
     const body = await this.fetchJson(`/v1/market/items/${encodeURIComponent(id)}/install`, { method: 'POST' })
-    let result
+    let result: InstallResult
     try {
       result = parseInstall(body)
+      if (result.id !== id) throw new Error('install item does not match the requested slug')
     } catch (error) {
       throw new RemoteError('market/invalid-response', `Marketplace install payload rejected: ${String(error)}`, { reason: String(error) })
     }
+    if (this.disposed) throw new RemoteError('market/preview-expired', 'Request a new install preview', {})
+    this.prunePreviews()
+    // A caller that never confirms must not grow the map without bound; evict
+    // the oldest preview first, which then fails as preview-expired.
+    while (this.previews.size >= MAX_PREVIEWS) {
+      const oldest = this.previews.keys().next().value
+      if (oldest === undefined) break
+      this.previews.delete(oldest)
+    }
+    const token = randomBytes(16).toString('hex')
+    this.previews.set(token, { result, expiresAt: Date.now() + 10 * 60_000 })
+    const base = { token, id: result.id, kind: result.kind, version: result.version }
+    if (result.kind === 'skill') {
+      return { ...base, skillFiles: (result.payload as SkillPayload).files.map(file => file.path) }
+    }
+    const payload = result.payload as McpPayload
+    return { ...base, mcp: payload.transport === 'stdio'
+      ? { transport: 'stdio', command: payload.command, args: [...(payload.args ?? [])], envKeys: Object.keys(payload.env ?? {}) }
+      : { transport: 'http', url: payload.url, headerKeys: Object.keys(payload.headers ?? {}) } }
+  }
+
+  /**
+   * Consume a preview token and install its cached payload, then publish `market/changed`.
+   * @param token - single-use token from `previewInstall`; obtain user confirmation before calling.
+   * @returns the recorded local install. No backend request is made.
+   * @throws {RemoteError} `market/preview-expired` for an unknown, consumed, or expired token;
+   * `market/conflict`, `market/no-profile`, or `market/profile-unavailable` for an install failure.
+   * A failed attempt consumes the token; request a new preview before retrying.
+   */
+  @Remote
+  async installItem(token: string): Promise<MarketInstalledView> {
+    this.prunePreviews()
+    const entry = this.previews.get(token)
+    this.previews.delete(token)
+    if (entry === undefined) throw new RemoteError('market/preview-expired', 'Request a new install preview', {})
+    const { result } = entry
     if (result.kind === 'skill') {
       try {
         const installed = await installSkill(this.layout, result.id, result.version, result.payload as Parameters<typeof installSkill>[3])

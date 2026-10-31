@@ -20,6 +20,8 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     'market/profile-unavailable': { readonly reason: string }
     /** The running profile was not launched with a writable user patch layer. */
     'market/no-profile': Record<string, never>
+    /** The install preview token is unknown, consumed, or expired. */
+    'market/preview-expired': Record<string, never>
   }
 }
 
@@ -60,6 +62,18 @@ export interface MarketItemView {
 /** Detail view: the list fields plus the long description. */
 export interface MarketItemDetail extends MarketItemView {
   readonly description: MarketText | null
+}
+
+/** An install payload summarized for user review: env and header values never leave the Host. */
+export interface MarketInstallPreview {
+  readonly token: string
+  readonly id: string
+  readonly kind: 'skill' | 'mcp'
+  readonly version: string
+  readonly mcp?:
+    | { readonly transport: 'stdio'; readonly command: string; readonly args: readonly string[]; readonly envKeys: readonly string[] }
+    | { readonly transport: 'http'; readonly url: string; readonly headerKeys: readonly string[] }
+  readonly skillFiles?: readonly string[]
 }
 
 /** One install as this machine records it — the Installed marker's local truth. */

@@ -44,8 +44,8 @@ export type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/remote'
 export type {} from '@deepseek-ai/dsh-plugin-market/remote'
 export type {} from '@deepseek-ai/dsh-market/remote'
 export type {
-  MarketCatalogResult, MarketCategoryView, MarketInstalledView, MarketItemDetail, MarketItemKind, MarketItemView,
-  MarketSearchQuery, MarketText,
+  MarketCatalogResult, MarketCategoryView, MarketInstalledView, MarketInstallPreview, MarketItemDetail, MarketItemKind,
+  MarketItemView, MarketSearchQuery, MarketText,
 } from '@deepseek-ai/dsh-market/types'
 export type {
   MarketCompatibility, MarketIndexSummary, MarketInstallation, MarketInstallationStatus, MarketListingEntry, MarketListingVersion,
