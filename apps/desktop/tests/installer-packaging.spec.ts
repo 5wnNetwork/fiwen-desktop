@@ -99,4 +99,21 @@ describe('installer preparation preserves application dependencies', () => {
     const packaged = new Set(config.files.filter((entry): entry is string => typeof entry === 'string'))
     for (const name of referenced) expect(packaged.has(`lib/${name}`)).toBe(true)
   })
+
+  it('bakes an https channel backend origin into packaged metadata', async () => {
+    const { createElectronBuilderConfig } = await import('../scripts/electron-builder-config.mjs')
+    const env = {
+      DSH_DESKTOP_APP_ID: 'com.example.installer',
+      DSH_DESKTOP_MANDATORY_UPDATE_TEST_ORIGIN: 'https://policy.example.com',
+      DSH_DESKTOP_MANDATORY_UPDATE_CONFIG: JSON.stringify({ allowedAuthOrigins: ['https://login.example.com'] }),
+      DSH_DESKTOP_TARGET_PLATFORM: 'win32',
+      DSH_DESKTOP_TARGET_ARCH: 'x64',
+      DSH_DESKTOP_UNSIGNED: '1',
+      FIWEN_ORIGIN: 'https://backend.example.com',
+    }
+    const config = createElectronBuilderConfig(env, 'win32', 'x64')
+    expect((config.extraMetadata as Record<string, unknown>).dshDesktopOrigin).toBe('https://backend.example.com')
+    expect(() => createElectronBuilderConfig({ ...env, FIWEN_ORIGIN: 'http://backend.example.com' }, 'win32', 'x64'))
+      .toThrow('FIWEN_ORIGIN must be an https origin')
+  })
 })
