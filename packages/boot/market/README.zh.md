@@ -28,7 +28,7 @@ Fiwen 包以 `market` 行挂载本服务并指向 Fiwen 源站；其他 profile 
 
 | 配置项 | 默认值 | 含义 |
 |---|---|---|
-| `origin` | `https://desktop.5wn.net` | 提供 `/v1/market/*` 的源站。 |
+| `origin` | `https://api.5wn.net` | 提供 `/v1/market/*` 的源站。 |
 | `fetchTimeoutMs` | `15000` | 单次目录或安装请求的时限。 |
 | `skillsDir` | `$DSH_HOME/skills` | 接收技能安装的用户技能根目录；`skill-filesystem` 已在扫描它。 |
 | `marketDir` | `$DSH_HOME/market` | 本服务拥有的台账目录。 |

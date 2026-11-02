@@ -10,6 +10,10 @@ All notable changes to this fork are recorded here. The format follows [Keep a C
 - `@modelcontextprotocol/client` is 2.4.0, and the MCP SDK reached through `@anthropic-ai/claude-agent-sdk` and `@google/genai` resolves to 1.32.2 (was 2.2.0 / 1.31.0): experimental tasks were not tied to the session that created them, one oversized message could exhaust memory during validation, and server bearer authentication was bypassable.
 - pnpm overrides pin the transitive `hono`, `@hono/node-server`, `body-parser`, `qs`, `ip-address`, `fast-uri`, `zod`, and `fflate` copies to their patched releases, so `pnpm audit --prod` reports no advisory in shipped code; the remaining entries belong to the dev-only vitest toolchain (vite, happy-dom, `@vitest/mocker`).
 
+### Changed
+
+- The backend is split across two origins: `FIWEN_ORIGIN` (default `https://api.5wn.net`) now addresses the account platform, inference, web tools, marketplace, and telemetry, while the new `FIWEN_DASH_ORIGIN` (default `https://dash.5wn.net`) serves the browser sign-in pages and the embedded Usage/Top-up views. `https://desktop.5wn.net` remains the public download and auto-update origin.
+
 ### Fixed
 
 - Every workspace `package.json` reports the root version (`0.2.1-rc.3`); 351 manifests were still on `0.2.1-rc.2`, which failed `pnpm run constraints` and the release version checks.

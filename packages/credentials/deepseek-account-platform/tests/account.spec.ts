@@ -35,6 +35,7 @@ async function fixture(
   embeddedPageDist = '',
   desktopPlatform: 'darwin' | 'win32' | null = null,
   balanceTimeoutMs = 30_000,
+  dashboardOrigin?: string,
 ) {
   const home = await mkdtemp(join(tmpdir(), 'dsh-account-'))
   cleanups.push(() => rm(home, { recursive: true, force: true }))
@@ -159,6 +160,7 @@ async function fixture(
   await beforeAccount?.(ctx, origin)
   const provider = ctx.plugin(PlatformAccount, {
     platformOrigin: origin, inferenceOrigin, embeddedPageDist, desktopPlatform,
+    ...(dashboardOrigin === undefined ? {} : { dashboardOrigin }),
     allowLoopbackHttp: true, requestHeaders, accountRequestHeaders,
     rewriteBrowserOrigin, logoutRetryDelayMs: 1, balanceTimeoutMs,
   })
@@ -388,6 +390,47 @@ it('derives every portal link from the private platform origin', async () => {
   await f.account.startSignIn(clientMetadata(), f.callbackOrigin, 'desktop')
   expect((await f.wait('waiting-browser')).attempt?.authorizeUrl).toBe(`${f.origin}/dsh/authorize?authorize_id=test`)
 })
+
+it('uses a distinct dashboard origin for links, browser pages and the embedded session', async () => {
+  const dashboardOrigin = 'https://dash.example.test'
+  const f = await fixture(undefined, {}, false, {}, undefined, undefined, '', null, 30_000, dashboardOrigin)
+  await storeAccount(f)
+  expect((await f.account.getState()).links).toEqual({ usageUrl: `${dashboardOrigin}/usage`, topUpUrl: `${dashboardOrigin}/top_up` })
+  expect(await f.account.getPlatformSession()).toMatchObject({ origin: dashboardOrigin, token: 'test-platform-grant' })
+  f.initResponse({ authorize_url: `${dashboardOrigin}/dsh/authorize?authorize_id=test` })
+  await f.account.startSignIn(clientMetadata(), f.callbackOrigin, 'desktop')
+  expect((await f.wait('waiting-browser')).attempt?.authorizeUrl).toBe(`${dashboardOrigin}/dsh/authorize?authorize_id=test`)
+  f.exchangeResponse({ authorized_url: `${dashboardOrigin}/dsh/authorized?result=test` })
+  const response = await fetch(f.callback(), { redirect: 'manual' })
+  expect(response.headers.get('location')).toBe(`${dashboardOrigin}/dsh/authorized?result=test&login_source=desktop`)
+  expect((await f.account.getState()).status).toBe('credential-stored')
+})
+
+it('rejects an authorize URL on the platform origin when the dashboard origin differs', async () => {
+  const dashboardOrigin = 'https://dash.example.test'
+  const f = await fixture(undefined, {}, false, {}, undefined, undefined, '', null, 30_000, dashboardOrigin)
+  await f.account.startSignIn(clientMetadata(), f.callbackOrigin, 'desktop')
+  expect(await f.wait('failed')).toMatchObject({ status: 'signed-out', attempt: { errorCode: 'protocol' } })
+  expect(f.count()).toBe(0)
+})
+
+it('rejects a completion URL on the platform origin when the dashboard origin differs', async () => {
+  const dashboardOrigin = 'https://dash.example.test'
+  const f = await fixture(undefined, {}, false, {}, undefined, undefined, '', null, 30_000, dashboardOrigin)
+  f.initResponse({ authorize_url: `${dashboardOrigin}/dsh/authorize?authorize_id=test` })
+  f.exchangeResponse({ authorized_url: `${f.origin}/dsh/authorized?result=test` })
+  await f.account.startSignIn(clientMetadata(), f.callbackOrigin, 'desktop')
+  await f.wait('waiting-browser')
+  expect((await fetch(f.callback(), { redirect: 'manual' })).status).toBe(204)
+  expect(await f.wait('failed')).toMatchObject({ status: 'signed-out', attempt: { errorCode: 'protocol' } })
+  expect((await f.account.getState()).status).toBe('signed-out')
+})
+
+it.each(['http://localhost:8081', 'ftp://dash.example.test', 'https://user:secret@dash.example.test'])(
+  'rejects an invalid dashboard origin %s at construction', (dashboardOrigin) => {
+    expect(() => new PlatformAccount(new Context(), { dashboardOrigin })).toThrow()
+  },
+)
 
 async function storeAccount(f: Awaited<ReturnType<typeof fixture>>) {
   await f.ctx.credentials.modifyRecord(credentialKey('deepseek-account-platform', 'default'), () => Promise.resolve({

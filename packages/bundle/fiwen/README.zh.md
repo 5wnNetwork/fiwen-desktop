@@ -1,5 +1,5 @@
 ---
-description: "Fiwen 部署层：统一服务源、仅账号凭据与越南语默认语言，供组合或定制 profile 的用户使用。"
+description: "Fiwen 部署层：分离的 API 与 dashboard 源站、仅账号凭据与越南语默认语言，供组合或定制 profile 的用户使用。"
 kind: "package-bundle"
 ---
 
@@ -29,7 +29,7 @@ kind: "package-bundle"
 
 ### 你会得到什么
 
-- **统一服务源。** `FIWEN_ORIGIN`（默认 `https://desktop.5wn.net`）为账号平台源、推理源、账号 Messages 基地址（`/anthropic`）、Web Search/Fetch API 基地址（`/v1/tools`）以及两处 OTLP 遥测入口（`/v1/logs`）提供地址。回环 `FIWEN_ORIGIN`（localhost / 127.0.0.1 / [::1]）还会为本地开发启用 `deepseek-account` 的 `allowLoopbackHttp` 选项。
+- **两个服务源。** `FIWEN_ORIGIN`（默认 `https://api.5wn.net`）为账号平台源、推理源、账号 Messages 基地址（`/anthropic`）、Web Search/Fetch API 基地址（`/v1/tools`）、市场目录以及两处 OTLP 遥测入口（`/v1/logs`）提供地址。`FIWEN_DASH_ORIGIN`（默认 `https://dash.5wn.net`）提供浏览器登录页以及内嵌的用量和充值页面；回环 `FIWEN_ORIGIN`（localhost / 127.0.0.1 / [::1]）时它跟随该地址，同时为本地开发启用 `deepseek-account` 的 `allowLoopbackHttp` 选项。
 - **仅账号凭据。** `llm-deepseek`（DeepSeek API 密钥路由）与 `web-search-deepseek`（基于 Messages 的 Web 搜索）被禁用；`agent-default-model` 选择 `deepseek-account` 提供商与模型 `FIWEN_DEFAULT_MODEL`（默认 `deepseek-flash`）。因此引导流程进入账号登录而非 API 密钥输入。
 - **越南语界面。** `locale.defaultLocale: vi` 加上 `dsh-client-locale-vi` 语言包行。
 
@@ -41,7 +41,7 @@ kind: "package-bundle"
 <details>
 <summary>实现内部细节——点击展开</summary>
 
-该 bundle 自身不声明代码；`cordis.patch.yml` 重述目标行的配置，使 Loader 组合出部署形态。`FIWEN_ORIGIN` 与 `FIWEN_DEFAULT_MODEL` 通过补丁文档中的环境占位符读取。
+该 bundle 自身不声明代码；`cordis.patch.yml` 重述目标行的配置，使 Loader 组合出部署形态。`FIWEN_ORIGIN`、`FIWEN_DASH_ORIGIN` 与 `FIWEN_DEFAULT_MODEL` 通过补丁文档中的环境占位符读取。
 
 </details>
 

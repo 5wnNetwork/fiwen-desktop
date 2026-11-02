@@ -9,9 +9,9 @@ kind: "package-reference"
 
 每个到达 Platform 的操作都接收调用方的 `AccountClientMetadata`：客户端版本、当前界面语言和以秒为单位的 UTC 偏移。提供者据此与组合出的平台推导五个 Platform 客户端请求头，因此每个请求报告的是发起它的界面，而不是 Host 上一次见到的调用方。新的登录申请会为该申请的初始化、兑换和取消捕获这份元数据，中途加入的调用方不会替换它；退登则为在请求之后继续进行的撤销重试捕获这份元数据。
 
-getPlatformSession 仅在已存授权的 issuer 与 platformOrigin 一致时导出该授权。这个仅限 Host 的操作支持原生 Platform 内嵌，不扩大 resolveToken 配置的模型及文件请求来源。其 userId 复制最近一次成功 getProfile 得到的稳定账号 ID；尚无一次成功读取或资料不含 ID 时为 null。快照不自行发起资料请求，因此资料请求缓慢或失败都不会延迟它；ID 未知时 userId 为 null，使用方将其视为临时存储模式。读取授权期间凭证变化时丢弃快照。
+getPlatformSession 仅在已存授权的 issuer 与 platformOrigin 一致时导出该授权。这个仅限 Host 的操作支持原生 Platform 内嵌，不扩大 resolveToken 配置的模型及文件请求来源。其 origin 为 `dashboardOrigin`，即提供内嵌用量和充值页面的来源；其 userId 复制最近一次成功 getProfile 得到的稳定账号 ID；尚无一次成功读取或资料不含 ID 时为 null。快照不自行发起资料请求，因此资料请求缓慢或失败都不会延迟它；ID 未知时 userId 为 null，使用方将其视为临时存储模式。读取授权期间凭证变化时丢弃快照。
 
-`desktopPlatform` 默认为 `null`，此时携带 `x-client-platform: web`；Desktop profile 提供 `darwin` 或 `win32`，改为 `desktop-mac` 或 `desktop-win`。五个请求头均由 provider 拥有，部署配置无法覆盖；`x-client-bundle-id` 有意保持为空，`x-client-locale` 将调用方语言归约为 `zh_CN` 或 `en_US`。PlatformSession 只携带部署请求头，内嵌客户端为自行打开的 Platform 文档和 API 请求组装同样的五个请求头，且仅在配置来源发送。
+`desktopPlatform` 默认为 `null`，此时携带 `x-client-platform: web`；Desktop profile 提供 `darwin` 或 `win32`，改为 `desktop-mac` 或 `desktop-win`。五个请求头均由 provider 拥有，部署配置无法覆盖；`x-client-bundle-id` 有意保持为空，`x-client-locale` 将调用方语言归约为 `zh_CN` 或 `en_US`。PlatformSession 只携带部署请求头，内嵌客户端为自行打开的 Platform 文档和 API 请求组装同样的五个请求头，且仅在配置的 dashboard 来源发送。
 
 资料和余额接口返回 HTTP 401 或顶层响应码 `40003`（鉴权失效）时清除被拒绝的本地凭据，并发送实时 `deepseek-account/session-expired` 通知。并发响应共用一次清除操作；已失效凭据代次的响应不能清除替换后的凭据。其他 HTTP 错误保留凭据。Host 推理调用方可以通过 `rejectToken` 报告被拒绝的请求 token；仅当它仍匹配当前登录凭据时才执行清除。
 
@@ -40,9 +40,9 @@ getProfile / getBalance 将保存的授权 token 通过 x-dsh-auth-token 请求�
 
 getUnnotifiedBonuses 读取同一来源上的 GET /api/v0/users/get_unnotified_bonuses，ackBonusNotified 向 POST /api/v0/users/ack_bonus_notified 发送仅含订单号的 JSON 正文，两者都按调用方元数据组装这五个客户端请求头。二者都先为捕获到的授权解析账号身份，因此退登或切号时返回 null 或 false，而不会确认另一个账号的赠金；一次读取只有在同一凭证生命周期内全部结算后才发布。Host 按 Platform 返回顺序转发赠金列表，保留字符串字段 order_id、expires_at 和 msg，并映射为 orderId、expiresAt 和 message。可选的字符串 title 原样转发；null 或缺省表示使用客户端默认标题。expires_at 为空字符串、null 或缺省时，统一转为空字符串 expiresAt，表示通知永不过期。订单号不要求 UUID 格式；campaign、amount、currency 和 granted_at 均为可选元数据，不做校验，分别原样转发为 campaign、amount、currency 和 grantedAt；格式错误、其他 HTTP 失败和其他业务失败都会抛出，而凭据被拒绝（HTTP 401 或响应码 `40003`）会使当前授权失效并返回 null 或 false。
 
-余额请求使用 balanceTimeoutMs（默认 30,000ms）；超时返回失败结果，不清除账号，也不制造零余额。在插件行配置 platformOrigin、allowLoopbackHttp、requestTimeoutMs、balanceTimeoutMs 和 attemptTimeoutMs。HTTP 仅用于显式启用的本机开发。提供者先在现有 Host webServer 注册 /oauth/callback，再调用 auth_init；校验 state、使用 S256 PKCE 授权码兑换一次，并在跳转 auth_exchange.biz_data.authorized_url 前提交授权记录。浏览器地址默认要求匹配配置的平台来源，并始终要求固定的 /dsh/authorize 或 /dsh/authorized 路径。完成页地址将 `login_source` 设为发起登录的客户端类型（`web` 或 `desktop`），并保留平台返回的其他查询参数。设备标识是独立的随机 UUID 记录，由使用同一凭证存储的进程共享；device_model 报告操作系统和架构。
+余额请求使用 balanceTimeoutMs（默认 30,000ms）；超时返回失败结果，不清除账号，也不制造零余额。在插件行配置 platformOrigin、dashboardOrigin、allowLoopbackHttp、requestTimeoutMs、balanceTimeoutMs 和 attemptTimeoutMs。HTTP 仅用于显式启用的本机开发。提供者先在现有 Host webServer 注册 /oauth/callback，再调用 auth_init；校验 state、使用 S256 PKCE 授权码兑换一次，并在跳转 auth_exchange.biz_data.authorized_url 前提交授权记录。浏览器地址默认要求匹配配置的 dashboard 来源，并始终要求固定的 /dsh/authorize 或 /dsh/authorized 路径。完成页地址将 `login_source` 设为发起登录的客户端类型（`web` 或 `desktop`），并保留平台返回的其他查询参数。设备标识是独立的随机 UUID 记录，由使用同一凭证存储的进程共享；device_model 报告操作系统和架构。
 
-开放平台 URL 统一由 `platformOrigin` 配置管理。授权请求、浏览器地址校验、完成跳转、用量和充值入口都使用该来源。将配置放在私有的 `$DSH_HOME/cordis.patch.yml`，部署地址不进入源码仓库。默认要求 HTTPS；只有本机 HTTP 可通过 `allowLoopbackHttp: true` 显式启用。模型及文件 token 的目标由独立的 `inferenceOrigin` 配置管理。
+开放平台 URL 有两个配置归属。`platformOrigin` 提供账号 API：授权初始化、兑换、取消、退登、资料、余额和赠金。`dashboardOrigin` 提供浏览器登录页以及用量和充值入口；它默认等于 `platformOrigin`，因此单来源部署只需配置 `platformOrigin`。二者都放在私有的 `$DSH_HOME/cordis.patch.yml`，部署地址不进入源码仓库。默认要求 HTTPS；只有本机 HTTP 可通过 `allowLoopbackHttp: true` 显式启用。模型及文件 token 的目标由独立的 `inferenceOrigin` 配置管理。
 
 `requestHeaders` 为 `platformOrigin` 上的授权、资料、余额和退登请求添加仅 Host 使用的请求头。请求头值属于敏感配置，不包含在账号 UI 状态中。Authorization、X-DSH-Auth-Token、Host、Content-Type 及连接和消息分帧请求头由提供者保留。客户端身份请求头覆盖部署配置中的同名请求头。重定向会失败，不会转发请求头。开发环境 Cookie 应保存在私有配置或环境变量中；不会自动收集浏览器 Cookie。
 

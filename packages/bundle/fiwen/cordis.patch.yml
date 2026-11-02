@@ -6,19 +6,24 @@
 # A patch replaces the targeted row's whole `config`, so each row below
 # restates every key the earlier row set.
 #
-# One origin serves account sign-in, model inference, web tools, and
-# telemetry. FIWEN_ORIGIN overrides it for development; a loopback value also
-# enables the account plugin's loopback-HTTP opt-in. The account adapter's
-# Messages/listing and the tools API's endpoint take the origin through the
-# launch environment (DEEPSEEK_BASE_URL, DEEPSEEK_WEB_API_BASE_URL), which the
-# desktop shell derives from FIWEN_ORIGIN.
+# The API origin serves account sign-in API calls, model inference, web tools,
+# marketplace, and telemetry; the dashboard origin serves the browser sign-in
+# pages and the embedded Usage/Top-up pages. FIWEN_ORIGIN (default
+# https://api.5wn.net) overrides the API origin and FIWEN_DASH_ORIGIN (default
+# https://dash.5wn.net) overrides the dashboard origin. A loopback API origin
+# also enables the account plugin's loopback-HTTP opt-in; the dashboard origin
+# falls back to a loopback FIWEN_ORIGIN only when the API origin is loopback.
+# The account adapter's Messages/listing and the tools API's endpoint take the
+# API origin through the launch environment (DEEPSEEK_BASE_URL,
+# DEEPSEEK_WEB_API_BASE_URL), which the desktop shell derives from FIWEN_ORIGIN.
 
 - id: deepseek-account
   config:
-    platformOrigin: !!js process.env.FIWEN_ORIGIN ?? 'https://desktop.5wn.net'
+    platformOrigin: !!js process.env.FIWEN_ORIGIN ?? 'https://api.5wn.net'
+    dashboardOrigin: !!js "process.env.FIWEN_DASH_ORIGIN ?? (process.env.FIWEN_ORIGIN && ['localhost', '127.0.0.1', '[::1]'].includes(new URL(process.env.FIWEN_ORIGIN).hostname) ? process.env.FIWEN_ORIGIN : 'https://dash.5wn.net')"
     desktopPlatform: !!js "ctx.get('profileContext')?.name === 'desktop' && ['darwin', 'win32'].includes(process.platform) ? process.platform : null"
-    inferenceOrigin: !!js process.env.FIWEN_ORIGIN ?? 'https://desktop.5wn.net'
-    allowLoopbackHttp: !!js "['localhost', '127.0.0.1', '[::1]'].includes(new URL(process.env.FIWEN_ORIGIN ?? 'https://desktop.5wn.net').hostname)"
+    inferenceOrigin: !!js process.env.FIWEN_ORIGIN ?? 'https://api.5wn.net'
+    allowLoopbackHttp: !!js "['localhost', '127.0.0.1', '[::1]'].includes(new URL(process.env.FIWEN_ORIGIN ?? 'https://api.5wn.net').hostname)"
 
 # The API-key route is not offered: account sign-in is the only credential
 # path. The Models onboarding dialog finds no `deepseek-official` row and
@@ -86,7 +91,7 @@
     shutdownTimeoutMillis: 3000
     maxRequestBytes: 4000000
     exporter:
-      url: !!js "`${process.env.DSH_TELEMETRY_OTLP_URL ?? `${process.env.FIWEN_ORIGIN ?? 'https://desktop.5wn.net'}/v1/logs`}`"
+      url: !!js "`${process.env.DSH_TELEMETRY_OTLP_URL ?? `${process.env.FIWEN_ORIGIN ?? 'https://api.5wn.net'}/v1/logs`}`"
       compression: gzip
       timeoutMillis: 1000
     processor:
@@ -104,7 +109,7 @@
     shutdownTimeoutMillis: 2000
     serviceName: fiwen-desktop
     serviceVersion: !!js process.env.DSH_CLIENT_VERSION
-    endpoint: !!js "`${process.env.DSH_PRODUCT_ANALYTICS_OTLP_URL ?? `${process.env.FIWEN_ORIGIN ?? 'https://desktop.5wn.net'}/v1/logs`}`"
+    endpoint: !!js "`${process.env.DSH_PRODUCT_ANALYTICS_OTLP_URL ?? `${process.env.FIWEN_ORIGIN ?? 'https://api.5wn.net'}/v1/logs`}`"
 
 # Vietnamese is the deployment default when no explicit preference exists.
 - id: locale
@@ -132,7 +137,7 @@
     - id: market
       name: '@deepseek-ai/dsh-market'
       config:
-        origin: !!js process.env.FIWEN_ORIGIN ?? 'https://desktop.5wn.net'
+        origin: !!js process.env.FIWEN_ORIGIN ?? 'https://api.5wn.net'
 
     # The Marketplace tab on the Plugins page: browse, search, and install
     # the catalog the market service serves.

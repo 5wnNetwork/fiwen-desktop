@@ -23,7 +23,7 @@ import {
   type MenuItemConstructorOptions,
 } from 'electron'
 import { resolveDesktopPaths } from './paths.ts'
-import { readChannelOrigin } from './channel-origin.ts'
+import { readChannelOrigins } from './channel-origin.ts'
 import { DesktopProjectManager } from './project-manager.ts'
 import { DesktopHostFatalError, DesktopHostProcess, DesktopHostUncleanExitError } from './host-process.ts'
 import { DesktopPlatformView, PLATFORM_IPC, platformBounds } from './platform-view.ts'
@@ -328,11 +328,12 @@ async function main(): Promise<void> {
     : join(process.resourcesPath, 'runtime', 'primary-runtime')
   const activeProject = paths.profile
   const manager = new DesktopProjectManager(paths, resources)
-  // Packaged builds record their channel's backend origin in the manifest; an explicit
-  // process environment value still wins.
-  if (process.env.FIWEN_ORIGIN === undefined && app.isPackaged) {
-    const channelOrigin = readChannelOrigin(app.getAppPath())
-    if (channelOrigin !== undefined) process.env.FIWEN_ORIGIN = channelOrigin
+  // Packaged builds record their channel's backend and dashboard origins in the manifest;
+  // an explicit process environment value still wins.
+  if (app.isPackaged) {
+    const { origin, dashOrigin } = readChannelOrigins(app.getAppPath())
+    if (process.env.FIWEN_ORIGIN === undefined && origin !== undefined) process.env.FIWEN_ORIGIN = origin
+    if (process.env.FIWEN_DASH_ORIGIN === undefined && dashOrigin !== undefined) process.env.FIWEN_DASH_ORIGIN = dashOrigin
   }
   // Dock and Finder launches inherit only launchd's environment; every Host shares one login-shell read.
   const loginShellRead = new AbortController()
@@ -347,9 +348,11 @@ async function main(): Promise<void> {
   let hostEnvironment: NodeJS.ProcessEnv = process.env
   const prepareHostEnvironment = async (): Promise<void> => {
     const shell = await loginShell
-    hostEnvironment = process.env.FIWEN_ORIGIN === undefined
+    hostEnvironment = process.env.FIWEN_ORIGIN === undefined && process.env.FIWEN_DASH_ORIGIN === undefined
       ? shell
-      : { ...shell, FIWEN_ORIGIN: process.env.FIWEN_ORIGIN }
+      : { ...shell,
+        ...(process.env.FIWEN_ORIGIN === undefined ? {} : { FIWEN_ORIGIN: process.env.FIWEN_ORIGIN }),
+        ...(process.env.FIWEN_DASH_ORIGIN === undefined ? {} : { FIWEN_DASH_ORIGIN: process.env.FIWEN_DASH_ORIGIN }) }
   }
   let quitting = false
   let startup: Promise<void> | undefined

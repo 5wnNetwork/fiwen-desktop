@@ -58,7 +58,7 @@ export default class Market extends TypertRemoteService {
   private disposed = false
 
   static Config = z.object({
-    origin: z.string().default('https://desktop.5wn.net'),
+    origin: z.string().default('https://api.5wn.net'),
     fetchTimeoutMs: z.natural().min(1).default(15000),
     skillsDir: z.string(),
     marketDir: z.string(),

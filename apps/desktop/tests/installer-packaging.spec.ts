@@ -100,7 +100,7 @@ describe('installer preparation preserves application dependencies', () => {
     for (const name of referenced) expect(packaged.has(`lib/${name}`)).toBe(true)
   })
 
-  it('bakes an https channel backend origin into packaged metadata', async () => {
+  it('bakes https channel backend and dashboard origins into packaged metadata', async () => {
     const { createElectronBuilderConfig } = await import('../scripts/electron-builder-config.mjs')
     const env = {
       DSH_DESKTOP_APP_ID: 'com.example.installer',
@@ -110,10 +110,14 @@ describe('installer preparation preserves application dependencies', () => {
       DSH_DESKTOP_TARGET_ARCH: 'x64',
       DSH_DESKTOP_UNSIGNED: '1',
       FIWEN_ORIGIN: 'https://backend.example.com',
+      FIWEN_DASH_ORIGIN: 'https://dashboard.example.com',
     }
     const config = createElectronBuilderConfig(env, 'win32', 'x64')
     expect((config.extraMetadata as Record<string, unknown>).dshDesktopOrigin).toBe('https://backend.example.com')
+    expect((config.extraMetadata as Record<string, unknown>).dshDesktopDashOrigin).toBe('https://dashboard.example.com')
     expect(() => createElectronBuilderConfig({ ...env, FIWEN_ORIGIN: 'http://backend.example.com' }, 'win32', 'x64'))
       .toThrow('FIWEN_ORIGIN must be an https origin')
+    expect(() => createElectronBuilderConfig({ ...env, FIWEN_DASH_ORIGIN: 'http://dashboard.example.com' }, 'win32', 'x64'))
+      .toThrow('FIWEN_DASH_ORIGIN must be an https origin')
   })
 })

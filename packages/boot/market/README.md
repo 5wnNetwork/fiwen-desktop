@@ -28,7 +28,7 @@ The Fiwen bundle mounts the service as the `market` row with the Fiwen origin; o
 
 | Config | Default | Meaning |
 |---|---|---|
-| `origin` | `https://desktop.5wn.net` | Origin serving `/v1/market/*`. |
+| `origin` | `https://api.5wn.net` | Origin serving `/v1/market/*`. |
 | `fetchTimeoutMs` | `15000` | Deadline for one catalog or install fetch. |
 | `skillsDir` | `$DSH_HOME/skills` | User skill root that receives skill installs; `skill-filesystem` already scans it. |
 | `marketDir` | `$DSH_HOME/market` | Ledger directory this service owns. |

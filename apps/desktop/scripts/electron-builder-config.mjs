@@ -103,13 +103,14 @@ export function createElectronBuilderConfig(
   const buildVersion = resolveDesktopBuildVersion(env, productVersion)
   if (update?.channel === 'latest' && buildVersion.includes('-')) throw new Error('desktop package: latest requires a stable version')
   const packaged = resolveDesktopBuildCommit(env)
-  const channelOrigin = (() => {
-    const raw = env.FIWEN_ORIGIN
+  const httpsOrigin = (raw, name) => {
     if (raw === undefined || raw === '') return undefined
     const url = new URL(raw)
-    if (url.protocol !== 'https:') throw new Error('desktop package: FIWEN_ORIGIN must be an https origin')
+    if (url.protocol !== 'https:') throw new Error(`desktop package: ${name} must be an https origin`)
     return url.origin
-  })()
+  }
+  const channelOrigin = httpsOrigin(env.FIWEN_ORIGIN, 'FIWEN_ORIGIN')
+  const dashboardOrigin = httpsOrigin(env.FIWEN_DASH_ORIGIN, 'FIWEN_DASH_ORIGIN')
   return {
     appId,
     protocols: [{ name: 'Fiwen Desktop', schemes: ['fiwen'] }],
@@ -117,6 +118,7 @@ export function createElectronBuilderConfig(
       dshDesktopAppId: appId,
       dshDesktopUpdateChannel: update?.channel ?? 'nightly',
       ...(channelOrigin === undefined ? {} : { dshDesktopOrigin: channelOrigin }),
+      ...(dashboardOrigin === undefined ? {} : { dshDesktopDashOrigin: dashboardOrigin }),
       ...(policy === undefined ? {} : { dshMandatoryUpdatePolicy: policy }),
       ...buildVersion === productVersion ? {} : { version: buildVersion },
       ...packaged === undefined ? {} : { dshBuildCommit: packaged.commit, dshBuildDirty: packaged.dirty },

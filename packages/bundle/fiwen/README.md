@@ -1,5 +1,5 @@
 ---
-description: "The Fiwen deployment layer: one service origin, account-only credentials, and Vietnamese default locale, for users composing or customizing a profile."
+description: "The Fiwen deployment layer: separate API and dashboard origins, account-only credentials, and Vietnamese default locale, for users composing or customizing a profile."
 kind: "package-bundle"
 ---
 
@@ -29,7 +29,7 @@ The shipped Fiwen `web` profile already includes this layer after `dsh-base` and
 
 ### What you get
 
-- **One service origin.** `FIWEN_ORIGIN` (default `https://desktop.5wn.net`) feeds the account platform origin, the inference origin, the account Messages base (`/anthropic`), the web Search/Fetch API base (`/v1/tools`), and both OTLP telemetry intakes (`/v1/logs`). A loopback `FIWEN_ORIGIN` (localhost / 127.0.0.1 / [::1]) also enables `deepseek-account`'s `allowLoopbackHttp` opt-in for local development.
+- **Two service origins.** `FIWEN_ORIGIN` (default `https://api.5wn.net`) feeds the account platform origin, the inference origin, the account Messages base (`/anthropic`), the web Search/Fetch API base (`/v1/tools`), the marketplace catalog, and both OTLP telemetry intakes (`/v1/logs`). `FIWEN_DASH_ORIGIN` (default `https://dash.5wn.net`) serves the browser sign-in pages and the embedded Usage/Top-up pages; it follows a loopback `FIWEN_ORIGIN` (localhost / 127.0.0.1 / [::1]), which also enables `deepseek-account`'s `allowLoopbackHttp` opt-in for local development.
 - **Account-only credentials.** `llm-deepseek` (the DeepSeek API-key route) and `web-search-deepseek` (the Messages-backed web search) are disabled; `agent-default-model` selects provider `deepseek-account` with model `FIWEN_DEFAULT_MODEL` (default `deepseek-flash`). Onboarding therefore leads to account sign-in rather than API-key entry.
 - **Vietnamese UI.** `locale.defaultLocale: vi` plus the `dsh-client-locale-vi` language-pack row.
 
@@ -41,7 +41,7 @@ The shipped Fiwen `web` profile already includes this layer after `dsh-base` and
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-The bundle declares no code of its own; `cordis.patch.yml` restates the target rows' configuration so the Loader composes the deployment. `FIWEN_ORIGIN` and `FIWEN_DEFAULT_MODEL` are read through environment placeholders in the patch document.
+The bundle declares no code of its own; `cordis.patch.yml` restates the target rows' configuration so the Loader composes the deployment. `FIWEN_ORIGIN`, `FIWEN_DASH_ORIGIN`, and `FIWEN_DEFAULT_MODEL` are read through environment placeholders in the patch document.
 
 </details>
 

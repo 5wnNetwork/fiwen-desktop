@@ -21,8 +21,10 @@ const device = z.object({ id: z.uuid() })
 
 /** Deployment-specific platform and request deadlines. */
 export interface Config {
-  /** Platform origin serving auth-api and browser pages. */
+  /** Platform origin serving the account APIs: authorization, profile, balance, bonuses, and logout. */
   platformOrigin?: string
+  /** Origin serving the browser sign-in pages and the embedded Usage/Top-up pages; defaults to platformOrigin. */
+  dashboardOrigin?: string
   /** Native desktop identity for Host API and embedded Platform requests; null identifies the client as web. */
   desktopPlatform?: 'darwin' | 'win32' | null
   /** Optional frontend deployment selector for embedded Usage and Top-up pages. */
@@ -51,6 +53,7 @@ export interface Config {
 /** Validated deployment choices. */
 export const Config = Schema.object({
   platformOrigin: Schema.string().default('https://platform.deepseek.com'),
+  dashboardOrigin: Schema.string(),
   desktopPlatform: Schema.union([Schema.const('darwin'), Schema.const('win32'), Schema.const(null)]).default(null),
   embeddedPageDist: Schema.string().default(''),
   inferenceOrigin: Schema.string().default('https://api.deepseek.com'),
@@ -85,6 +88,7 @@ export class PlatformAccount extends DeepSeekAccount {
   static inject = ['credentials', 'authorization']
   static Config = Config
   private readonly origin: string
+  private readonly dashboardOrigin: string
   private readonly embeddedPageDist: string
   private readonly inferenceOrigin: string
   private readonly rewriteBrowserOrigin: boolean
@@ -115,6 +119,9 @@ export class PlatformAccount extends DeepSeekAccount {
     const resolved = Config(config)
     this.embeddedPageDist = resolved.embeddedPageDist
     this.origin = platformOrigin(resolved.platformOrigin, resolved.allowLoopbackHttp)
+    this.dashboardOrigin = resolved.dashboardOrigin === undefined
+      ? this.origin
+      : platformOrigin(resolved.dashboardOrigin, resolved.allowLoopbackHttp)
     const inference = new URL(resolved.inferenceOrigin)
     if (!['http:', 'https:'].includes(inference.protocol) || inference.username || inference.password
       || inference.pathname !== '/' || inference.search || inference.hash) {
@@ -184,7 +191,7 @@ export class PlatformAccount extends DeepSeekAccount {
       status: record === undefined ? 'signed-out' : 'credential-stored',
       // Credential removal can notify watchers before sign-out finishes clearing the attempt.
       attempt: record === undefined && attempt?.phase === 'succeeded' ? null : attempt,
-      links: { usageUrl: new URL('/usage', this.origin).href, topUpUrl: new URL('/top_up', this.origin).href },
+      links: { usageUrl: new URL('/usage', this.dashboardOrigin).href, topUpUrl: new URL('/top_up', this.dashboardOrigin).href },
     }
   }
 
@@ -363,7 +370,7 @@ export class PlatformAccount extends DeepSeekAccount {
     const requestHeaders = { ...this.accountRequestHeaders }
     // Identity comes from the profile read for this same grant; an unknown ID requires disposable
     // browser storage. A replaced credential never publishes the account its predecessor named.
-    return { origin: this.origin, token: stored.token,
+    return { origin: this.dashboardOrigin, token: stored.token,
       userId: this.lastProfile?.token === stored.token ? this.lastProfile.profile.value.id || null : null,
       ...(this.embeddedPageDist ? { embeddedPageDist: this.embeddedPageDist } : {}),
       requestHeaders }
@@ -568,7 +575,7 @@ export class PlatformAccount extends DeepSeekAccount {
         login_source: attempt.loginSource,
       }, signal, attempt.clientHeaders), { reportInput: true })
       if (!init.success) this.rejectPayload('auth_init', init.error)
-      const authorizeUrl = browserUrl(init.data.authorize_url, this.origin, '/dsh/authorize', this.rewriteBrowserOrigin)
+      const authorizeUrl = browserUrl(init.data.authorize_url, this.dashboardOrigin, '/dsh/authorize', this.rewriteBrowserOrigin)
       authorizeId = init.data.authorize_id
       signal.throwIfAborted()
       const now = Date.now()
@@ -590,7 +597,7 @@ export class PlatformAccount extends DeepSeekAccount {
         device_id: identity.id, device_model: `${platform()}-${arch()}`, os_version: deviceOsVersion(),
       }, signal, attempt.clientHeaders), { reportInput: true })
       if (!result.success) this.rejectPayload('auth_exchange', result.error)
-      const completionUrl = new URL(browserUrl(result.data.authorized_url, this.origin, '/dsh/authorized', this.rewriteBrowserOrigin))
+      const completionUrl = new URL(browserUrl(result.data.authorized_url, this.dashboardOrigin, '/dsh/authorized', this.rewriteBrowserOrigin))
       completionUrl.searchParams.set('login_source', attempt.loginSource)
       attempt.completionUrl = completionUrl.href
       if (Date.now() >= expiresAt) deadline.abort()

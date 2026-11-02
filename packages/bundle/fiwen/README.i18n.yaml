@@ -3,8 +3,8 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/bundle/fiwen/README.md
 /:
-  en: ca3e9c54d9f518ab
-  zh: bceccd72420d31fb
+  en: 7236b76ffcffee56
+  zh: 23e6b26431980850
 /deepseek-ai-dsh-fiwen:
   en: 7b3bf2a9e0d735ad
   zh: ba2016555cfa9853
@@ -18,11 +18,11 @@
   en: 669c22e810b618fb
   zh: cafdf4c8e895b7c1
 /deepseek-ai-dsh-fiwen/use-this-package/what-you-get:
-  en: bc1c9c2a556b29a0
-  zh: 73819bc9149d3c30
+  en: 79e6a556f1e990e3
+  zh: 66824e878f98de29
 /deepseek-ai-dsh-fiwen/understand-the-implementation:
-  en: 43f13111cba3d6ac
-  zh: 0214cc7757592d80
+  en: 13362f37c2c4b4b2
+  zh: 3a47f1e9791c6d98
 /deepseek-ai-dsh-fiwen/further-exploration:
   en: 5a22b179c39a0bb2
   zh: 457dee5911604105

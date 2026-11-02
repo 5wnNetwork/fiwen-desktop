@@ -32,7 +32,7 @@ export function platformOrigin(value: string, allowLoopbackHttp: boolean): strin
 /**
  * Validate platform-owned browser destinations without forwarding arbitrary URLs.
  * @param value - returned browser URL.
- * @param origin - configured platform origin.
+ * @param origin - configured dashboard origin.
  * @param path - fixed authorize or completion path.
  * @param rewriteOrigin - map validated browser pages to the configured development origin.
  * @returns normalized URL on the configured origin.
