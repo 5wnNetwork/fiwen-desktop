@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-ui-market",
   "description": "Marketplace tab of the Fiwen Plugins page: browse the curated Fiwen catalog and install free skills and MCP servers",
-  "version": "0.2.1-rc.2",
+  "version": "0.2.1-rc.3",
   "publishConfig": {
     "access": "public"
   },
@@ -39,6 +39,11 @@
     "bundle": "tsdown",
     "watch": "tsdown --watch"
   },
+  "files": [
+    "lib/index.js",
+    "lib/client.js",
+    "lib/types/**/*.d.ts"
+  ],
   "license": "MIT",
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:~"

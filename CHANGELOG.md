@@ -2,6 +2,24 @@
 
 All notable changes to this fork are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow the repository's release sequence.
 
+## [Unreleased]
+
+### Security
+
+- `undici` is 8.12.3 in `dsh-http-proxy` and `dsh-web-fetch-http` (was 8.11.2), clearing the dropped-TLS-options, cross-origin redirect cache-poisoning, decompression, and renegotiation advisories in the process-wide dispatcher and the public fetch provider.
+- `@modelcontextprotocol/client` is 2.4.0, and the MCP SDK reached through `@anthropic-ai/claude-agent-sdk` and `@google/genai` resolves to 1.32.2 (was 2.2.0 / 1.31.0): experimental tasks were not tied to the session that created them, one oversized message could exhaust memory during validation, and server bearer authentication was bypassable.
+- pnpm overrides pin the transitive `hono`, `@hono/node-server`, `body-parser`, `qs`, `ip-address`, `fast-uri`, `zod`, and `fflate` copies to their patched releases, so `pnpm audit --prod` reports no advisory in shipped code; the remaining entries belong to the dev-only vitest toolchain (vite, happy-dom, `@vitest/mocker`).
+
+### Fixed
+
+- Every workspace `package.json` reports the root version (`0.2.1-rc.3`); 351 manifests were still on `0.2.1-rc.2`, which failed `pnpm run constraints` and the release version checks.
+- `@deepseek-ai/dsh-client-ui-market` declares its `files` payload (`lib/index.js`, `lib/client.js`, `lib/types/**/*.d.ts`), so a published tarball would actually contain the browser bundle.
+- The product-package policy records the three rows the Fiwen patch disables (`ui-brand-official`, `ui-message-feedback`, `ui-settings-session-log`), so `verify-product-use` accepts them instead of demanding a mount.
+
+### Not changed
+
+- No product behavior, wire format, or session format change; the marketplace preview flow and locale-editor hardening from 0.2.1-rc.3 stand.
+
 ## [0.2.1-rc.3] - 2026-10-31
 
 ### Added

@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-fiwen",
   "description": "The Fiwen deployment patch layer over dsh-web-app: the private Fiwen service origin, account-only sign-in, and Vietnamese UI defaults",
-  "version": "0.2.1-rc.2",
+  "version": "0.2.1-rc.3",
   "publishConfig": {
     "access": "public"
   },

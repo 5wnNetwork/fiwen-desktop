@@ -18,6 +18,26 @@ overrides:
   'extract-zip>yauzl': '3.4.0'
   '@deepseek-ai/cosmokit': 'link:vendor/cosmokit'
   '@deepseek-ai/schemastery': 'link:vendor/schemastery'
+  # Resolved transitively by @anthropic-ai/claude-agent-sdk and @google/genai.
+  # Below 1.32.0 the MCP SDK tied experimental tasks to the wrong session and
+  # could exhaust memory validating one oversized message (GHSA high set).
+  '@modelcontextprotocol/sdk@<1.32.0': '1.32.2'
+  # ajv pins a fast-uri below the scheme-spoofing fix (GHSA-mr9x).
+  'fast-uri@<3.1.9': '3.1.9'
+  # Every consumer declares zod ^4.4.3 or pins 4.4.3; 4.6.7 is the patched
+  # release for memory exhaustion while validating oversized constrained
+  # collections (GHSA-mrhx-c7xc-m3w5).
+  'zod@<4.6.6': '4.6.7'
+  # libreoffice-kit's zip reader; 0.8.3 fixes an infinite loop in unzipSync.
+  'fflate@<0.8.3': '0.8.3'
+  # The MCP SDK's optional HTTP-server subtree (express + hono). Fiwen only uses
+  # its client transports, but the packages ship in the app bundle, so they are
+  # pinned to their patched releases rather than left advisories.
+  'hono@>=4.12.4 <4.13.11': '4.13.11'
+  '@hono/node-server@>=1.19.10 <2.1.3': '2.1.5'
+  'body-parser@>=2.0.0 <2.4.0': '2.4.0'
+  'qs@>=6.7.0 <=6.16.0': '6.16.1'
+  'ip-address@<=10.7.3': '10.7.4'
 
 peerDependencyRules:
   allowedVersions:

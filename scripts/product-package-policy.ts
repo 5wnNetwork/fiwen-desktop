@@ -46,5 +46,8 @@ export const PRODUCT_PACKAGE_POLICY: Readonly<Record<string, ProductPackagePolic
   'packages/test-support/session-snapshot': { category: 'test', reason: 'Published Session snapshot replay harness.' },
   'packages/client/web': { category: 'web-distribution', reason: 'Browser boot kernel bundled into the Web distribution.' },
   'packages/client/ui-dockkit': { category: 'web-distribution', reason: 'Layout library bundled into the Web distribution.' },
+  'packages/client/ui-brand-official': { category: 'optional', reason: 'The Fiwen brand occupant replaces this row, which the deployment patch disables.' },
+  'packages/client/ui-message-feedback': { category: 'optional', reason: 'The Fiwen product has no feedback surface; the deployment patch disables the row.' },
+  'packages/client/ui-settings-session-log': { category: 'optional', reason: 'Session-log upload is not part of the Fiwen product; the deployment patch disables the row.' },
   'packages/util/package-manifest': { category: 'declarations', reason: 'Shared package metadata declarations have no runtime mount.' },
 }
