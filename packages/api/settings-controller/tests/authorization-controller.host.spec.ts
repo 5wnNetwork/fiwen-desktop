@@ -19,6 +19,15 @@ function remoteFailure(call: () => unknown): Promise<unknown> {
   return Promise.resolve().then(call).catch((error: unknown) => error)
 }
 
+/**
+ * A wrong-typed value as the decoder would let it reach a method whose signature still says `string`.
+ * @param value - runtime value the hostile caller supplies.
+ * @returns the value typed as the declared parameter so the call site stays honest about intent.
+ */
+function malformed(value: unknown): string {
+  return value as string
+}
+
 async function boot(): Promise<{ ctx: Context; controller: AuthorizationController }> {
   const ctx = new Context()
   await ctx.plugin(MemoryCredentials)
@@ -138,7 +147,7 @@ describe('the authorization Remote namespace a settings surface calls', () => {
       () => controller.describe('not a key'),
       () => controller.begin('not a key', undefined, undefined, SIGNAL),
       () => controller.begin('', undefined, undefined, SIGNAL),
-      () => controller.begin(String(KEY), 42 as unknown as string, undefined, SIGNAL),
+      () => controller.begin(String(KEY), malformed(42), undefined, SIGNAL),
       () => { controller.cancel('not a key') },
       () => controller.signOut('not a key'),
       () => controller.answer('', 'x'),

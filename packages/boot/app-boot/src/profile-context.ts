@@ -1,5 +1,7 @@
 /** Launcher-owned profile locations and composition inputs. */
+import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { isSeq, parseDocument, type Document, type YAMLSeq } from 'yaml'
 import { composeEntries, loadProfileDirectory, PROFILE_PATCH_FILENAME, type Profile } from './profile.ts'
 import { loadOptionalPatches } from './index.ts'
 import type { PatchOptions } from '@deepseek-ai/cordis-plugin-include'
@@ -37,6 +39,42 @@ declare module '@deepseek-ai/cordis' {
 }
 
 const TELEMETRY_ROW_ID = 'session-telemetry-otel'
+
+/** The Loader's `!!js` tag kept as data, so an edited document never evaluates or drops an expression. */
+const JS_EXPRESSION_TAG = { tag: 'tag:yaml.org,2002:js', resolve: (value: string) => value }
+
+/** A profile patch opened for editing: the document for row lookup and insertion, plus its validated root sequence. */
+export interface ProfilePatchDocument {
+  /** Parsed document; serialize it after the edit. */
+  readonly document: Document.Parsed
+  /** Root sequence, already checked to be a sequence so callers can address rows directly. */
+  readonly rows: YAMLSeq
+}
+
+/**
+ * Read the profile patch file as an editable document that keeps comments, anchors and `!!js` expressions.
+ *
+ * Callers insert or replace rows in this document rather than re-serializing a parsed list, so a
+ * hand-edited patch keeps everything the user wrote around the row they are changing. A missing file
+ * is an empty sequence; a patch that parses to something else is a misconfiguration, not "no patches".
+ * @param context Launcher-supplied profile whose `patchPath` is read.
+ * @returns Document and its root sequence.
+ * @throws {Error} When the file is unreadable for a reason other than its absence, or does not parse to a sequence.
+ */
+export async function readProfilePatchDocument(context: ProfileContext): Promise<ProfilePatchDocument> {
+  let text: string
+  try {
+    text = await readFile(context.patchPath, 'utf8')
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    text = '[]\n'
+  }
+  const document = parseDocument(text, { customTags: [JS_EXPRESSION_TAG] })
+  const error = document.errors[0]
+  if (error !== undefined) throw error
+  if (!isSeq(document.contents)) throw new Error('Profile patch must be a YAML sequence')
+  return { document, rows: document.contents }
+}
 
 /**
  * Resolve the telemetry opt-out switch into its boot patch. ANY non-empty

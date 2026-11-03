@@ -41,20 +41,16 @@ function fail(path: string, reason: string): never {
   throw new MarketWireError(path, reason)
 }
 
-function objectAt(value: unknown, path: string): Json {
-  if (typeof value !== 'object' || value === null || Array.isArray(value)) fail(path, 'must be an object')
-  return value as Json
+/** A typed field reader: the narrowing predicate and the reason a value that fails it is refused. */
+function reader<T>(accept: (value: unknown) => value is T, reason: string): (value: unknown, path: string) => T {
+  return (value, path) => (accept(value) ? value : fail(path, reason))
 }
 
-function stringAt(value: unknown, path: string): string {
-  if (typeof value !== 'string' || value.trim() === '') fail(path, 'must be a non-empty string')
-  return value
-}
-
-function numberAt(value: unknown, path: string): number {
-  if (typeof value !== 'number' || !Number.isFinite(value)) fail(path, 'must be a finite number')
-  return value
-}
+const objectAt = reader(
+  (value): value is Json => typeof value === 'object' && value !== null && !Array.isArray(value), 'must be an object',
+)
+const stringAt = reader((value): value is string => typeof value === 'string' && value.trim() !== '', 'must be a non-empty string')
+const numberAt = reader((value): value is number => typeof value === 'number' && Number.isFinite(value), 'must be a finite number')
 
 function homepage(value: unknown): string | null {
   if (typeof value !== 'string') return null

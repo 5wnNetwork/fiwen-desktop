@@ -115,6 +115,21 @@ async function accessTokenOf(
   return refreshed
 }
 
+/** What every provider's quota reader receives: the stored record's live token and the attempt's abort/persist seam. */
+interface QuotaProbeInput {
+  readonly stored: OAuthCredential
+  readonly credential: OAuthCredential
+  readonly signal: AbortSignal
+  readonly persist: (payload: unknown) => Promise<void>
+}
+
+/** The parsed usage body, or the refusal every provider raises when the endpoint answers something else. */
+function usageObjectOf(body: unknown): Record<string, unknown> {
+  const data = objectOf(body)
+  if (data === undefined) throw new LlmError('quota endpoint returned no usage object', 'QUOTA_REFUSED')
+  return data
+}
+
 /** A quota fetch: fixed URL, no redirects, the attempt's own abort signal. */
 async function probe(url: string, headers: Record<string, string>, signal: AbortSignal): Promise<unknown> {
   const response = await fetch(url, { headers, signal, redirect: 'error' })
@@ -202,37 +217,22 @@ function anthropicHeaders(access: string): Record<string, string> {
   }
 }
 
-async function anthropicQuota(
-  oauth: OAuthAuth,
-  input: { payload: unknown; signal: AbortSignal; persist(payload: unknown): Promise<void> },
-): Promise<AuthorizationQuota | undefined> {
-  const stored = oauthCredentialOf(input.payload)
-  if (stored === undefined) return undefined
-  const credential = await accessTokenOf(oauth, stored, input)
+async function anthropicQuota({ stored, credential, signal, persist }: QuotaProbeInput): Promise<AuthorizationQuota> {
   const headers = anthropicHeaders(credential.access)
-  const data = objectOf(await probe(ANTHROPIC_USAGE_URL, headers, input.signal))
-  if (data === undefined) {
-    throw new LlmError('quota endpoint returned no usage object', 'QUOTA_REFUSED')
-  }
+  const data = usageObjectOf(await probe(ANTHROPIC_USAGE_URL, headers, signal))
   // A record written before labels existed learns the account's email from
   // the profile endpoint on its first quota read — `persist` stores only
   // non-secret additions beside the untouched tokens.
   if (stringOf(stored['label']) === undefined && stringOf(stored['email']) === undefined) {
-    const profile = objectOf(await probe(ANTHROPIC_PROFILE_URL, headers, input.signal).catch(() => undefined))
+    const profile = objectOf(await probe(ANTHROPIC_PROFILE_URL, headers, signal).catch(() => undefined))
     const email = stringOf(objectOf(profile?.['account'])?.['email'])
-    if (email !== undefined) await input.persist({ ...credential, label: email })
+    if (email !== undefined) await persist({ ...credential, label: email })
   }
   const windows = anthropicWindows(data)
   return { windows, fetchedAt: Date.now(), ...windows.length === 0 ? { message: 'Anthropic reported no quota windows.' } : {} }
 }
 
-async function codexQuota(
-  oauth: OAuthAuth,
-  input: { payload: unknown; signal: AbortSignal; persist(payload: unknown): Promise<void> },
-): Promise<AuthorizationQuota | undefined> {
-  const stored = oauthCredentialOf(input.payload)
-  if (stored === undefined) return undefined
-  const credential = await accessTokenOf(oauth, stored, input)
+async function codexQuota({ credential, signal }: QuotaProbeInput): Promise<AuthorizationQuota> {
   const headers: Record<string, string> = {
     'Authorization': `Bearer ${credential.access}`,
     'Accept': 'application/json',
@@ -241,10 +241,7 @@ async function codexQuota(
   }
   const accountId = stringOf(credential['accountId'])
   if (accountId !== undefined) headers['ChatGPT-Account-ID'] = accountId
-  const data = objectOf(await probe(CODEX_USAGE_URL, headers, input.signal))
-  if (data === undefined) {
-    throw new LlmError('quota endpoint returned no usage object', 'QUOTA_REFUSED')
-  }
+  const data = usageObjectOf(await probe(CODEX_USAGE_URL, headers, signal))
   const plan = stringOf(data['plan_type']) ?? stringOf(objectOf(data['summary'])?.['plan'])
   const windows = codexWindows(data)
   return {
@@ -301,13 +298,7 @@ function antigravityWindows(data: Record<string, unknown>): AuthorizationQuotaWi
   return windows
 }
 
-async function antigravityQuota(
-  oauth: OAuthAuth,
-  input: { payload: unknown; signal: AbortSignal; persist(payload: unknown): Promise<void> },
-): Promise<AuthorizationQuota | undefined> {
-  const stored = oauthCredentialOf(input.payload)
-  if (stored === undefined) return undefined
-  const credential = await accessTokenOf(oauth, stored, input)
+async function antigravityQuota({ credential, signal }: QuotaProbeInput): Promise<AuthorizationQuota> {
   const project = stringOf(credential['projectId'])
   const response = await fetch(ANTIGRAVITY_QUOTA_URL, {
     method: 'POST',
@@ -319,26 +310,18 @@ async function antigravityQuota(
       'X-Client-Version': '2.22.0',
     },
     body: JSON.stringify(project === undefined ? {} : { project }),
-    signal: input.signal,
+    signal,
     redirect: 'error',
   })
   if (!response.ok) {
     throw new LlmError(`quota endpoint answered ${String(response.status)}`, 'QUOTA_REFUSED')
   }
-  const data = objectOf(await response.json())
-  if (data === undefined) {
-    throw new LlmError('quota endpoint returned no usage object', 'QUOTA_REFUSED')
-  }
-  const windows = antigravityWindows(data)
+  const windows = antigravityWindows(usageObjectOf(await response.json()))
   return { windows, fetchedAt: Date.now(), ...windows.length === 0 ? { message: 'Antigravity reported no quota windows.' } : {} }
 }
 
 /** The providers this adapter can probe for quota — those whose usage endpoint the account's own OAuth grant answers. */
-const QUOTA_PROBES: Readonly<Record<string, (oauth: OAuthAuth, input: {
-  payload: unknown
-  signal: AbortSignal
-  persist(payload: unknown): Promise<void>
-}) => Promise<AuthorizationQuota | undefined>>> = {
+const QUOTA_PROBES: Readonly<Record<string, (input: QuotaProbeInput) => Promise<AuthorizationQuota>>> = {
   'anthropic': anthropicQuota,
   'openai-codex': codexQuota,
   'antigravity': antigravityQuota,
@@ -356,7 +339,12 @@ export function quotaProbe(provider: Provider): AuthorizationFlow['quota'] {
   const probeFor = QUOTA_PROBES[provider.id]
   const oauth = provider.auth.oauth
   if (probeFor === undefined || oauth === undefined) return undefined
-  return input => probeFor(oauth, input)
+  return async (input) => {
+    const stored = oauthCredentialOf(input.payload)
+    if (stored === undefined) return undefined
+    const credential = await accessTokenOf(oauth, stored, input)
+    return probeFor({ stored, credential, signal: input.signal, persist: payload => input.persist(payload) })
+  }
 }
 
 /**

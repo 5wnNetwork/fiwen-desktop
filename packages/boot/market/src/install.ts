@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path'
 import { randomBytes } from 'node:crypto'
 import { isMap, isSeq, parseDocument, type YAMLSeq } from 'yaml'
 import { writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
-import type { ProfileContext } from '@deepseek-ai/dsh-app-boot'
+import { readProfilePatchDocument, type ProfileContext, type ProfilePatchDocument } from '@deepseek-ai/dsh-app-boot'
 import type { McpPayload, SkillPayload } from './wire.ts'
 import type { MarketInstalledView, MarketItemKind } from './types.ts'
 
@@ -217,22 +217,10 @@ export async function installMcp(
   profile: ProfileContext, id: string, version: string, payload: McpPayload, layout: MarketStoreLayout,
 ): Promise<MarketInstalledView> {
   const filename = profile.patchPath
-  let text: string
-  try {
-    text = await readFile(filename, 'utf8')
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
-    text = '[]\n'
-  }
-  const document = parseDocument(text, {
-    customTags: [{ tag: 'tag:yaml.org,2002:js', resolve: (value: string) => value }],
-  })
-  const error = document.errors[0]
-  if (error !== undefined) throw error
-  if (!isSeq(document.contents)) throw new Error('Profile patch must be a YAML sequence')
+  const { document, rows } = await readProfilePatchDocument(profile)
   const rowId = `${MCP_ROW_PREFIX}${id}`
   // Drop any prior market row for this item so an update replaces rather than duplicates.
-  removePatchRow(document, document.contents, rowId)
+  removePatchRow(document, rows, rowId)
   document.add({ insert: [{ id: rowId, name: '@deepseek-ai/dsh-mcp-client', config: mcpRowConfig(id, payload) }] })
   await writeFileAtomic(filename, String(document), { mode: 0o600 })
   const installedAt = new Date().toISOString()
@@ -245,7 +233,7 @@ export async function installMcp(
 }
 
 /** Remove `market-<id>` from `seq`; also removes the enclosing insert item when it empties. */
-function removePatchRow(document: ReturnType<typeof parseDocument>, seq: YAMLSeq, rowId: string): boolean {
+function removePatchRow(document: ProfilePatchDocument['document'], seq: YAMLSeq, rowId: string): boolean {
   const items = seq.items
   for (let index = items.length - 1; index >= 0; index--) {
     const item = items[index]

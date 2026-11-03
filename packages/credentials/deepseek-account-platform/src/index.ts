@@ -53,7 +53,8 @@ export interface Config {
 /** Validated deployment choices. */
 export const Config = Schema.object({
   platformOrigin: Schema.string().default('https://platform.deepseek.com'),
-  dashboardOrigin: Schema.string(),
+  /** Origin serving the browser sign-in pages and the embedded Usage/Top-up pages; empty selects platformOrigin. */
+  dashboardOrigin: Schema.string().default(''),
   desktopPlatform: Schema.union([Schema.const('darwin'), Schema.const('win32'), Schema.const(null)]).default(null),
   embeddedPageDist: Schema.string().default(''),
   inferenceOrigin: Schema.string().default('https://api.deepseek.com'),
@@ -119,7 +120,7 @@ export class PlatformAccount extends DeepSeekAccount {
     const resolved = Config(config)
     this.embeddedPageDist = resolved.embeddedPageDist
     this.origin = platformOrigin(resolved.platformOrigin, resolved.allowLoopbackHttp)
-    this.dashboardOrigin = resolved.dashboardOrigin === undefined
+    this.dashboardOrigin = resolved.dashboardOrigin === ''
       ? this.origin
       : platformOrigin(resolved.dashboardOrigin, resolved.allowLoopbackHttp)
     const inference = new URL(resolved.inferenceOrigin)

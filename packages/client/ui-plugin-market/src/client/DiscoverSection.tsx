@@ -40,6 +40,7 @@ const FACT_KEYS = {
   directory: 'factDirectory',
 } as const satisfies Record<SourceFact['kind'], string>
 
+{/* jscpd:ignore-start -- each surface owns its CSS module; a feature plugin cannot import another's. */}
 function MarketIcon({ src, size }: { readonly src: string | undefined; readonly size: number }): ReactNode {
   const [failed, setFailed] = useState<string>()
   return src === undefined || src === failed
@@ -49,6 +50,8 @@ function MarketIcon({ src, size }: { readonly src: string | undefined; readonly 
         onError={() => { setFailed(src) }} />
     )
 }
+
+/* jscpd:ignore-end */
 
 function sourceFailureText(failure: SourceFailure, t: Translate): string {
   switch (failure.kind) {
@@ -357,6 +360,7 @@ function ConfirmDialog({ choice, t, face, onCancel, onConfirm }: {
   )
 }
 
+{/* jscpd:ignore-start -- each surface owns its CSS module; a feature plugin cannot import another's. */}
 function ListSkeleton({ label }: { readonly label: string }): ReactNode {
   return (
     <ul className={css.cards} role="status" aria-label={label} aria-busy="true">
@@ -372,6 +376,7 @@ function ListSkeleton({ label }: { readonly label: string }): ReactNode {
     </ul>
   )
 }
+/* jscpd:ignore-end */
 
 /** The toolbar menu that is open; at most one is. */
 type OpenMenu = 'market' | 'sort' | 'filter' | null

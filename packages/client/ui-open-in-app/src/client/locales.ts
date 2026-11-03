@@ -3,6 +3,7 @@
 /** Dictionary namespace owned by this plugin. */
 export const NS = 'open-in-app'
 
+/* jscpd:ignore-start -- product names stay verbatim; every dictionary needs every key. */
 /** Application labels shared verbatim by both dictionaries (product names). */
 const PRODUCT_NAMES = {
   'app.cursor': 'Cursor',
@@ -36,6 +37,7 @@ const PRODUCT_NAMES = {
   'app.gnometerminal': 'GNOME Terminal',
   'app.konsole': 'Konsole',
 } as const
+/* jscpd:ignore-end */
 
 /** Simplified Chinese dictionary (the key-set source of truth). */
 export const zh = {

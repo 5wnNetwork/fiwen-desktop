@@ -50,6 +50,7 @@ const SORT_KEYS = {
   name: 'sortName',
 } as const satisfies Record<SortId, string>
 
+{/* jscpd:ignore-start -- each surface owns its CSS module; a feature plugin cannot import another's. */}
 function ItemIcon({ src, size }: { readonly src: string | null; readonly size: number }): ReactNode {
   const [failed, setFailed] = useState<string | null>(null)
   return src === null || src === failed
@@ -59,6 +60,7 @@ function ItemIcon({ src, size }: { readonly src: string | null; readonly size: n
         onError={() => { setFailed(src) }} />
     )
 }
+/* jscpd:ignore-end */
 
 function workFailureText(failure: NonNullable<MarketState['workFailure']>, t: Translate, name: string | undefined): string {
   if (failure.kind === 'conflict') return t('conflictSkill')
@@ -210,6 +212,7 @@ function DetailView({ detail, state, t, face, onBack }: {
   )
 }
 
+{/* jscpd:ignore-start -- each surface owns its CSS module; a feature plugin cannot import another's. */}
 function ListSkeleton({ label }: { readonly label: string }): ReactNode {
   return (
     <ul className={css.cards} role="status" aria-label={label} aria-busy="true">
@@ -225,6 +228,7 @@ function ListSkeleton({ label }: { readonly label: string }): ReactNode {
     </ul>
   )
 }
+/* jscpd:ignore-end */
 
 /** The toolbar menu that is open; at most one is. */
 type OpenMenu = 'kind' | 'sort' | null

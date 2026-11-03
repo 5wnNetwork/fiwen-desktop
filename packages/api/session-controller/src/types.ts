@@ -101,9 +101,10 @@ export type PromptContentPart =
 export interface ModelSelection {
   readonly provider: string
   readonly model: string
-  readonly reasoningEffort?: string
+  /** Absent means the route's default; the projection schema admits an explicit `undefined` for it. */
+  readonly reasoningEffort?: string | undefined
   /** Server-side saver mode for backend-routed models; `'default'` or absence defers to the backend. */
-  readonly tokenSaver?: string
+  readonly tokenSaver?: string | undefined
 }
 
 /** Host fold state for durable model selection. */

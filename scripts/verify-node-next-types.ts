@@ -80,11 +80,14 @@ function publicSpecifiers(pkg: WorkspacePackage): string[] {
   return [...specifiers].sort()
 }
 
+/** Directory link for the scratch install; Windows refuses `dir` symlinks without elevation, so it gets a junction. */
+const directoryLinkType: 'dir' | 'junction' = process.platform === 'win32' ? 'junction' : 'dir'
+
 function linkPackage(pkg: WorkspacePackage, nodeModules: string): void {
   const parts = pkg.name.split('/')
   const link = resolve(nodeModules, ...parts)
   mkdirSync(dirname(link), { recursive: true })
-  symlinkSync(pkg.dir, link, 'dir')
+  symlinkSync(pkg.dir, link, directoryLinkType)
 }
 
 const packages = workspacePackages()
@@ -117,7 +120,7 @@ try {
   if (existsSync(rootTypes)) {
     const typesDir = resolve(nodeModules, '@types')
     mkdirSync(typesDir, { recursive: true })
-    symlinkSync(rootTypes, resolve(typesDir, 'node'), 'dir')
+    symlinkSync(rootTypes, resolve(typesDir, 'node'), directoryLinkType)
   }
 
   writeFileSync(resolve(tmp, 'package.json'), `${JSON.stringify({ type: 'module', private: true }, null, 2)}\n`)

@@ -14,6 +14,7 @@ import {
   metadataExpressionErrors,
   packageTestFixtureDependencyErrors,
   packageTestPluginDependencyErrors,
+  readConfigSource,
 } from './verify-cordis-config.ts'
 
 describe('verify-cordis-config metadata expressions', () => {
@@ -148,6 +149,26 @@ describe('package-owned Loader test dependency closures', () => {
       expect(packageTestFixtureDependencyErrors(fixture)).toEqual([
         'package test fixture dependency scan found no package-owned Loader configs',
       ])
+    } finally {
+      rmSync(fixture, { recursive: true, force: true })
+    }
+  })
+})
+
+describe('readConfigSource', () => {
+  it('follows a git symlink materialized as a relative YAML path and leaves other files alone', () => {
+    const fixture = mkdtempSync(join(tmpdir(), 'dsh-materialized-link-'))
+    try {
+      mkdirSync(join(fixture, 'snapshots/case'), { recursive: true })
+      mkdirSync(join(fixture, 'apps/cli/tests/profiles/acp'), { recursive: true })
+      writeFileSync(join(fixture, 'snapshots/case/cordis.yml'), '- id: tool-bash\n')
+      writeFileSync(join(fixture, 'apps/cli/tests/profiles/acp/cordis.yml'), '../../../../../snapshots/case/cordis.yml\n')
+      writeFileSync(join(fixture, 'apps/cli/tests/profiles/acp/dangling.yml'), '../absent.yml\n')
+      writeFileSync(join(fixture, 'apps/cli/tests/profiles/acp/plain.yml'), '- id: tool-fs\n')
+
+      expect(readConfigSource('apps/cli/tests/profiles/acp/cordis.yml', fixture)).toBe('- id: tool-bash\n')
+      expect(readConfigSource('apps/cli/tests/profiles/acp/dangling.yml', fixture)).toBe('../absent.yml\n')
+      expect(readConfigSource('apps/cli/tests/profiles/acp/plain.yml', fixture)).toBe('- id: tool-fs\n')
     } finally {
       rmSync(fixture, { recursive: true, force: true })
     }

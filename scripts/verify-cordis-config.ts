@@ -10,7 +10,7 @@
  * Loader fixtures resolve from their package manifest.
  */
 
-import { globSync, readFileSync } from 'node:fs'
+import { existsSync, globSync, readFileSync } from 'node:fs'
 import { dirname, relative, resolve } from 'node:path'
 import { Script } from 'node:vm'
 import ts from 'typescript'
@@ -63,7 +63,7 @@ if (import.meta.main) {
   const files = cordisConfigFiles(root)
 
   for (const file of files) {
-    const document = loadCordisYaml(readFileSync(resolve(root, file), 'utf8'))
+    const document = loadCordisYaml(readConfigSource(file))
     if (!isUnknownArray(document)) {
       errors.push(`${file}: root must be a Loader entry array`)
       continue
@@ -165,9 +165,29 @@ function validatePresetPlaneSeparation(): string[] {
   return problems
 }
 
+/**
+ * Read one Cordis file, following a git symlink that this checkout materialized as text.
+ *
+ * Git writes a symlink's target as the file's whole content when the repository is checked out
+ * with `core.symlinks=false` (Windows without Developer Mode). Following that pointer keeps
+ * validation equal to a symlink-capable checkout; a real config is an entry array, never a single
+ * relative YAML path, so this cannot mask a malformed file.
+ * @param file Repository-relative path reported by `cordisConfigFiles`.
+ * @param repoRoot Repository root the path is relative to.
+ * @returns Contents of the file, or of the link target when `file` is a materialized symlink.
+ */
+export function readConfigSource(file: string, repoRoot: string = root): string {
+  const path = resolve(repoRoot, file)
+  const source = readFileSync(path, 'utf8')
+  const target = source.trim()
+  if (!/^\.\.?\//u.test(target) || !/\.ya?ml$/u.test(target)) return source
+  const resolved = resolve(dirname(path), target)
+  return existsSync(resolved) ? readFileSync(resolved, 'utf8') : source
+}
+
 /** Every entry of one config file, or an empty list when it is not an entry array. */
 function loadEntries(file: string): unknown[] {
-  const document = loadCordisYaml(readFileSync(resolve(root, file), 'utf8'))
+  const document = loadCordisYaml(readConfigSource(file))
   return isUnknownArray(document) ? document : []
 }
 

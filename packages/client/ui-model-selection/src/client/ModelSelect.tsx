@@ -525,6 +525,15 @@ export function ModelSelect(
     const at = itemIndex++
     return (node: HTMLButtonElement | null) => { itemRefs.current[at] = node }
   }
+  /** A failed load of the selected route, shown in the panes that read it before anything is picked. */
+  const loadFailure = state.error !== null && lastActionRef.current === 'load'
+    ? (
+      <div className={css.error}>
+        <span>{t('error.action', { message: state.error })}</span>
+        <button type="button" className={css.retry} onClick={reload}>{t('action.reload')}</button>
+      </div>
+    )
+    : null
 
   return (
     <div
@@ -721,12 +730,7 @@ export function ModelSelect(
 
           {pane === 'effort' && (
             <>
-              {state.error !== null && lastActionRef.current === 'load' && (
-                <div className={css.error}>
-                  <span>{t('error.action', { message: state.error })}</span>
-                  <button type="button" className={css.retry} onClick={reload}>{t('action.reload')}</button>
-                </div>
-              )}
+              {loadFailure}
               {effortChoices.length === 0
                 ? <div className={css.empty}>{t('empty.efforts')}</div>
                 : effortChoices.map(level => (
@@ -756,12 +760,7 @@ export function ModelSelect(
 
           {pane === 'saver' && (
             <>
-              {state.error !== null && lastActionRef.current === 'load' && (
-                <div className={css.error}>
-                  <span>{t('error.action', { message: state.error })}</span>
-                  <button type="button" className={css.retry} onClick={reload}>{t('action.reload')}</button>
-                </div>
-              )}
+              {loadFailure}
               {saver === undefined
                 ? <div className={css.empty}>{t('empty.savers')}</div>
                 : saver.modes.map(mode => (

@@ -93,7 +93,7 @@ export class AgentDefaultModelConfig extends Service {
     const config = {
       provider: next.provider, model: next.model,
       ...next.reasoningEffort === undefined ? {} : { reasoningEffort: String(next.reasoningEffort) },
-      ...next.tokenSaver === undefined ? {} : { tokenSaver: String(next.tokenSaver) },
+      ...next.tokenSaver === undefined ? {} : { tokenSaver: next.tokenSaver },
     }
     const saved = this.saves.then(() => editor.edit(entry, () => config))
     this.saves = saved.catch(() => {})
