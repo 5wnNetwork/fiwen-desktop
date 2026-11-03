@@ -27,7 +27,7 @@
 <details>
 <summary>技术详情与文件清单</summary>
 
-COS 存储桶：<code>fixture-1250000000</code>
+S3 存储桶：<code>fixture-1250000000</code>
 
 release ID 取自原打包产物清单。打包时优先使用表单 `test_release_id`；留空则使用机器 `presets/test.env` 中的 `DOWNLOAD_TEST_RELEASE_ID`。发布时不重新选择。
 

@@ -81,7 +81,7 @@ describe('operator-driven packaging entry', () => {
   it('strips unrelated secrets and preload overrides while retaining signing inputs and the Windows archive filter', () => {
     expect(installedUpdatePackagingEnvironment({ DSH_DESKTOP_TARGET_PLATFORM: 'win32', PATH: 'tool-path',
       DSH_DESKTOP_WINDOWS_TOKEN_PIN: 'pin', DSH_DESKTOP_WINDOWS_KEY_CONTAINER: 'container',
-      DEEPSEEK_API_KEY: 'llm', DOWNLOAD_TEST_COS_SECRET_KEY: 'cos', NODE_OPTIONS: 'preload', NODE_PATH: 'injected' }))
+      DEEPSEEK_API_KEY: 'llm', DOWNLOAD_TEST_S3_SECRET_ACCESS_KEY: 's3', NODE_OPTIONS: 'preload', NODE_PATH: 'injected' }))
       .toEqual({ DSH_DESKTOP_TARGET_PLATFORM: 'win32', PATH: 'tool-path', DSH_DESKTOP_WINDOWS_TOKEN_PIN: 'pin',
         DSH_DESKTOP_WINDOWS_KEY_CONTAINER: 'container', DSH_DESKTOP_UNSIGNED: '0', ELECTRON_BUILDER_7Z_FILTER: 'BCJ' })
   })

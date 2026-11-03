@@ -8,7 +8,7 @@ function fixture() {
   const objects = new Map([['bin/old.exe', 'old installer'], ['feed/nightly.yml', 'version: 2.0.0\n']])
   const writes: string[] = []
   const plan: DesktopUploadPlan = {
-    environment: 'test', target: 'win-x64', version: '1.0.0', bucket: 'fixture', publicUrl: 'https://example.com', secretIdEnvName: 'ID', secretKeyEnvName: 'KEY',
+    environment: 'test', target: 'win-x64', version: '1.0.0', bucket: 'fixture', publicUrl: 'https://example.com', endpoint: 'https://s3.example.com', region: 'us-east-1', accessKeyIdEnvName: 'ID', secretAccessKeyEnvName: 'KEY',
     artifacts: [
       { key: 'bin/old.exe', path: '', filename: 'old.exe', contentType: 'application/octet-stream', channelMetadata: false, contents: 'old installer' },
       { key: 'feed/nightly.yml', path: '', filename: 'nightly.yml', contentType: 'application/yaml', channelMetadata: true, contents: 'version: 1.0.0\n' },

@@ -5,7 +5,7 @@ import { parseArgs } from 'node:util'
 import { z } from 'zod'
 import { prepareDesktopPublication } from './publish-desktop-ci.ts'
 import { readDesktopUploadCredentials } from './desktop-publish-config.ts'
-import { desktopPublishCos } from './desktop-publish-cos.ts'
+import { desktopPublishS3 } from './desktop-publish-s3.ts'
 import { createDesktopPublicationRecord, withDesktopChannelLock } from './desktop-publish-record.ts'
 import { rollbackDesktopChannel } from './desktop-rollback.ts'
 import { desktopPublicationFailure } from './desktop-publication-failure.ts'
@@ -43,7 +43,7 @@ if (process.argv[1] !== undefined && resolve(process.argv[1]) === import.meta.fi
       try {
         phase = 'historical object verification and channel restoration'
         const outcome = await rollbackDesktopChannel(plan, values['expected-version']!, values.execute!, {
-          transport: desktopPublishCos(plan, credentials), record: event => journal.record(event),
+          transport: desktopPublishS3(plan, credentials), record: event => journal.record(event),
           tag: async () => { throw new Error('desktop rollback never changes tags') },
         })
         process.stdout.write(`${JSON.stringify(outcome, null, 2)}\n`)

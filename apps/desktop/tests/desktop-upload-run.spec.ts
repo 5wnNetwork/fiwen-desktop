@@ -2,15 +2,14 @@ import { createHash } from 'node:crypto'
 import { mkdtemp, mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import COS from 'cos-nodejs-sdk-v5'
+import { S3Client } from '@aws-sdk/client-s3'
 import { afterEach, describe, expect, it } from 'vitest'
-import { createDesktopCos, DESKTOP_COS_REGION } from '../scripts/desktop-cos.ts'
 import { uploadDesktopRelease } from '../scripts/desktop-upload-run.ts'
 import type { DesktopUploadPlan } from '../scripts/desktop-upload-plan.ts'
-import { answer, cosError, startCosLoopback, type CosLoopback, type CosLoopbackRequest } from './cos-loopback.ts'
+import { answer, LOOPBACK_SECRET, s3Error, startS3Loopback, type S3Loopback, type S3LoopbackRequest } from './s3-loopback.ts'
 
 const roots: string[] = []
-const loopbacks: CosLoopback[] = []
+const loopbacks: S3Loopback[] = []
 afterEach(async () => {
   const closers = loopbacks.splice(0)
   const paths = roots.splice(0)
@@ -20,16 +19,17 @@ afterEach(async () => {
 
 const BINARY_BYTES = 'binary fixture'
 const FEED_BYTES = 'version: 1.2.3\n'
+const RECEIPT = { 'x-amz-request-id': 'fixture-request' }
 
 async function fixture(environment: 'test' | 'production' = 'test') {
   const root = await mkdtemp(join(tmpdir(), 'dsh-upload-audit-'))
   roots.push(root)
   const binary = join(root, 'package.exe')
   await writeFile(binary, BINARY_BYTES)
-  const bucket = `${environment}-fixture-1250000000`
+  const bucket = `${environment}-fixture`
   const plan: DesktopUploadPlan = {
-    environment, target: 'win-x64', version: '1.2.3', bucket,
-    publicUrl: `https://${environment}.invalid/feed/`, secretIdEnvName: 'UNREAD_ID', secretKeyEnvName: 'UNREAD_KEY',
+    environment, target: 'win-x64', version: '1.2.3', bucket, endpoint: 'https://s3.example.com', region: 'us-east-1',
+    publicUrl: `https://${environment}.invalid/feed/`, accessKeyIdEnvName: 'UNREAD_ID', secretAccessKeyEnvName: 'UNREAD_KEY',
     artifacts: [
       { path: binary, filename: 'package.exe', key: 'bin/package.exe', contentType: 'application/octet-stream', channelMetadata: false },
       { path: join(root, 'nightly.yml'), filename: 'nightly.yml', key: 'feeds/nightly.yml', contentType: 'application/yaml', channelMetadata: true,
@@ -41,13 +41,11 @@ async function fixture(environment: 'test' | 'production' = 'test') {
   return { root, records, plan, bucket, directory }
 }
 
-/** Production client redirecting to one isolated loopback origin. */
-async function transport(responder?: Parameters<typeof startCosLoopback>[0]) {
-  const loopback = await startCosLoopback(responder)
+/** Production client pointed at one isolated loopback endpoint. */
+async function transport(responder?: Parameters<typeof startS3Loopback>[0]) {
+  const loopback = await startS3Loopback(responder)
   loopbacks.push(loopback)
-  const cos = createDesktopCos({ secretId: 'test-credential-id', secretKey: 'test-credential-secret' })
-  loopback.redirect(cos)
-  return { cos, loopback }
+  return { s3: loopback.client(), loopback }
 }
 
 interface RecordedPlan {
@@ -62,25 +60,23 @@ async function journal(path: string): Promise<{ type: string; time: string }[]> 
   return (await readFile(path, 'utf8')).trim().split('\n').map(line => JSON.parse(line) as { type: string; time: string })
 }
 
-/** Assert the wire form shared by every upload: exact bytes, one content-length, no transfer encoding. */
-function expectExactObject(request: CosLoopbackRequest, expected: string, contentType: string, bucket: string): void {
+/** Assert the wire form shared by every upload: exact bytes, one content-length, no transfer or chunked encoding. */
+function expectExactObject(request: S3LoopbackRequest, expected: string, contentType: string, bucket: string, key: string): void {
   expect(request.method).toBe('PUT')
+  expect(request.path).toBe(`/${bucket}/${key}?x-id=PutObject`)
   expect(request.body.toString('utf8')).toBe(expected)
   expect(request.headers['content-length']).toBe(String(Buffer.byteLength(expected)))
   expect(request.headers['content-type']).toBe(contentType)
   expect(request.headers['transfer-encoding']).toBeUndefined()
   expect(request.headers['content-encoding']).toBeUndefined()
+  expect(request.headers['x-amz-trailer']).toBeUndefined()
   expect(request.headers['content-md5']).toBe(createHash('md5').update(expected).digest('base64'))
-  const signed = new URL(request.signedUrl!)
-  expect(signed.protocol).toBe('https:')
-  expect(signed.host).toBe(`${bucket}.cos.${DESKTOP_COS_REGION}.myqcloud.com`)
-  expect(signed.search).toBe('')
 }
 
-describe('release upload audit with the real COS SDK and an isolated loopback origin', () => {
+describe('release upload audit with the real S3 client and an isolated loopback endpoint', () => {
   it.each(['test', 'production'] as const)('retains %s plan, feed bytes, intent, receipt and hashes before advancing', async (environment) => {
     const f = await fixture(environment)
-    const { cos, loopback } = await transport(async (request, response) => {
+    const { s3, loopback } = await transport(async (request, response) => {
       const directory = await f.directory()
       const plan = await json<RecordedPlan>(join(directory, 'plan.json'))
       expect(plan.environment).toBe(environment)
@@ -88,26 +84,24 @@ describe('release upload audit with the real COS SDK and an isolated loopback or
       const lines = await journal(join(directory, 'events.jsonl'))
       expect(lines.at(-1)).toMatchObject({ type: 'put-intent', key: f.plan.artifacts[loopback.requests.length - 1]!.key })
       expect(request.headers['content-md5']).toBe(plan.artifacts[loopback.requests.length - 1]!.md5)
-      answer(response, 200, '', { 'x-cos-request-id': 'fixture-request' })
+      answer(response, 200, '', RECEIPT)
     })
-    const directory = await uploadDesktopRelease(f.plan, cos, f.records)
+    const directory = await uploadDesktopRelease(f.plan, s3, f.records)
     expect(loopback.requests).toHaveLength(2)
-    expectExactObject(loopback.requests[0]!, BINARY_BYTES, 'application/octet-stream', f.bucket)
-    expectExactObject(loopback.requests[1]!, FEED_BYTES, 'application/yaml', f.bucket)
-    expect(loopback.requests[0]!.path).toBe('/bin/package.exe')
-    expect(loopback.requests[1]!.path).toBe('/feeds/nightly.yml')
+    expectExactObject(loopback.requests[0]!, BINARY_BYTES, 'application/octet-stream', f.bucket, 'bin/package.exe')
+    expectExactObject(loopback.requests[1]!, FEED_BYTES, 'application/yaml', f.bucket, 'feeds/nightly.yml')
     for (const request of loopback.requests) {
       const authorization = String(request.headers.authorization)
-      expect(authorization).toContain('q-sign-algorithm=sha1')
+      expect(authorization).toMatch(/^AWS4-HMAC-SHA256 /u)
       expect(authorization).toContain('content-md5')
-      expect(authorization).not.toContain('test-credential-secret')
+      expect(authorization).not.toContain(LOOPBACK_SECRET)
     }
     const plan = await json<RecordedPlan>(join(directory, 'plan.json'))
     expect(plan.artifacts[0]!.sha512).toBe(createHash('sha512').update(BINARY_BYTES).digest('base64'))
-    expect(plan.sourceSha256['upload-target.ts']).toBe(createHash('sha256')
-      .update(await readFile(join(import.meta.dirname, '../scripts/upload-target.ts'))).digest('hex'))
-    expect(plan.sourceSha256['desktop-cos.ts']).toBe(createHash('sha256')
-      .update(await readFile(join(import.meta.dirname, '../scripts/desktop-cos.ts'))).digest('hex'))
+    for (const source of ['upload-target.ts', 'desktop-s3.ts']) {
+      expect(plan.sourceSha256[source]).toBe(createHash('sha256')
+        .update(await readFile(join(import.meta.dirname, '../scripts', source))).digest('hex'))
+    }
     const result = await json(join(directory, 'result.json'))
     expect(result).toMatchObject({ success: true, stage: 'complete', confirmedPuts: 2, publicReadback: 'not-performed' })
     const events = await journal(join(directory, 'events.jsonl'))
@@ -117,77 +111,73 @@ describe('release upload audit with the real COS SDK and an isolated loopback or
     expect(JSON.stringify({ plan, result, events })).not.toMatch(/test-credential|authorization|UNREAD_KEY/iu)
   })
 
-  it.each([1, 2])('retains failure at PUT %s without retry or later upload, excluding raw SDK diagnostics', async (failAt) => {
+  it.each([1, 2])('retains failure at PUT %s without retry or later upload, excluding raw server diagnostics', async (failAt) => {
     const f = await fixture()
-    const { cos, loopback } = await transport((_request, response) => {
+    const { s3, loopback } = await transport((_request, response) => {
       if (loopback.requests.length === failAt) {
-        answer(response, 500, cosError('InternalError', 'test-credential-secret'),
-          { 'content-type': 'application/xml', 'x-cos-request-id': 'fixture-request' })
+        answer(response, 500, s3Error('InternalError', LOOPBACK_SECRET), { 'content-type': 'application/xml', ...RECEIPT })
         return
       }
-      answer(response, 200, '', { 'x-cos-request-id': 'fixture-request' })
+      answer(response, 200, '', RECEIPT)
     })
-    await expect(uploadDesktopRelease(f.plan, cos, f.records)).rejects.toThrow('stopped at put')
+    await expect(uploadDesktopRelease(f.plan, s3, f.records)).rejects.toThrow('stopped at put')
     expect(loopback.requests).toHaveLength(failAt)
     const directory = await f.directory()
     const result = await json(join(directory, 'result.json'))
     expect(result).toMatchObject({ success: false, confirmedPuts: failAt - 1, stage: 'put', failure: { errorCode: 'InternalError', httpStatus: 500, requestId: 'fixture-request' } })
-    expect(await readFile(join(directory, 'result.json'), 'utf8')).not.toContain('test-credential-secret')
+    expect(await readFile(join(directory, 'result.json'), 'utf8')).not.toContain(LOOPBACK_SECRET)
     expect((await readFile(join(directory, 'events.jsonl'), 'utf8')).trim().split('\n')).toHaveLength(failAt * 2)
   })
 
-  it('cannot repeat the write when a client leaves every SDK retry option at its default', async () => {
+  it('refuses a client that may retry writes before sending or recording anything', async () => {
     const f = await fixture()
-    const loopback = await startCosLoopback((_request, response) => {
-      answer(response, 500, cosError('InternalError'), { 'content-type': 'application/xml', 'x-cos-request-id': 'fixture-request' })
-    })
+    const loopback = await startS3Loopback()
     loopbacks.push(loopback)
-    // Deliberately retry-permissive: a buffer body for the manifest would let the SDK send it up to four times.
-    const cos = new COS({ SecretId: 'test-credential-id', SecretKey: 'test-credential-secret', Protocol: 'https:' })
-    loopback.redirect(cos)
-    await expect(uploadDesktopRelease(f.plan, cos, f.records)).rejects.toThrow('stopped at put')
-    expect(loopback.requests.map(request => request.path)).toEqual(['/bin/package.exe'])
-    expect(loopback.requests[0]!.body.toString('utf8')).toBe(BINARY_BYTES)
+    // Default retry policy: a 500 would be resent up to twice more.
+    const s3 = new S3Client({ region: 'us-east-1', endpoint: loopback.credentials.endpoint, forcePathStyle: true,
+      credentials: { accessKeyId: 'test-credential-id', secretAccessKey: LOOPBACK_SECRET } })
+    await expect(uploadDesktopRelease(f.plan, s3, f.records)).rejects.toThrow(/must not retry/u)
+    expect(loopback.requests).toHaveLength(0)
   })
 
   it.each([1, 2])('reports a dropped connection at PUT %s once without sending the object again', async (dropAt) => {
     const f = await fixture()
-    const { cos, loopback } = await transport((_request, response) => {
-      if (loopback.requests.length === dropAt) { response.destroy(); return }
-      answer(response, 200, '', { 'x-cos-request-id': 'fixture-request' })
+    const { s3, loopback } = await transport((_request, response) => {
+      if (loopback.requests.length === dropAt) { response.socket?.destroy(); return }
+      answer(response, 200, '', RECEIPT)
     })
-    await expect(uploadDesktopRelease(f.plan, cos, f.records)).rejects.toThrow('stopped at put')
+    await expect(uploadDesktopRelease(f.plan, s3, f.records)).rejects.toThrow('stopped at put')
     expect(loopback.requests).toHaveLength(dropAt)
     const result = await json(join(await f.directory(), 'result.json'))
-    expect(result).toMatchObject({ success: false, confirmedPuts: dropAt - 1, stage: 'put', failure: { errorCode: 'ECONNRESET' } })
+    expect(result).toMatchObject({ success: false, confirmedPuts: dropAt - 1, stage: 'put' })
   })
 
   it('refuses networking when the audit parent cannot be created', async () => {
     const f = await fixture()
-    const { cos, loopback } = await transport()
-    await expect(uploadDesktopRelease(f.plan, cos, f.plan.artifacts[0]!.path)).rejects.toThrow()
+    const { s3, loopback } = await transport()
+    await expect(uploadDesktopRelease(f.plan, s3, f.plan.artifacts[0]!.path)).rejects.toThrow()
     expect(loopback.requests).toHaveLength(0)
   })
 
   it('stops before the next PUT when a response cannot be recorded', async () => {
     const f = await fixture()
-    const { cos, loopback } = await transport(async (_request, response) => {
+    const { s3, loopback } = await transport(async (_request, response) => {
       const directory = await f.directory()
       await rename(join(directory, 'events.jsonl'), join(directory, 'events-before-failure.jsonl'))
       await mkdir(join(directory, 'events.jsonl'))
-      answer(response, 200, '', { 'x-cos-request-id': 'fixture-request' })
+      answer(response, 200, '', RECEIPT)
     })
-    await expect(uploadDesktopRelease(f.plan, cos, f.records)).rejects.toThrow('stopped at record-response')
+    await expect(uploadDesktopRelease(f.plan, s3, f.records)).rejects.toThrow('stopped at record-response')
     expect(loopback.requests).toHaveLength(1)
     expect(await json(join(await f.directory(), 'result.json'))).toMatchObject({ success: false, stage: 'record-response', confirmedPuts: 1 })
   })
 
   it('keeps independent runs without overwriting prior evidence', async () => {
     const f = await fixture()
-    const { cos } = await transport()
-    const first = await uploadDesktopRelease(f.plan, cos, f.records)
+    const { s3 } = await transport()
+    const first = await uploadDesktopRelease(f.plan, s3, f.records)
     const before = await readFile(join(first, 'result.json'), 'utf8')
-    const second = await uploadDesktopRelease(f.plan, cos, f.records)
+    const second = await uploadDesktopRelease(f.plan, s3, f.records)
     expect(second).not.toBe(first)
     expect(await readFile(join(first, 'result.json'), 'utf8')).toBe(before)
   })

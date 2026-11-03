@@ -1,9 +1,9 @@
-/** Upload validated Desktop update artifacts or a fixed installer to Tencent COS. */
+/** Upload validated Desktop update artifacts or a fixed installer to the deployment S3 bucket. */
 
 import { resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import type { DesktopPackageTargetName } from './package-target.ts'
-import { createDesktopCos } from './desktop-cos.ts'
+import { createDesktopS3 } from './desktop-s3.ts'
 import { resolveDesktopUploadConfig } from './desktop-auto-update-environment.mjs'
 import { loadDesktopPackageEnvironment } from './desktop-package-environment.mjs'
 import { createDesktopUploadPlan, type DesktopUploadPlan } from './desktop-upload-plan.ts'
@@ -48,13 +48,13 @@ export function resolveCredentialUploadEnvironment(
     throw new Error('desktop upload: credential launcher deployment or bucket differs from the packaged release destination')
   }
   if (injectedEnvironment.DSH_DESKTOP_AUTO_UPDATE_ENV !== selected
-    || injectedEnvironment[`${selected === 'test' ? 'DOWNLOAD_TEST' : 'DOWNLOAD_PROD'}_COS_BUCKET`] !== bucket) {
+    || injectedEnvironment[`${selected === 'test' ? 'DOWNLOAD_TEST' : 'DOWNLOAD_PROD'}_S3_BUCKET`] !== bucket) {
     throw new Error('desktop upload: credential launcher environment differs from its explicit arguments')
   }
   return {
     ...fileEnvironment,
-    [destination.secretIdEnvName]: requiredEnvironmentValue(injectedEnvironment, destination.secretIdEnvName),
-    [destination.secretKeyEnvName]: requiredEnvironmentValue(injectedEnvironment, destination.secretKeyEnvName),
+    [destination.accessKeyIdEnvName]: requiredEnvironmentValue(injectedEnvironment, destination.accessKeyIdEnvName),
+    [destination.secretAccessKeyEnvName]: requiredEnvironmentValue(injectedEnvironment, destination.secretAccessKeyEnvName),
   }
 }
 
@@ -86,12 +86,13 @@ export async function uploadDesktopTarget(args: string[]): Promise<void> {
     ? resolveCredentialUploadEnvironment(fileEnvironment, process.env, values.environment as 'test' | 'production', values.bucket!, name)
     : fileEnvironment
   const plan = await createDesktopUploadPlan(name, { environment, latest: values.latest === true })
-  const cos = createDesktopCos({
-    secretId: requiredEnvironmentValue(environment, plan.secretIdEnvName),
-    secretKey: requiredEnvironmentValue(environment, plan.secretKeyEnvName),
+  const s3 = createDesktopS3({
+    accessKeyId: requiredEnvironmentValue(environment, plan.accessKeyIdEnvName),
+    secretAccessKey: requiredEnvironmentValue(environment, plan.secretAccessKeyEnvName),
+    endpoint: plan.endpoint, region: plan.region,
   })
   process.stdout.write(`desktop upload: ${plan.target} ${plan.version} -> ${plan.publicUrl}\n`)
-  await uploadDesktopRelease(plan, cos, resolve(import.meta.dirname, '../.desktop-build/upload-records'))
+  await uploadDesktopRelease(plan, s3, resolve(import.meta.dirname, '../.desktop-build/upload-records'))
   if (plan.environment === 'production' && !values.latest) recordProductionRelease(plan)
 }
 

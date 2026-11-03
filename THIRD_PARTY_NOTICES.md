@@ -48,7 +48,7 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`@lexical/plain-text`](https://github.com/facebook/lexical) | MIT |
 | [`@lexical/text`](https://github.com/facebook/lexical) | MIT |
 | [`@lexical/utils`](https://github.com/facebook/lexical) | MIT |
-| [`@modelcontextprotocol/client`](https://github.com/modelcontextprotocol/typescript-sdk) | MIT |
+| [`@modelcontextprotocol/client`](https://github.com/modelcontextprotocol/typescript-sdk) | Apache-2.0 |
 | [`@modelcontextprotocol/sdk`](https://github.com/modelcontextprotocol/typescript-sdk) | MIT |
 | [`@noble/hashes`](https://github.com/paulmillr/noble-hashes) | MIT |
 | [`@octokit/webhooks`](https://github.com/octokit/webhooks.js) | MIT |
@@ -190,12 +190,13 @@ External packages **directly declared** for development, tests, types, or toolin
 
 | Package | License |
 | --- | --- |
+| [`@aws-sdk/client-s3`](https://github.com/aws/aws-sdk-js-v3) | Apache-2.0 |
 | [`@braintree/sanitize-url`](https://github.com/braintree/sanitize-url) | MIT |
 | [`@electron/get`](https://github.com/electron/get) | MIT |
 | [`@electron/notarize`](https://github.com/electron/notarize) | MIT |
 | [`@lexical/headless`](https://github.com/facebook/lexical) | MIT |
-| [`@modelcontextprotocol/node`](https://github.com/modelcontextprotocol/typescript-sdk) | MIT |
-| [`@modelcontextprotocol/server`](https://github.com/modelcontextprotocol/typescript-sdk) | MIT |
+| [`@modelcontextprotocol/node`](https://github.com/modelcontextprotocol/typescript-sdk) | Apache-2.0 |
+| [`@modelcontextprotocol/server`](https://github.com/modelcontextprotocol/typescript-sdk) | Apache-2.0 |
 | [`@modelcontextprotocol/server-everything`](https://github.com/modelcontextprotocol/servers) | MIT / Apache-2.0 |
 | [`@modelcontextprotocol/server-filesystem`](https://github.com/modelcontextprotocol/servers) | MIT / Apache-2.0 |
 | [`@panzoom/panzoom`](https://github.com/timmywil/panzoom) | MIT |
@@ -229,7 +230,6 @@ External packages **directly declared** for development, tests, types, or toolin
 | [`@yao-pkg/pkg`](https://github.com/yao-pkg/pkg) | MIT |
 | [`@yarnpkg/cli-dist`](https://github.com/yarnpkg/berry) | BSD-2-Clause |
 | [`app-builder-lib`](https://github.com/electron-userland/electron-builder) | MIT |
-| [`cos-nodejs-sdk-v5`](https://github.com/tencentyun/cos-nodejs-sdk-v5) | ISC |
 | [`cytoscape`](https://github.com/cytoscape/cytoscape.js) | MIT |
 | [`cytoscape-cose-bilkent`](https://github.com/cytoscape/cytoscape.js-cose-bilkent) | MIT |
 | [`dayjs`](https://github.com/iamkun/dayjs) | MIT |

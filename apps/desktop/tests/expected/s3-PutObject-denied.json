@@ -1,0 +1,8 @@
+{
+  "phase": "publication",
+  "code": "AccessDenied",
+  "message": "S3 PutObject: AccessDenied. Check the access key's s3:PutObject permission and explicit deny rules for the selected bucket/object. Publication stopped; reconcile remote state before retrying.",
+  "operation": "PutObject",
+  "requestId": "fixture-request",
+  "httpStatus": 403
+}

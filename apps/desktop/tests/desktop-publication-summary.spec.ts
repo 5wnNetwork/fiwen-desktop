@@ -11,7 +11,7 @@ const source: DesktopRetainedSource = {
 }
 const plan: DesktopUploadPlan = {
   environment: 'production', target: 'win-x64', version: '1.0.0', bucket: 'production-1234567890',
-  publicUrl: 'https://download.example.com/dsh-desk/feeds/win-x64/', secretIdEnvName: 'SECRET_ID', secretKeyEnvName: 'SECRET_KEY',
+  publicUrl: 'https://download.example.com/dsh-desk/feeds/win-x64/', endpoint: 'https://s3.example.com', region: 'us-east-1', accessKeyIdEnvName: 'SECRET_ID', secretAccessKeyEnvName: 'SECRET_KEY',
   artifacts: [
     { path: '/not-read/installer.exe', filename: 'fiwen-desktop-1.0.0-win-x64.exe', key: 'dsh-desk/bin/win-x64/latest/fiwen-desktop-1.0.0-win-x64.exe',
       contents: 'installer bytes', contentType: 'application/octet-stream', channelMetadata: false },

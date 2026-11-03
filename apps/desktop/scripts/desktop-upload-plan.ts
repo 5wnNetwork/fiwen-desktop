@@ -45,8 +45,11 @@ export interface DesktopUploadPlan {
   /** Update feed directory URL, or the single installer URL for a fixed download. */
   readonly publicUrl: string
   readonly bucket: string
-  readonly secretIdEnvName: string
-  readonly secretKeyEnvName: string
+  /** S3 API origin and signing region for the bucket. */
+  readonly endpoint: string
+  readonly region: string
+  readonly accessKeyIdEnvName: string
+  readonly secretAccessKeyEnvName: string
   readonly artifacts: readonly DesktopUploadArtifact[]
   /** Commit the artifacts were packaged from, absent for a package built before builds recorded it. */
   readonly commit?: string
@@ -285,8 +288,10 @@ export async function createDesktopUploadPlan(
     version: buildVersion,
     publicUrl: options.latest ? `${update.origin}/${latestKey}` : update.publicUrl,
     bucket: update.bucket,
-    secretIdEnvName: update.secretIdEnvName,
-    secretKeyEnvName: update.secretKeyEnvName,
+    endpoint: update.endpoint,
+    region: update.region,
+    accessKeyIdEnvName: update.accessKeyIdEnvName,
+    secretAccessKeyEnvName: update.secretAccessKeyEnvName,
     artifacts: options.latest ? [{ ...installerArtifact, filename: latestFilename, key: latestKey }] : artifacts,
     ...typeof buildRecord.commit === 'string' ? { commit: buildRecord.commit } : {},
     ...typeof buildRecord.dirty === 'boolean' ? { dirty: buildRecord.dirty } : {},

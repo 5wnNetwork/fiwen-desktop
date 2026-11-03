@@ -16,7 +16,7 @@ export async function createInstalledUpdateBuilderConfig(manifest: string, versi
   const run = await readInstalledUpdateRun(manifest)
   if (!run.versions.includes(version)) throw new Error('installed update: package version is outside the qualification run')
   if (environment.DSH_DESKTOP_AUTO_UPDATE_ENV !== 'test' || environment.DSH_DESKTOP_UNSIGNED === '1'
-    || environment.DOWNLOAD_TEST_ORIGIN !== run.origin || environment.DOWNLOAD_TEST_COS_BUCKET !== run.bucket) {
+    || environment.DOWNLOAD_TEST_ORIGIN !== run.origin || environment.DOWNLOAD_TEST_S3_BUCKET !== run.bucket) {
     throw new Error('installed update: signed ordinary-update qualification requires matching test deployment settings')
   }
   const application = await verifyInstalledUpdateApplication(run.root)

@@ -8,9 +8,8 @@ import { load } from 'js-yaml'
 import { createDesktopUploadPlan } from '../scripts/desktop-upload-plan.ts'
 import { desktopUpdateMetadataFilename } from '../scripts/desktop-auto-update-environment.mjs'
 import type { DesktopPackageTargetName } from '../scripts/package-target.ts'
-import { createDesktopCos } from '../scripts/desktop-cos.ts'
 import { uploadDesktopRelease } from '../scripts/desktop-upload-run.ts'
-import { startCosLoopback } from './cos-loopback.ts'
+import { startS3Loopback } from './s3-loopback.ts'
 
 const temporaryDirectories: string[] = []
 const TEST_ORIGIN = 'https://desktop-updates.example.com'
@@ -99,12 +98,12 @@ async function fixture(
         DSH_DESKTOP_AUTO_UPDATE_ENV: 'test',
         DOWNLOAD_TEST_ORIGIN: TEST_ORIGIN,
         DOWNLOAD_TEST_RELEASE_ID: RELEASE_ID,
-        DOWNLOAD_TEST_COS_BUCKET: TEST_BUCKET,
+        DOWNLOAD_TEST_S3_BUCKET: TEST_BUCKET, DOWNLOAD_TEST_S3_ENDPOINT: 'https://s3.example.com',
       }
       : {
         DSH_DESKTOP_UPDATE_CHANNEL: channel,
         DSH_DESKTOP_AUTO_UPDATE_ENV: 'production',
-        DOWNLOAD_PROD_COS_BUCKET: PRODUCTION_BUCKET,
+        DOWNLOAD_PROD_S3_BUCKET: PRODUCTION_BUCKET, DOWNLOAD_PROD_S3_ENDPOINT: 'https://s3.example.com',
       },
   }
 }
@@ -117,23 +116,21 @@ afterEach(async () => {
 })
 
 describe('desktop upload plan', () => {
-  it('uploads only the selected latest installer to each deployment using the existing COS transport', async () => {
+  it('uploads only the selected latest installer to each deployment using the existing S3 transport', async () => {
     const published = []
     for (const environment of ['production', 'test'] as const) {
       for (const target of ['mac-arm64', 'mac-x64', 'win-x64'] as const) {
         const paths = await fixture(target, '1.2.3', environment)
         const plan = await createDesktopUploadPlan(target, { ...paths, latest: true })
-        const loopback = await startCosLoopback()
+        const loopback = await startS3Loopback()
         try {
-          const cos = createDesktopCos({ secretId: 'fixture-id', secretKey: 'fixture-secret' })
-          loopback.redirect(cos)
-          const directory = await uploadDesktopRelease(plan, cos, join(paths.appRoot, 'records'))
+          const directory = await uploadDesktopRelease(plan, loopback.client(), join(paths.appRoot, 'records'))
           expect(plan.artifacts).toHaveLength(1)
           const artifact = plan.artifacts[0]!
           expect(loopback.requests).toHaveLength(1)
           const request = loopback.requests[0]!
           expect(request.method).toBe('PUT')
-          expect(request.path).toBe(`/${artifact.key}`)
+          expect(request.path).toBe(`/${plan.bucket}/${artifact.key}?x-id=PutObject`)
           expect(request.body).toEqual(await readFile(artifact.path))
           expect(JSON.parse(await readFile(join(directory, 'result.json'), 'utf8'))).toMatchObject({
             success: true, confirmedPuts: 1, publicReadback: 'not-performed',
@@ -165,7 +162,7 @@ describe('desktop upload plan', () => {
     if (failure === 'completion') await rm(join(paths.artifactsRoot, 'win-x64-release.json'))
     if (failure === 'deployment') Object.assign(paths.environment, {
       DSH_DESKTOP_AUTO_UPDATE_ENV: 'test', DOWNLOAD_TEST_ORIGIN: TEST_ORIGIN,
-      DOWNLOAD_TEST_RELEASE_ID: RELEASE_ID, DOWNLOAD_TEST_COS_BUCKET: TEST_BUCKET,
+      DOWNLOAD_TEST_RELEASE_ID: RELEASE_ID, DOWNLOAD_TEST_S3_BUCKET: TEST_BUCKET, DOWNLOAD_TEST_S3_ENDPOINT: 'https://s3.example.com',
     })
     if (failure === 'checksum') {
       const path = join(paths.artifactsRoot, 'fiwen-desktop-1.2.3-win-x64.exe')
@@ -297,7 +294,7 @@ describe('desktop upload plan', () => {
         DSH_DESKTOP_AUTO_UPDATE_ENV: 'test',
         DOWNLOAD_TEST_ORIGIN: TEST_ORIGIN,
         DOWNLOAD_TEST_RELEASE_ID: RELEASE_ID,
-        DOWNLOAD_TEST_COS_BUCKET: TEST_BUCKET,
+        DOWNLOAD_TEST_S3_BUCKET: TEST_BUCKET, DOWNLOAD_TEST_S3_ENDPOINT: 'https://s3.example.com',
       },
     })).rejects.toThrow(/completion record.*test/u)
   })

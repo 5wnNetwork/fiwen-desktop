@@ -7,7 +7,7 @@ import { uploadDesktopTarget } from '../scripts/upload-target.ts'
 
 vi.mock('../scripts/desktop-package-environment.mjs', () => ({ loadDesktopPackageEnvironment: vi.fn() }))
 vi.mock('../scripts/desktop-upload-plan.ts', () => ({ createDesktopUploadPlan: vi.fn() }))
-vi.mock('../scripts/desktop-cos.ts', () => ({ createDesktopCos: vi.fn() }))
+vi.mock('../scripts/desktop-s3.ts', () => ({ createDesktopS3: vi.fn() }))
 vi.mock('../scripts/desktop-upload-run.ts', () => ({ uploadDesktopRelease: vi.fn() }))
 vi.mock('../scripts/desktop-release-tag.ts', async importOriginal => ({
   ...await importOriginal<typeof import('../scripts/desktop-release-tag.ts')>(),
@@ -27,12 +27,12 @@ describe('desktop upload command', () => {
     { environment: 'test', latest: false, tagged: false },
   ] as const)('uploads $environment latest=$latest with tagged=$tagged', async ({ environment, latest, tagged }) => {
     vi.spyOn(process.stdout, 'write').mockReturnValue(true)
-    const credentials = { DOWNLOAD_TEST_COS_SECRET_ID: 'fixture-id', DOWNLOAD_TEST_COS_SECRET_KEY: 'fixture-key' }
+    const credentials = { DOWNLOAD_TEST_S3_ACCESS_KEY_ID: 'fixture-id', DOWNLOAD_TEST_S3_SECRET_ACCESS_KEY: 'fixture-key' }
     const plan: DesktopUploadPlan = {
       environment, target: 'win-x64', version: '1.2.3-alpha.4',
       publicUrl: 'https://desktop-updates.example.com/desktop/dsh-latest-windows-x64.exe',
-      bucket: 'fixture-bucket', secretIdEnvName: 'DOWNLOAD_TEST_COS_SECRET_ID',
-      secretKeyEnvName: 'DOWNLOAD_TEST_COS_SECRET_KEY', artifacts: [], commit: '0'.repeat(40), dirty: false,
+      bucket: 'fixture-bucket', endpoint: 'https://s3.example.com', region: 'us-east-1', accessKeyIdEnvName: 'DOWNLOAD_TEST_S3_ACCESS_KEY_ID',
+      secretAccessKeyEnvName: 'DOWNLOAD_TEST_S3_SECRET_ACCESS_KEY', artifacts: [], commit: '0'.repeat(40), dirty: false,
     }
     vi.mocked(loadDesktopPackageEnvironment).mockReturnValue(credentials)
     vi.mocked(createDesktopUploadPlan).mockResolvedValue(plan)

@@ -37,10 +37,10 @@ const WINDOWS_SIGNING_ENV_NAMES = [
   'DSH_DESKTOP_WINDOWS_SIGNATURE_CACHE_CONCURRENCY',
 ] as const
 const DESKTOP_UPLOAD_CREDENTIAL_ENV_NAMES = new Set([
-  'DOWNLOAD_TEST_COS_SECRET_ID',
-  'DOWNLOAD_TEST_COS_SECRET_KEY',
-  'DOWNLOAD_PROD_COS_SECRET_ID',
-  'DOWNLOAD_PROD_COS_SECRET_KEY',
+  'DOWNLOAD_TEST_S3_ACCESS_KEY_ID',
+  'DOWNLOAD_TEST_S3_SECRET_ACCESS_KEY',
+  'DOWNLOAD_PROD_S3_ACCESS_KEY_ID',
+  'DOWNLOAD_PROD_S3_SECRET_ACCESS_KEY',
 ])
 
 /** `--build-version` value that numbers a build after the ones already taken. */
@@ -112,7 +112,7 @@ export function desktopElectronBuilderEnvironment(environment: NodeJS.ProcessEnv
 }
 
 /**
- * Remove upload-only COS credentials from every packaging subprocess.
+ * Remove upload-only S3 credentials from every packaging subprocess.
  * @param environment - Packaging command environment.
  * @returns A copy without Desktop upload credentials.
  */

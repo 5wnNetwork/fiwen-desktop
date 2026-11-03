@@ -20,7 +20,7 @@ it.each(['mac-arm64', 'win-x64'] as const)('preflights a complete retained %s bu
     const releaseId = 'a'.repeat(32)
     await writeFile(join(configRoot, 'presets/test.env'), `DSH_DESKTOP_AUTO_UPDATE_ENV=test\nDOWNLOAD_TEST_RELEASE_ID=${releaseId}\n`)
     await writeFile(join(configRoot, 'publishing/test.json'), JSON.stringify({
-      bucket: 'fixture-1250000000', origin: 'https://EXAMPLE.com:443/', credentialsFile: join(root, 'absent-credentials.json'),
+      bucket: 'fixture-1250000000', endpoint: 'https://s3.example.com', region: 'us-east-1', origin: 'https://EXAMPLE.com:443/', credentialsFile: join(root, 'absent-credentials.json'),
     }))
     const commit = 'b'.repeat(40)
     const base = `fiwen-desktop-1.0.0-${target}`

@@ -25,7 +25,7 @@
 <details>
 <summary>技术详情与文件清单</summary>
 
-COS 存储桶：<code>production-1234567890</code>
+S3 存储桶：<code>production-1234567890</code>
 
 审批摘要 SHA-256：<code>cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc</code>
 

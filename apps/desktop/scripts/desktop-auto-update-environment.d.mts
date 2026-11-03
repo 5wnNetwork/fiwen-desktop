@@ -18,11 +18,13 @@ export interface DesktopAutoUpdateConfig {
   readonly binaryKeyPrefix: string
 }
 
-/** Public updater URL and private COS destination for one upload target. */
+/** Public updater URL and private S3 destination for one upload target. */
 export interface DesktopUploadConfig extends DesktopAutoUpdateConfig {
   readonly bucket: string
-  readonly secretIdEnvName: string
-  readonly secretKeyEnvName: string
+  readonly endpoint: string
+  readonly region: string
+  readonly accessKeyIdEnvName: string
+  readonly secretAccessKeyEnvName: string
 }
 
 /**
@@ -79,7 +81,7 @@ export function resolveDesktopAutoUpdateConfig(
 ): DesktopAutoUpdateConfig
 
 /**
- * Resolve the public updater URL and private COS destination for one upload target.
+ * Resolve the public updater URL and private S3 destination for one upload target.
  * @param env - Upload environment.
  * @param platform - Target Node.js platform.
  * @param arch - Target Node.js architecture.

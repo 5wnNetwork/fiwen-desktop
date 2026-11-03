@@ -1,4 +1,4 @@
-/** Resolve the Desktop auto-update channel and its Tencent COS destination. */
+/** Resolve the Desktop auto-update channel and its S3 destination. */
 
 import { valid } from 'semver'
 
@@ -20,16 +20,20 @@ const UPDATE_ENVIRONMENTS = {
   test: {
     originEnvName: 'DOWNLOAD_TEST_ORIGIN',
     fixedOrigin: undefined,
-    bucketEnvName: 'DOWNLOAD_TEST_COS_BUCKET',
-    secretIdEnvName: 'DOWNLOAD_TEST_COS_SECRET_ID',
-    secretKeyEnvName: 'DOWNLOAD_TEST_COS_SECRET_KEY',
+    bucketEnvName: 'DOWNLOAD_TEST_S3_BUCKET',
+    endpointEnvName: 'DOWNLOAD_TEST_S3_ENDPOINT',
+    regionEnvName: 'DOWNLOAD_TEST_S3_REGION',
+    accessKeyIdEnvName: 'DOWNLOAD_TEST_S3_ACCESS_KEY_ID',
+    secretAccessKeyEnvName: 'DOWNLOAD_TEST_S3_SECRET_ACCESS_KEY',
   },
   production: {
     originEnvName: undefined,
     fixedOrigin: 'https://desktop.5wn.net',
-    bucketEnvName: 'DOWNLOAD_PROD_COS_BUCKET',
-    secretIdEnvName: 'DOWNLOAD_PROD_COS_SECRET_ID',
-    secretKeyEnvName: 'DOWNLOAD_PROD_COS_SECRET_KEY',
+    bucketEnvName: 'DOWNLOAD_PROD_S3_BUCKET',
+    endpointEnvName: 'DOWNLOAD_PROD_S3_ENDPOINT',
+    regionEnvName: 'DOWNLOAD_PROD_S3_REGION',
+    accessKeyIdEnvName: 'DOWNLOAD_PROD_S3_ACCESS_KEY_ID',
+    secretAccessKeyEnvName: 'DOWNLOAD_PROD_S3_SECRET_ACCESS_KEY',
   },
 }
 
@@ -172,12 +176,12 @@ export function resolveDesktopAutoUpdateConfig(env, platform, arch) {
 }
 
 /**
- * Resolve the public updater URL and private COS destination for one upload target.
+ * Resolve the public updater URL and private S3 destination for one upload target.
  * @param {NodeJS.ProcessEnv} env - Upload environment.
  * @param {NodeJS.Platform} platform - Target Node.js platform.
  * @param {string} arch - Target Node.js architecture.
- * @returns {{ environment: 'test' | 'production', channel: 'nightly' | 'latest', target: 'mac-arm64' | 'mac-x64' | 'win-x64', origin: string, publicUrl: string, keyPrefix: string, binaryKeyPrefix: string, bucket: string, secretIdEnvName: string, secretKeyEnvName: string }} Resolved upload configuration.
- * @throws {Error} When the selected deployment lacks a bucket or valid updater configuration.
+ * @returns {{ environment: 'test' | 'production', channel: 'nightly' | 'latest', target: 'mac-arm64' | 'mac-x64' | 'win-x64', origin: string, publicUrl: string, keyPrefix: string, binaryKeyPrefix: string, bucket: string, endpoint: string, region: string, accessKeyIdEnvName: string, secretAccessKeyEnvName: string }} Resolved upload configuration.
+ * @throws {Error} When the selected deployment lacks a bucket, an endpoint or valid updater configuration.
  */
 export function resolveDesktopUploadConfig(env, platform, arch) {
   const update = resolveDesktopAutoUpdateConfig(env, platform, arch)
@@ -185,7 +189,9 @@ export function resolveDesktopUploadConfig(env, platform, arch) {
   return {
     ...update,
     bucket: requiredEnvironmentValue(env, deployment.bucketEnvName),
-    secretIdEnvName: deployment.secretIdEnvName,
-    secretKeyEnvName: deployment.secretKeyEnvName,
+    endpoint: httpsOrigin(requiredEnvironmentValue(env, deployment.endpointEnvName), deployment.endpointEnvName),
+    region: env[deployment.regionEnvName]?.trim() || 'us-east-1',
+    accessKeyIdEnvName: deployment.accessKeyIdEnvName,
+    secretAccessKeyEnvName: deployment.secretAccessKeyEnvName,
   }
 }

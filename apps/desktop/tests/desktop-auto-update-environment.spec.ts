@@ -13,7 +13,7 @@ const RELEASE_ID = '0123456789abcdef0123456789abcdef'
 describe('desktop auto-update environment', () => {
   it.each([undefined, 'test'])('requires a release ID for deployment %s', (deployment) => {
     const environment = { DSH_DESKTOP_AUTO_UPDATE_ENV: deployment, DOWNLOAD_TEST_ORIGIN: 'https://updates.example.com',
-      DOWNLOAD_TEST_COS_BUCKET: 'test-bucket' }
+      DOWNLOAD_TEST_S3_BUCKET: 'test-bucket' }
     expect(() => resolveDesktopAutoUpdateConfig(environment, 'win32', 'x64')).toThrow(/DOWNLOAD_TEST_RELEASE_ID/u)
     expect(() => resolveDesktopUploadConfig(environment, 'win32', 'x64')).toThrow(/DOWNLOAD_TEST_RELEASE_ID/u)
   })
@@ -50,11 +50,14 @@ describe('desktop auto-update environment', () => {
     expect(resolveDesktopUploadConfig({
       DOWNLOAD_TEST_ORIGIN: 'https://desktop-updates.example.com/',
       DOWNLOAD_TEST_RELEASE_ID: RELEASE_ID,
-      DOWNLOAD_TEST_COS_BUCKET: 'test-download-bucket',
+      DOWNLOAD_TEST_S3_BUCKET: 'test-download-bucket',
+      DOWNLOAD_TEST_S3_ENDPOINT: 'https://s3.example.com/',
     }, 'darwin', 'arm64')).toMatchObject({
       bucket: 'test-download-bucket',
-      secretIdEnvName: 'DOWNLOAD_TEST_COS_SECRET_ID',
-      secretKeyEnvName: 'DOWNLOAD_TEST_COS_SECRET_KEY',
+      endpoint: 'https://s3.example.com',
+      region: 'us-east-1',
+      accessKeyIdEnvName: 'DOWNLOAD_TEST_S3_ACCESS_KEY_ID',
+      secretAccessKeyEnvName: 'DOWNLOAD_TEST_S3_SECRET_ACCESS_KEY',
     })
   })
 
@@ -70,11 +73,15 @@ describe('desktop auto-update environment', () => {
     })
     expect(resolveDesktopUploadConfig({
       DSH_DESKTOP_AUTO_UPDATE_ENV: 'production',
-      DOWNLOAD_PROD_COS_BUCKET: 'production-download-bucket',
+      DOWNLOAD_PROD_S3_BUCKET: 'production-download-bucket',
+      DOWNLOAD_PROD_S3_ENDPOINT: 'https://s3.ap-southeast-1.wasabisys.com',
+      DOWNLOAD_PROD_S3_REGION: 'ap-southeast-1',
     }, 'win32', 'x64')).toMatchObject({
       bucket: 'production-download-bucket',
-      secretIdEnvName: 'DOWNLOAD_PROD_COS_SECRET_ID',
-      secretKeyEnvName: 'DOWNLOAD_PROD_COS_SECRET_KEY',
+      endpoint: 'https://s3.ap-southeast-1.wasabisys.com',
+      region: 'ap-southeast-1',
+      accessKeyIdEnvName: 'DOWNLOAD_PROD_S3_ACCESS_KEY_ID',
+      secretAccessKeyEnvName: 'DOWNLOAD_PROD_S3_SECRET_ACCESS_KEY',
     })
   })
 
@@ -88,10 +95,16 @@ describe('desktop auto-update environment', () => {
     expect(() => resolveDesktopUploadConfig({
       DOWNLOAD_TEST_ORIGIN: 'https://desktop-updates.example.com',
       DOWNLOAD_TEST_RELEASE_ID: RELEASE_ID,
-    }, 'darwin', 'arm64')).toThrow(/DOWNLOAD_TEST_COS_BUCKET/u)
+    }, 'darwin', 'arm64')).toThrow(/DOWNLOAD_TEST_S3_BUCKET/u)
     expect(() => resolveDesktopUploadConfig({
       DSH_DESKTOP_AUTO_UPDATE_ENV: 'production',
-    }, 'win32', 'x64')).toThrow(/DOWNLOAD_PROD_COS_BUCKET/u)
+    }, 'win32', 'x64')).toThrow(/DOWNLOAD_PROD_S3_BUCKET/u)
+    expect(() => resolveDesktopUploadConfig({
+      DSH_DESKTOP_AUTO_UPDATE_ENV: 'production', DOWNLOAD_PROD_S3_BUCKET: 'b',
+    }, 'win32', 'x64')).toThrow(/DOWNLOAD_PROD_S3_ENDPOINT/u)
+    expect(() => resolveDesktopUploadConfig({
+      DSH_DESKTOP_AUTO_UPDATE_ENV: 'production', DOWNLOAD_PROD_S3_BUCKET: 'b', DOWNLOAD_PROD_S3_ENDPOINT: 'http://s3.example.com',
+    }, 'win32', 'x64')).toThrow(/DOWNLOAD_PROD_S3_ENDPOINT/u)
   })
 
   it('rejects a test download URL that is not an HTTPS origin', () => {

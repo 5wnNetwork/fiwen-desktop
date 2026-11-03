@@ -3,9 +3,9 @@
 .SYNOPSIS
 Checks Windows DPAPI credentials, or explicitly uploads one completed Desktop target.
 .DESCRIPTION
-Imports encrypted SecretId and SecretKey fields from an external CLIXML file.
-Only the Node child receives plaintext COS credentials. The default check starts
-a keyless-code probe without contacting COS; it does not verify cloud permissions.
+Imports encrypted AccessKeyId and SecretAccessKey fields from an external CLIXML file.
+Only the Node child receives plaintext S3 credentials. The default check starts
+a keyless-code probe without contacting object storage; it does not verify cloud permissions.
 .PARAMETER CredentialFile
 Path to the CLIXML file created by the current Windows user on this machine.
 .PARAMETER Environment
@@ -13,7 +13,7 @@ Deployment that owns the credential pair; never inferred from the filename.
 .PARAMETER Target
 Completed Desktop target to upload when Upload is explicitly selected.
 .PARAMETER Bucket
-COS bucket for an explicit upload. Not needed for the local credential check.
+S3 bucket for an explicit upload. Not needed for the local credential check.
 .PARAMETER Latest
 Publish only the installer at its fixed download URL. Requires Upload.
 .PARAMETER Upload
@@ -31,7 +31,7 @@ param(
     [string]$Target,
     [Parameter(ParameterSetName = 'Publish', Mandatory = $true)]
     [ValidateNotNullOrEmpty()]
-    [ValidatePattern('^[a-z0-9-]+$')]
+    [ValidatePattern('^[a-z0-9][a-z0-9.-]*$')]
     [string]$Bucket,
     [Parameter(ParameterSetName = 'Publish', Mandatory = $true)]
     [switch]$Upload,
@@ -55,13 +55,13 @@ try {
     }
     try {
         $credentials = Import-Clixml -LiteralPath $CredentialFile
-        foreach ($field in @('SecretId', 'SecretKey')) {
+        foreach ($field in @('AccessKeyId', 'SecretAccessKey')) {
             if ($credentials.$field -isnot [Security.SecureString] -or $credentials.$field.Length -eq 0) {
                 throw 'Expected non-empty encrypted fields.'
             }
         }
     } catch {
-        throw 'Cannot read encrypted COS credentials. Check the file and use its original Windows user and machine.'
+        throw 'Cannot read encrypted S3 credentials. Check the file and use its original Windows user and machine.'
     }
 
     $stage = 'prepare-node'
@@ -79,14 +79,14 @@ try {
         }
     }
     $stage = 'prepare-credentials'
-    $prefix = if ($Environment -eq 'production') { 'DOWNLOAD_PROD_COS' } else { 'DOWNLOAD_TEST_COS' }
-    $secretId = [Net.NetworkCredential]::new('', $credentials.SecretId).Password
-    $secretKey = [Net.NetworkCredential]::new('', $credentials.SecretKey).Password
+    $prefix = if ($Environment -eq 'production') { 'DOWNLOAD_PROD_S3' } else { 'DOWNLOAD_TEST_S3' }
+    $secretId = [Net.NetworkCredential]::new('', $credentials.AccessKeyId).Password
+    $secretKey = [Net.NetworkCredential]::new('', $credentials.SecretAccessKey).Password
     if ([string]::IsNullOrWhiteSpace($secretId) -or [string]::IsNullOrWhiteSpace($secretKey)) {
-        throw 'COS credential fields must not be blank.'
+        throw 'S3 credential fields must not be blank.'
     }
-    $startInfo.EnvironmentVariables["${prefix}_SECRET_ID"] = $secretId
-    $startInfo.EnvironmentVariables["${prefix}_SECRET_KEY"] = $secretKey
+    $startInfo.EnvironmentVariables["${prefix}_ACCESS_KEY_ID"] = $secretId
+    $startInfo.EnvironmentVariables["${prefix}_SECRET_ACCESS_KEY"] = $secretKey
     $startInfo.EnvironmentVariables['DSH_DESKTOP_AUTO_UPDATE_ENV'] = $Environment
     if ($Upload) {
         $startInfo.EnvironmentVariables["${prefix}_BUCKET"] = $Bucket
@@ -94,7 +94,7 @@ try {
         if ($Latest) { $startInfo.Arguments += " --latest" }
         Write-Output "desktop credentials: uploading $Target to $Environment; release validation runs before network writes."
     } else {
-        $probe = "const id=process.env.${prefix}_SECRET_ID;const key=process.env.${prefix}_SECRET_KEY;process.exit(id?.trim()&&key?.trim()?0:1)"
+        $probe = "const id=process.env.${prefix}_ACCESS_KEY_ID;const key=process.env.${prefix}_SECRET_ACCESS_KEY;process.exit(id?.trim()&&key?.trim()?0:1)"
         $startInfo.Arguments = "-e `"$probe`""
     }
 
@@ -127,7 +127,7 @@ try {
     if ($null -ne $child) { $child.Dispose() }
     if ($null -ne $startInfo) { $startInfo.EnvironmentVariables.Clear() }
     if ($null -ne $credentials) {
-        foreach ($field in @('SecretId', 'SecretKey')) {
+        foreach ($field in @('AccessKeyId', 'SecretAccessKey')) {
             if ($credentials.PSObject.Properties[$field] -and $credentials.$field -is [Security.SecureString]) {
                 $credentials.$field.Dispose()
             }

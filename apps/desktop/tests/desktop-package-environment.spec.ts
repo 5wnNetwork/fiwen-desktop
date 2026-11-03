@@ -30,7 +30,7 @@ describe('Desktop local packaging configuration', () => {
       DSH_DESKTOP_AUTO_UPDATE_ENV: 'production', DSH_DESKTOP_MANDATORY_UPDATE_CONFIG: 'invalid-json',
       DSH_DESKTOP_MANDATORY_UPDATE_PROD_ORIGIN: 'https://policy.example.com',
       DSH_DESKTOP_MACOS_SIGNING_IDENTITY: 'Release identity', CSC_LINK: 'missing.p12',
-      APPLE_API_KEY: 'missing.p8', DOWNLOAD_PROD_COS_SECRET_KEY: 'unused-secret',
+      APPLE_API_KEY: 'missing.p8', DOWNLOAD_PROD_S3_SECRET_ACCESS_KEY: 'unused-secret',
     }
     const local = localMacOSPackageEnvironment(parent)
     expect(local).toEqual({

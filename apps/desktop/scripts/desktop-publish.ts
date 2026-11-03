@@ -6,7 +6,7 @@ import { gt, valid } from 'semver'
 import { z } from 'zod'
 import type { DesktopUploadArtifact, DesktopUploadPlan } from './desktop-upload-plan.ts'
 
-/** File identity computed from bytes, never inferred from COS ETags. */
+/** File identity computed from bytes, never inferred from S3 ETags. */
 export interface DesktopObjectDigest { readonly size: number; readonly sha512: string }
 /** Remote object observation; channel objects additionally carry their exact YAML. */
 export interface DesktopRemoteObject extends DesktopObjectDigest { readonly contents?: string }
@@ -14,7 +14,7 @@ export interface DesktopRemoteObject extends DesktopObjectDigest { readonly cont
 export interface DesktopPublishTransport {
   /** Read and hash remote bytes; only a confirmed missing object returns null. */
   read(key: string, channel: boolean): Promise<DesktopRemoteObject | null>
-  /** Write once. Immutable binaries must use COS overwrite prevention. */
+  /** Write once. Immutable binaries must use S3 conditional writes (`If-None-Match: *`). */
   put(artifact: DesktopUploadArtifact, digest: DesktopObjectDigest, forbidOverwrite: boolean): Promise<void>
 }
 /** Credential-free, durably flushed publication event. */

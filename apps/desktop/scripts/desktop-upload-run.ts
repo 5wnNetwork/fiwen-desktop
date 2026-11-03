@@ -4,16 +4,16 @@ import { createReadStream } from 'node:fs'
 import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { Readable } from 'node:stream'
-import type COS from 'cos-nodejs-sdk-v5'
+import { PutObjectCommand, type S3Client } from '@aws-sdk/client-s3'
 import type { DesktopUploadArtifact, DesktopUploadPlan } from './desktop-upload-plan.ts'
-import { DESKTOP_COS_REGION } from './desktop-cos.ts'
+import { s3Operation } from './s3-operation.ts'
 import { recordPackagingEvent } from './packaging-run.mjs'
 
 const FAILURE_CODES = new Set(['AccessDenied', 'InternalError', 'NoSuchBucket', 'BadDigest', 'SignatureDoesNotMatch',
   'RequestTimeout', 'TimeoutError', 'AbortError', 'ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'ENOSPC', 'EACCES', 'EPERM', 'ENOENT'])
 
 /** Object keys fingerprinted into every upload record to bind evidence to this uploader. */
-const UPLOADER_SOURCES = ['desktop-upload-run.ts', 'upload-target.ts', 'desktop-upload-plan.ts', 'desktop-cos.ts']
+const UPLOADER_SOURCES = ['desktop-upload-run.ts', 'upload-target.ts', 'desktop-upload-plan.ts', 'desktop-s3.ts']
 
 async function fingerprint(artifact: DesktopUploadArtifact) {
   const sha512 = createHash('sha512')
@@ -30,11 +30,12 @@ async function fingerprint(artifact: DesktopUploadArtifact) {
 
 function receipt(value: unknown): object {
   if (typeof value !== 'object' || value === null) return {}
-  const response = value as { statusCode?: unknown; RequestId?: unknown }
+  const response = value as { statusCode?: unknown; $metadata?: { httpStatusCode?: unknown; requestId?: unknown } }
+  const metadata = response.$metadata ?? {}
+  const requestId = metadata.requestId
   return {
-    ...(typeof response.statusCode === 'number' ? { httpStatus: response.statusCode } : {}),
-    ...(typeof response.RequestId === 'string' && /^[\w+/=.-]{1,256}$/u.test(response.RequestId)
-      ? { requestId: response.RequestId } : {}),
+    ...(typeof metadata.httpStatusCode === 'number' ? { httpStatus: metadata.httpStatusCode } : {}),
+    ...(typeof requestId === 'string' && /^[\w+/=.-]{1,256}$/u.test(requestId) ? { requestId } : {}),
   }
 }
 
@@ -54,16 +55,17 @@ function streamedBody(artifact: DesktopUploadArtifact): Readable {
 /**
  * Upload an already validated installer or update plan, flushing intent and response evidence around every PUT.
  *
- * Each object is sent as one streamed PUT with an explicit length and Content-MD5, which is also
- * what keeps the COS SDK's internal retry path unreachable: it repeats a request only when the
- * body is not a stream. This function never retries either, so every confirmed PUT is the only
- * write for its key.
+ * Each object is sent as one streamed PUT with an explicit length and Content-MD5. The client must
+ * be configured with `maxAttempts: 1`, and this function never retries either, so every confirmed
+ * PUT is the only write for its key.
  * @param plan Validated release metadata; credential values must not be included.
- * @param cos Caller-owned client from the Desktop COS factory in `desktop-cos.ts`.
+ * @param s3 Caller-owned client from the Desktop S3 factory in `desktop-s3.ts`.
  * @param recordsRoot Local retained evidence parent, outside disposable artifact directories.
  * @returns Fresh record directory after all PUTs succeed; errors retain partial evidence and stop later PUTs.
+ * @throws {Error} Before any request or record when the client may retry.
  */
-export async function uploadDesktopRelease(plan: DesktopUploadPlan, cos: COS, recordsRoot: string): Promise<string> {
+export async function uploadDesktopRelease(plan: DesktopUploadPlan, s3: S3Client, recordsRoot: string): Promise<string> {
+  if (await s3.config.maxAttempts() !== 1) throw new Error('desktop upload: S3 client must not retry writes (maxAttempts: 1)')
   await mkdir(recordsRoot, { recursive: true })
   const directory = await mkdtemp(join(recordsRoot, `${plan.environment}-${plan.target}-`))
   process.stdout.write(`desktop upload: record ${directory}\n`)
@@ -99,9 +101,10 @@ export async function uploadDesktopRelease(plan: DesktopUploadPlan, cos: COS, re
         channelMetadata: artifact.channelMetadata })
       const body = streamedBody(artifact)
       try {
-        const response = await cos.putObject({ Bucket: plan.bucket, Region: DESKTOP_COS_REGION, Key: key,
-          Body: body, ContentLength: artifact.size, ContentType: artifact.contentType,
-          Headers: { 'Content-MD5': artifact.md5 } })
+        const response = await s3Operation(900_000, signal => s3.send(new PutObjectCommand({
+          Bucket: plan.bucket, Key: key, Body: body, ContentLength: artifact.size,
+          ContentType: artifact.contentType, ContentMD5: artifact.md5,
+        }), { abortSignal: signal }), 'PutObject')
         confirmedPuts++
         stage = 'record-response'
         recordPackagingEvent(directory, { type: 'put-confirmed', key, attempts: 1, ...receipt(response) })

@@ -13,7 +13,7 @@ function fixture(environment: 'test' | 'production' = 'test') {
   let tags = 0
   const plan: DesktopUploadPlan = {
     environment, target: 'win-x64', version: '1.0.0', bucket: 'fixture', publicUrl: 'https://example.com/feed/',
-    secretIdEnvName: 'ID', secretKeyEnvName: 'KEY', commit: 'a'.repeat(40), dirty: false,
+    endpoint: 'https://s3.example.com', region: 'us-east-1', accessKeyIdEnvName: 'ID', secretAccessKeyEnvName: 'KEY', commit: 'a'.repeat(40), dirty: false,
     artifacts: [
       { path: '', filename: 'installer.exe', key: 'bin/installer.exe', contentType: 'application/octet-stream', channelMetadata: false, contents: 'installer' },
       { path: '', filename: 'installer.blockmap', key: 'bin/installer.blockmap', contentType: 'application/octet-stream', channelMetadata: false, contents: 'blockmap' },
