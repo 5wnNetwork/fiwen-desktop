@@ -21,4 +21,10 @@ export const vi = {
   ...frequencyVi,
   'mark.aria': '{count} task đã lên lịch',
   'hover.more': '{count} mục khác',
+  'frequency.hostMonthly': 'Hàng tháng vào ngày {days} lúc {time}, hoặc vào cuối tháng',
+  'frequency.hostDailyInterval': 'Mỗi {interval} ngày lúc {time}',
+  'frequency.hostWeeklyInterval': 'Mỗi {interval} tuần vào {weekdays} lúc {time}',
+  'frequency.hostMonthlyInterval': 'Mỗi {interval} tháng vào ngày {days} lúc {time}, hoặc vào cuối tháng',
+  'frequency.hostZone': '{rule} ({timeZone})',
+  'frequency.hostCustom': 'Tùy chỉnh',
 } satisfies Partial<Record<keyof typeof en, string>>

@@ -25,7 +25,6 @@ import { vi as inspectorPanel } from './inspectorPanel.ts'
 import { vi as jobs } from './jobs.ts'
 import { vi as market } from './market.ts'
 import { vi as messageFeedback } from './messageFeedback.ts'
-import { vi as modelLabel1017 } from './modelLabel1017.ts'
 import { vi as modelSelection } from './modelSelection.ts'
 import { vi as openInApp } from './openInApp.ts'
 import { vi as permissionAccess } from './permissionAccess.ts'
@@ -95,7 +94,6 @@ export const VI_DICTIONARIES = {
   'job': jobs,
   'market': market,
   'feedback': messageFeedback,
-  'deepseek-model-label-1017': modelLabel1017,
   'model': modelSelection,
   'open-in-app': openInApp,
   'permission.access': permissionAccess,

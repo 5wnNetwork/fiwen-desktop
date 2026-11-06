@@ -1,0 +1,11 @@
+{
+  "bucket": "replace-with-bucket",
+  "endpoint": "https://s3.REPLACE-WITH-REGION.wasabisys.com",
+  "region": "REPLACE-WITH-REGION",
+  "origin": "https://download-test.example.com",
+  "credentialsFile": "/absolute/path/to/packaging/secrets/s3-test.json",
+  "macOS": {
+    "signingIdentity": "REPLACE_WITH_DEVELOPER_ID_APPLICATION_IDENTITY",
+    "teamId": "XXXXXXXXXX"
+  }
+}

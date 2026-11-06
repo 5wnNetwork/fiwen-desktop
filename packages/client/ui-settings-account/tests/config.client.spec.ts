@@ -1,22 +1,25 @@
 /** Public bonus options are emitted in the page bootstrap. */
 import { Context } from '@deepseek-ai/cordis'
 import { expect, it, onTestFinished, vi } from 'vitest'
-import type { IndexInjection } from '@deepseek-ai/dsh-host-webserver'
+import type { IndexInjection, WebServer } from '@deepseek-ai/dsh-host-webserver'
 import { apply, Config } from '../src/index.ts'
 import { BONUS_CONFIG_GLOBAL } from '../src/bonus-config.ts'
+
+/** The Peer an index render speaks for; this listener reads no field of it. */
+const PAGE_PEER = { principal: { kind: 'owner' } } as Parameters<WebServer['renderIndex']>[1]
 
 it('injects configured bonus options and removes the listener on disposal', async () => {
   const ctx = new Context()
   onTestFinished(() => ctx.fiber.dispose())
   await ctx.plugin({ Config, apply }, { bonusAckRetryDelayMs: 25, bonusAckRetryMaxDelayMs: 100 })
   const table: IndexInjection[] = []
-  ctx.emit('webserver/index-inject', table)
+  ctx.emit('webserver/index-inject', table, PAGE_PEER)
   expect(table).toEqual([{ kind: 'global', name: BONUS_CONFIG_GLOBAL, value: {
     bonusAckRetryDelayMs: 25, bonusAckRetryMaxDelayMs: 100,
   } }])
   await ctx.fiber.dispose()
   table.length = 0
-  ctx.emit('webserver/index-inject', table)
+  ctx.emit('webserver/index-inject', table, PAGE_PEER)
   expect(table).toEqual([])
 })
 

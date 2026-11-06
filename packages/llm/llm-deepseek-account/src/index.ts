@@ -4,18 +4,14 @@ import type { Context } from '@deepseek-ai/cordis'
 import { ACCOUNT_PLAN_REQUIRED_CODE, ACCOUNT_QUOTA_EXCEEDED_CODE, APP_IDENTITY, LlmError, PLAN_REQUIRED_CODE, QUOTA_EXCEEDED_CODE } from '@deepseek-ai/dsh-llm'
 import type {} from '@deepseek-ai/dsh-deepseek-account'
 import { launchEnvironmentOf } from '@deepseek-ai/dsh-launch-environment'
-import { assertNever } from '@deepseek-ai/dsh-util-values'
-import { catalogModelInfo, registerDeepSeekProvider, resolveAdapterOptions } from '@deepseek-ai/dsh-llm-deepseek'
-import type { DeepSeekRequestAuth, ResolvedDeepSeekOptions } from '@deepseek-ai/dsh-llm-deepseek'
-import { AccountModelCatalog } from './catalog.ts'
-import type { CatalogView } from './catalog.ts'
+import {
+  catalogModelInfo, createModelListingCache, refuseListedModel, registerDeepSeekProvider, requestModelListing, resolveAdapterOptions,
+  resolveListedCatalog, rejectDeepSeekAccountToken, resolveDeepSeekAccountToken,
+} from '@deepseek-ai/dsh-llm-deepseek'
+import type { DeepSeekRequestAuth, ListedCatalog, ListingView, ModelListing, ResolvedDeepSeekOptions } from '@deepseek-ai/dsh-llm-deepseek'
 import { Config, plainAccountOptions, resolveAccountOptions } from './config.ts'
-import { requestModelListing } from './listing.ts'
-import type { ModelListing } from './listing.ts'
-import { resolveAccountCatalog } from './resolve-catalog.ts'
-import type { AccountCatalog, CatalogRefusal } from './resolve-catalog.ts'
 
-export { Config } from './config.ts'
+export { Config, plainAccountOptions, resolveAccountOptions } from './config.ts'
 export const name = 'llm-deepseek-account'
 export const inject = ['llm']
 
@@ -27,23 +23,7 @@ const LOG_TAG = '[llm-deepseek-account]'
 
 /** Connection facts of one account operation: protocol settings plus the catalog resolved with them. */
 interface AccountConnection extends ResolvedDeepSeekOptions {
-  readonly catalog: AccountCatalog
-}
-
-function refuse(model: string, refusal: CatalogRefusal | undefined): void {
-  if (refusal === undefined) return
-  switch (refusal.kind) {
-    case 'upgrade-required':
-      throw new LlmError(
-        `DeepSeek model "${model}" requires Fiwen Desktop ${refusal.requiredVersion} or later; current version is ${APP_IDENTITY.version}`,
-        'CLIENT_UPGRADE_REQUIRED',
-      )
-    case 'unsupported':
-      throw new LlmError(`DeepSeek model "${model}" is not supported by Fiwen Desktop; current version is ${APP_IDENTITY.version}`, 'MODEL_UNSUPPORTED')
-    /* v8 ignore next 2 -- catalog resolution produces only the closed refusal union */
-    default:
-      assertNever(refusal, 'account catalog refusal')
-  }
+  readonly catalog: ListedCatalog
 }
 
 export function apply(ctx: Context, config: Config): void {
@@ -51,9 +31,8 @@ export function apply(ctx: Context, config: Config): void {
   const settings = () => resolveAccountOptions(plainAccountOptions(config), environment)
   settings()
   const supported = resolveAdapterOptions({}).models
-  const account = () => ctx.get('deepseekAccount')
   const resolveAuth = async (connection: ResolvedDeepSeekOptions): Promise<DeepSeekRequestAuth> => {
-    const token = await account()?.resolveToken(connection.baseURL)
+    const token = await resolveDeepSeekAccountToken(ctx, connection.baseURL)
     if (token === undefined) throw new LlmError('Sign in to Fiwen to use the account provider. The request destination must allow account authentication.', 'ACCOUNT_SIGN_IN_REQUIRED')
     return {
       headers: { [TOKEN_HEADER]: token },
@@ -67,30 +46,27 @@ export function apply(ctx: Context, config: Config): void {
         }
         if (error.failure.status !== 401) return error
         const rejected = new LlmError(error.message, 'ACCOUNT_TOKEN_INVALID', { ...error.failure, cause: error })
-        try { await account()?.rejectToken(token) }
-        catch (_credentialRemovalFailed) { /* Storage failure cannot replace the inference failure. */ }
+        await rejectDeepSeekAccountToken(ctx, token)
         return rejected
       },
     }
   }
-  const catalog = new AccountModelCatalog({
+  const catalog = createModelListingCache(ctx, name, PROVIDER, {
     settings: () => settings().catalog,
-    token: async url => account()?.resolveToken(url),
+    credential: url => resolveDeepSeekAccountToken(ctx, url),
     load: (url, token, signal) => requestModelListing(url, { [TOKEN_HEADER]: token }, signal),
-    now: () => Date.now(),
-    info: (message) => { console.info(LOG_TAG, message) },
-    warn: (message) => { console.warn(LOG_TAG, message) },
   })
   let loggedListing: ModelListing | undefined
-  /** Resolve the catalog for one view, logging the listing's hidden entries once per listing. */
-  const connectionOf = (view: CatalogView): AccountConnection => {
+  /** Resolve the catalog, reporting each listing's hidden entries and dropped badges once. */
+  const connectionOf = (view: ListingView): AccountConnection => {
     const resolved = settings()
-    const result = resolveAccountCatalog({
+    const result = resolveListedCatalog({
       listing: view.listing?.entries,
       supported,
       overrides: resolved.modelOverrides,
       routeMaxTokens: resolved.protocol.maxTokens,
       clientVersion: APP_IDENTITY.version,
+      ...resolved.catalog.withoutListing === undefined ? {} : { withoutListing: resolved.catalog.withoutListing },
     })
     if (view.listing !== loggedListing) {
       loggedListing = view.listing
@@ -102,10 +78,10 @@ export function apply(ctx: Context, config: Config): void {
   const directory = ctx.llm.registerConfigurableProviders([entry])
   let reportedError: string | undefined
   /** Publish listing and override diagnostics on the provider directory. */
-  const discovered = (view: CatalogView): AccountConnection => {
+  const discovered = (view: ListingView): AccountConnection => {
     const connection = connectionOf(view)
     const errors = connection.catalog.overrideErrors.slice()
-    if (view.signedIn && view.listing === undefined) errors.unshift('model listing unavailable; retrying')
+    if (view.authenticated && view.listing === undefined && connection.catalog.offered.length === 0) errors.unshift('model listing unavailable; retrying')
     const error = errors.length === 0 ? undefined : errors.join('; ')
     if (error !== reportedError) {
       reportedError = error
@@ -121,13 +97,15 @@ export function apply(ctx: Context, config: Config): void {
   registerDeepSeekProvider<AccountConnection>(ctx, PROVIDER, {
     providerName: 'Fiwen Account',
     options: () => connectionOf(catalog.current()),
-    connect: async signal => connectionOf(await catalog.view(signal)),
+    connect: async signal => connectionOf(await catalog.view(settings().catalog, signal)),
     resolveAuth,
-    admit: (connection, model) => { refuse(model, connection.catalog.refusals.get(model)) },
+    admit: (connection, model) => { refuseListedModel(model, connection.catalog.refusals.get(model)) },
     discoverModels: async (provider) => {
-      const view = await catalog.view()
-      return discovered(view).catalog.offered.map(model => catalogModelInfo(provider, model))
+      const view = await catalog.view(settings().catalog)
+      // Diagnostics publish signed out too, so a sign-out clears a reported listing outage.
+      const { offered, badges } = discovered(view).catalog
+      if (!view.authenticated) return []
+      return offered.map(model => catalogModelInfo(provider, model, badges.get(model.id)))
     },
   })
-  ctx.effect(() => () => { catalog.dispose() }, 'llm-deepseek-account: model catalog')
 }

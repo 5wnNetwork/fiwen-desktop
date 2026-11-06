@@ -50,7 +50,9 @@ export function desktopPublishS3(
         ), 'GetObject')
         if (!(response.Body instanceof Readable)) throw new Error('desktop publish: empty object body')
         await pipeline(response.Body, output)
-        return { size, sha512: sha512.digest('base64'), ...(channel ? { contents: Buffer.concat(chunks).toString('utf8') } : {}) }
+        return { size, sha512: sha512.digest('base64'),
+          ...(typeof response.ContentDisposition === 'string' ? { contentDisposition: response.ContentDisposition } : {}),
+          ...(channel ? { contents: Buffer.concat(chunks).toString('utf8') } : {}) }
       } catch (error) {
         if (isMissingObject(error)) return null
         throw new DesktopS3OperationError('GetObject', error)
@@ -72,6 +74,7 @@ export function desktopPublishS3(
         await s3Operation(900_000, signal => s3.send(new PutObjectCommand({
           Bucket: plan.bucket, Key: artifact.key, Body: body, ContentLength: digest.size,
           ContentType: artifact.contentType, ContentMD5: md5.digest('base64'),
+          ...(artifact.contentDisposition ? { ContentDisposition: artifact.contentDisposition } : {}),
           ...(forbidOverwrite ? { IfNoneMatch: '*' } : {}),
         }), { abortSignal: signal }), 'PutObject')
       } catch (error) {

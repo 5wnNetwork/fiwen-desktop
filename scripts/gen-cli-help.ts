@@ -5,7 +5,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync 
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { promisify } from 'node:util'
-import { PROFILE_TEMPLATES } from '@deepseek-ai/dsh-app-boot'
+import { PROFILE_TEMPLATES } from '@deepseek-ai/dsh-official-bundles'
 import {
   computeTranslationPairingRecord,
   renderTranslationPairingRecord,
@@ -16,8 +16,6 @@ import { defaultParallelism } from './parallelism.ts'
 
 const root = resolve(import.meta.dirname, '..')
 
-/** Concurrent help reads each own a full CLI child process; keep the count well under the worker budget. */
-const HELP_READ_PROCESS_LIMIT = 4
 const paths = translationPairPaths('docs/cli-help.md')
 const execFileAsync = promisify(execFile)
 
@@ -67,6 +65,22 @@ function addAlias(page: HelpPage, invocation: string, path: ReadonlySet<HelpPage
  */
 export function topLevelHelpArgs(profiles: readonly string[]): string[][] {
   return [[], ['plugin'], ...[...profiles].sort().flatMap(profile => [[profile], ['--profile', profile]])]
+}
+
+/**
+ * Resolve the child-process allowance before any help invocation starts.
+ * @param raw - optional DSH_CLI_HELP_CONCURRENCY override.
+ * @param fallback - worker budget for an invocation without an explicit allowance.
+ * @returns the maximum number of help children in flight.
+ * @throws when a supplied override is not a positive decimal integer.
+ */
+export function cliHelpConcurrency(raw: string | undefined, fallback: number): number {
+  if (raw === undefined || raw === '') return fallback
+  const parsed = Number.parseInt(raw, 10)
+  if (!Number.isSafeInteger(parsed) || parsed < 1 || String(parsed) !== raw) {
+    throw new Error(`gen-cli-help: DSH_CLI_HELP_CONCURRENCY must be a positive integer, got ${JSON.stringify(raw)}.`)
+  }
+  return parsed
 }
 
 /** Help reads started ahead of an in-order consumer. */
@@ -180,10 +194,10 @@ export async function collectCliHelp(
 }
 
 async function collectHelp(): Promise<HelpPage[]> {
+  const concurrency = cliHelpConcurrency(process.env.DSH_CLI_HELP_CONCURRENCY, defaultParallelism())
   const directory = mkdtempSync(join(tmpdir(), 'dsh-cli-help-'))
   const profiles = Object.keys(PROFILE_TEMPLATES)
-  // Each read boots a full `tsx` CLI process; cap them below the in-process
-  // worker budget so mutual contention cannot starve one past its timeout.
+  // Aggregate callers allocate this leaf's children separately from the other running gates.
   const reader = prefetchHelp(async (args, signal) => {
     // Each invocation boots against its own empty Harness and agents homes.
     const home = mkdtempSync(join(directory, 'invocation-'))
@@ -211,7 +225,7 @@ async function collectHelp(): Promise<HelpPage[]> {
     } finally {
       signal.removeEventListener('abort', abort)
     }
-  }, topLevelHelpArgs(profiles), Math.min(defaultParallelism(), HELP_READ_PROCESS_LIMIT))
+  }, topLevelHelpArgs(profiles), concurrency)
   try {
     return await collectCliHelp(reader.readHelp, profiles)
   } finally {

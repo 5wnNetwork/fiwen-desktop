@@ -31,9 +31,6 @@
       "path": "../ui-conversation/tsconfig.client.json"
     },
     {
-      "path": "../ui-deepseek-model-label-1017"
-    },
-    {
       "path": "../ui-deliverables/tsconfig.client.json"
     },
     {
@@ -145,7 +142,7 @@
       "path": "../ui-theme/tsconfig.client.json"
     },
     {
-      "path": "../ui-trajectory"
+      "path": "../ui-trajectory/tsconfig.client.json"
     },
     {
       "path": "../ui-user-questions"
@@ -157,7 +154,7 @@
       "path": "../ui-workspace"
     },
     {
-      "path": "../../experimental/client-ui-agent-team"
+      "path": "../ui-agent-team"
     },
     {
       "path": "../../experimental/client-ui-claude-code-mods"

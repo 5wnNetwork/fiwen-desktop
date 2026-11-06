@@ -42,5 +42,11 @@ export const vi = {
   'readonly.oneShot.title': 'Bản ghi subagent một lần',
   'readonly.title': 'Subagent này hiện chỉ đọc',
   'readonly.oneShot.body': 'Task một lần không nhận tiếp nối; xem toàn bộ bản ghi thực thi tại đây.',
-  'readonly.body': 'Session cha đang ngoại tuyến; hãy mở lại để tiếp tục gửi tin nhắn.',
+  'section.title': 'Tác tử con',
+  'section.empty': 'Không có tác tử con',
+  'progress.completed': '{count} đã xong',
+  'progress.active': '{count} đang chạy',
+  'progress.inactive': '{count} không chạy',
+  'progress.external': '{count} bên ngoài',
+  'open.floatWindow': 'Mở trong bảng nổi',
 } satisfies Partial<Record<keyof typeof en, string>>

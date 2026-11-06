@@ -9,11 +9,20 @@
   en: ddf4dabea526cef1
   zh: 6e31cab10d2f3ed8
 /fiwen-python-sdk/start-a-runtime:
-  en: b4bdd9d60b07de17
-  zh: 71cd0245e56b1343
+  en: 6773319966f7e10a
+  zh: a447522e2fbc63de
+/fiwen-python-sdk/run-text-and-commands:
+  en: b2c847c1452e137d
+  zh: c595c5e82151d0cb
+/fiwen-python-sdk/client-approvals:
+  en: 1d18c09832dd4a42
+  zh: 6e7260b650a1f987
 /fiwen-python-sdk/customize-plugins:
-  en: d275a01094063850
-  zh: ec1134f8bbec7775
+  en: af2453b7f98c6782
+  zh: 6b3dc7dc7ba62a8b
+/fiwen-python-sdk/native-user-questions:
+  en: 979ad00fe498b2be
+  zh: 4b656bd268292a13
 /fiwen-python-sdk/results-and-notifications:
-  en: d4f7366c2d260639
-  zh: 7de99aed2b1bdd0a
+  en: 6b81899ea865ffd2
+  zh: d9e326a3fb04e696

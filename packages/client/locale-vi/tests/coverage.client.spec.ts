@@ -15,7 +15,6 @@ import { en as approvalEn } from '@deepseek-ai/dsh-client-ui-approval/src/client
 import { en as chatEn } from '@deepseek-ai/dsh-client-ui-chat/src/client/locale.ts'
 import { en as commandsEn } from '@deepseek-ai/dsh-client-ui-commands/src/client/locales.ts'
 import { en as conversationEn } from '@deepseek-ai/dsh-client-ui-conversation/src/client/locales.ts'
-import { en as modelLabelEn } from '@deepseek-ai/dsh-client-ui-deepseek-model-label-1017/src/client/locales.ts'
 import { en as deliverablesEn } from '@deepseek-ai/dsh-client-ui-deliverables/src/client/locales.ts'
 import { en as goalEn } from '@deepseek-ai/dsh-client-ui-goal/src/client/locales.ts'
 import { en as inputTriggerEn } from '@deepseek-ai/dsh-client-ui-input-trigger/src/client/locales.ts'
@@ -64,7 +63,7 @@ import { en as trajectoryEn } from '@deepseek-ai/dsh-client-ui-trajectory/src/cl
 import { en as questionEn } from '@deepseek-ai/dsh-client-ui-user-questions/src/client/locales.ts'
 import { en as workflowRunEn } from '@deepseek-ai/dsh-client-ui-workflow-run/src/client/locales.ts'
 import { en as workspaceEn } from '@deepseek-ai/dsh-client-ui-workspace/src/client/locales.ts'
-import { en as agentTeamEn } from '@deepseek-ai/dsh-experimental-client-ui-agent-team/src/client/locales.ts'
+import { en as agentTeamEn } from '@deepseek-ai/dsh-client-ui-agent-team/src/client/locales.ts'
 import { en as claudeCodeModsEn } from '@deepseek-ai/dsh-experimental-client-ui-claude-code-mods/src/client/locales.ts'
 import { en as cotTranslationEn } from '@deepseek-ai/dsh-experimental-client-ui-cot-translation/src/client/locales.ts'
 import { en as voiceInputEn } from '@deepseek-ai/dsh-experimental-client-ui-voice-input/src/client/locales.ts'
@@ -120,7 +119,6 @@ const PAIRS: Record<string, { en: Dict; vi: Dict }> = {
   'job': { en: jobsEn, vi: VI_DICTIONARIES['job'] },
   'market': { en: marketEn, vi: VI_DICTIONARIES['market'] },
   'feedback': { en: messageFeedbackEn, vi: VI_DICTIONARIES['feedback'] },
-  'deepseek-model-label-1017': { en: modelLabelEn, vi: VI_DICTIONARIES['deepseek-model-label-1017'] },
   'model': { en: modelEn, vi: VI_DICTIONARIES['model'] },
   'open-in-app': { en: openInAppEn, vi: VI_DICTIONARIES['open-in-app'] },
   'permission.access': { en: accessEn, vi: VI_DICTIONARIES['permission.access'] },

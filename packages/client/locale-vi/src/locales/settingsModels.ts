@@ -152,4 +152,7 @@ export const vi = {
   'onboardingSave': 'Lưu và tiếp tục',
   'onboardingSaving': 'Đang lưu…',
   'keyRequired': 'Nhập khóa API để tiếp tục.',
+  'reorderModel': 'Sắp xếp lại mô hình',
+  'reorderModelHelp': 'Kéo để sắp xếp, hoặc dùng phím mũi tên lên và xuống.',
+  'fetchKeepOne': 'Giữ ít nhất một mô hình được chọn.',
 } satisfies Partial<Record<keyof typeof en, string>>

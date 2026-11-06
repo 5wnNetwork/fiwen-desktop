@@ -2,7 +2,6 @@ import type { en } from '@deepseek-ai/dsh-session-log-export/src/client/locales.
 
 /** Vietnamese dictionary for `session-log-download`, key-checked against upstream `en`. */
 export const vi = {
-  'header.more': 'Thao tác khác',
   'menu.download': 'Tải nhật ký session',
   'menu.feedback': 'Phản hồi',
   'dialog.preparingTitle': 'Đang xuất session',
@@ -12,4 +11,9 @@ export const vi = {
   'dialog.errorTitle': 'Xuất session thất bại',
   'dialog.close': 'Đóng',
   'dialog.commandFailed': 'Không thể bắt đầu xuất session.',
+  'menu.copyMarkdown': 'Sao chép phiên dưới dạng Markdown',
+  'toast.copied': 'Đã sao chép phiên dưới dạng Markdown.',
+  'toast.preparationFailed': 'Không đọc được phiên để sao chép. Hãy thử lại.',
+  'toast.clipboardFailed': 'Không ghi được vào bộ nhớ tạm. Kiểm tra quyền truy cập bộ nhớ tạm rồi thử lại.',
+  'dialog.session': 'Phiên: {sessionId}',
 } satisfies Partial<Record<keyof typeof en, string>>

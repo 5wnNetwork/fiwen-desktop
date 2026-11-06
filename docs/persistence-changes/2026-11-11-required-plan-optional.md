@@ -40,7 +40,7 @@ changes:
     decision: same-version
   - root: "event:model/selection"
     previous: "2026-09-11-initial"
-    after: "082a8ccb7416dc7b97628364693f99b726ce4ef52373c30d0fe107ba51df4347"
+    after: "545b95231f2944ae401c4e2a8026e74ef33fad75803d7f5fadfc421fa84ecfba"
     decision: same-version
   - root: "event:request/header"
     previous: "2026-09-16-session-format-v4"

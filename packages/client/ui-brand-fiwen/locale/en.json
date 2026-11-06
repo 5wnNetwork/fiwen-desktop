@@ -1,5 +1,6 @@
 {
   "meta": {
-    "title": "ui-brand-fiwen"
+    "title": "ui-brand-fiwen",
+    "description": "Fiwen brand occupants for the Web client's sidebar and hero slots."
   }
 }

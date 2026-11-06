@@ -104,6 +104,7 @@ export async function uploadDesktopRelease(plan: DesktopUploadPlan, s3: S3Client
         const response = await s3Operation(900_000, signal => s3.send(new PutObjectCommand({
           Bucket: plan.bucket, Key: key, Body: body, ContentLength: artifact.size,
           ContentType: artifact.contentType, ContentMD5: artifact.md5,
+          ...(artifact.contentDisposition ? { ContentDisposition: artifact.contentDisposition } : {}),
         }), { abortSignal: signal }), 'PutObject')
         confirmedPuts++
         stage = 'record-response'

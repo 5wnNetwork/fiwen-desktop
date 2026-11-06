@@ -36,4 +36,8 @@ export const vi = {
   'dock.drop.bottom': 'Thêm tách phía dưới',
   'tab.guide.title': 'Bắt đầu',
   'tab.unavailable': 'Chưa có gì ở đây xem được loại nội dung này.',
+  'menu.close': 'Đóng',
+  'menu.closeOthers': 'Đóng các tab khác',
+  'menu.closeRight': 'Đóng các tab bên phải',
+  'tab.guide.more': 'Thêm công cụ',
 } satisfies Partial<Record<keyof typeof en, string>>

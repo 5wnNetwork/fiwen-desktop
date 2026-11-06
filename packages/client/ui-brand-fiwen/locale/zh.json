@@ -1,6 +1,6 @@
 {
   "meta": {
-    "title": "Fiwen 品牌展示",
-    "description": "在应用侧栏与会话首屏展示 Fiwen 品牌元素。"
+    "title": "ui-brand-fiwen",
+    "description": "Web 客户端侧边栏和首屏 slot 的 Fiwen 品牌占位组件."
   }
 }

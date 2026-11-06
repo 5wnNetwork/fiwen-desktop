@@ -3,7 +3,7 @@ import { createDesktopUploadPlan, type DesktopUploadPlan } from '../scripts/desk
 import { loadDesktopPackageEnvironment } from '../scripts/desktop-package-environment.mjs'
 import { tagDesktopRelease } from '../scripts/desktop-release-tag.ts'
 import { uploadDesktopRelease } from '../scripts/desktop-upload-run.ts'
-import { uploadDesktopTarget } from '../scripts/upload-target.ts'
+import { runDesktopUploadCommand, uploadDesktopTarget } from '../scripts/upload-target.ts'
 
 vi.mock('../scripts/desktop-package-environment.mjs', () => ({ loadDesktopPackageEnvironment: vi.fn() }))
 vi.mock('../scripts/desktop-upload-plan.ts', () => ({ createDesktopUploadPlan: vi.fn() }))
@@ -27,7 +27,7 @@ describe('desktop upload command', () => {
     { environment: 'test', latest: false, tagged: false },
   ] as const)('uploads $environment latest=$latest with tagged=$tagged', async ({ environment, latest, tagged }) => {
     vi.spyOn(process.stdout, 'write').mockReturnValue(true)
-    const credentials = { DOWNLOAD_TEST_S3_ACCESS_KEY_ID: 'fixture-id', DOWNLOAD_TEST_S3_SECRET_ACCESS_KEY: 'fixture-key' }
+    const credentials = { DSH_DESKTOP_AUTO_UPDATE_ENV: environment, DOWNLOAD_TEST_S3_ACCESS_KEY_ID: 'fixture-id', DOWNLOAD_TEST_S3_SECRET_ACCESS_KEY: 'fixture-key' }
     const plan: DesktopUploadPlan = {
       environment, target: 'win-x64', version: '1.2.3-alpha.4',
       publicUrl: 'https://desktop-updates.example.com/desktop/dsh-latest-windows-x64.exe',
@@ -51,6 +51,24 @@ describe('desktop upload command', () => {
     }
     else {
       expect(tagDesktopRelease).not.toHaveBeenCalled()
+    }
+  })
+
+  it.each([[], ['win-x64', '--purge-only'], ['win-x64', 'mac-x64']])('rejects invalid arguments %j before uploading', async (...args) => {
+    vi.mocked(loadDesktopPackageEnvironment).mockReturnValue({ DSH_DESKTOP_AUTO_UPDATE_ENV: 'test' })
+    await expect(uploadDesktopTarget(args)).rejects.toThrow()
+    expect(uploadDesktopRelease).not.toHaveBeenCalled()
+  })
+
+  it('shows usage without referring to a nonexistent record for invalid arguments', async () => {
+    const previousExitCode = process.exitCode
+    const stderr = vi.spyOn(process.stderr, 'write').mockReturnValue(true)
+    try {
+      await runDesktopUploadCommand([])
+      expect(stderr).toHaveBeenCalledWith(expect.stringContaining('Usage:'))
+      expect(stderr).not.toHaveBeenCalledWith(expect.stringContaining('record directory'))
+    } finally {
+      process.exitCode = previousExitCode
     }
   })
 })

@@ -6,11 +6,14 @@
   - tablist:
     - tab "Chat" [selected]
     - tab "Trajectory"
+  - button "More conversation views"
 - text: Use web_search once with queries ["Fiwen snapshot search","Fiwen multi-query search"]. Then reply exactly SEARCH_DONE and stop. {{clock}}
 - button "Copy"
 - status: Completed
 - button "Completed in {{duration}}" [expanded]
 - button "Searched the web" [expanded]
+- button "Context injection runtime-context"
+- button "Context injection time-context"
 - button "Search Fiwen snapshot search, Fiwen multi-query search"
 - paragraph: SEARCH_DONE
 - button "Copy"

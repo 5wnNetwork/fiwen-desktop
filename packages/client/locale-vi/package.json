@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-client-locale-vi",
   "description": "Vietnamese language pack: registers vi dictionaries for every client locale namespace",
-  "version": "0.2.1-rc.3",
+  "version": "0.2.2-rc.1",
   "publishConfig": {
     "access": "public"
   },
@@ -52,7 +52,6 @@
     "@deepseek-ai/dsh-client-ui-commands": "workspace:*",
     "@deepseek-ai/dsh-client-ui-conversation": "workspace:*",
     "@deepseek-ai/dsh-client-ui-cordis": "workspace:*",
-    "@deepseek-ai/dsh-client-ui-deepseek-model-label-1017": "workspace:*",
     "@deepseek-ai/dsh-client-ui-deliverables": "workspace:*",
     "@deepseek-ai/dsh-client-ui-directory-picker-browse": "workspace:*",
     "@deepseek-ai/dsh-client-ui-goal": "workspace:*",
@@ -94,7 +93,7 @@
     "@deepseek-ai/dsh-client-ui-user-questions": "workspace:*",
     "@deepseek-ai/dsh-client-ui-workflow-run": "workspace:*",
     "@deepseek-ai/dsh-client-ui-workspace": "workspace:*",
-    "@deepseek-ai/dsh-experimental-client-ui-agent-team": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-agent-team": "workspace:*",
     "@deepseek-ai/dsh-experimental-client-ui-claude-code-mods": "workspace:*",
     "@deepseek-ai/dsh-experimental-client-ui-cot-translation": "workspace:*",
     "@deepseek-ai/dsh-experimental-client-ui-voice-input": "workspace:*",

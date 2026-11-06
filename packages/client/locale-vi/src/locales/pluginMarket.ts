@@ -80,4 +80,13 @@ export const vi = {
   'versionPrerelease': 'Bản tiền phát hành',
   'confirmTitle': 'Cài đặt \"{name}\"?',
   'installTrust': 'Plugin chạy trên máy này với quyền của bạn. Hãy chắc chắn bạn tin tưởng nguồn gốc của nó.',
+  'detailTitle': 'Chi tiết',
+  'detailLoading': 'Đang đọc chi tiết',
+  'detailTooLarge': 'Chi tiết hoặc kho lưu trữ của nó vượt giới hạn kích thước nên chưa được tải.',
+  'detailNetwork': 'Không kết nối được tới nguồn của chi tiết.',
+  'detailDenied': 'Không truy cập được kho lưu trữ của chi tiết. Hãy kiểm tra thông tin đăng nhập Git.',
+  'detailGitUnavailable': 'Chi tiết nằm trong kho lưu trữ phải đọc bằng Git, nhưng Git không chạy được. Hãy cài Git rồi thử lại.',
+  'detailInvalid': 'Plugin khai báo tệp chi tiết không hợp lệ.',
+  'detailFailed': 'Không đọc được chi tiết.',
+  'footnotes': 'Chú thích',
 } satisfies Partial<Record<keyof typeof en, string>>

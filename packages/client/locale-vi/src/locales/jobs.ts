@@ -2,8 +2,6 @@ import type { en } from '@deepseek-ai/dsh-client-ui-jobs/src/client/locales.ts'
 
 /** Vietnamese dictionary for `job`, key-checked against upstream `en`. */
 export const vi = {
-  'count.live.one': '{count} task nền đang chạy',
-  'count.live.other': '{count} task nền đang chạy',
   'count.idle.one': '{count} task nền',
   'count.idle.other': '{count} task nền',
   'list.aria': 'Task nền',

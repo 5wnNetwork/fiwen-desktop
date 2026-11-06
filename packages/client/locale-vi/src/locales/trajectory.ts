@@ -194,4 +194,11 @@ export const vi = {
   'layout.toolsRemovedCount': 'Đã gỡ {count}',
   'layout.systemPromptAndToolsUpdated': 'System Prompt và công cụ đã cập nhật',
   'layout.compactionInterrupted': 'Nén bị gián đoạn trước khi hoàn thành.',
+  'toolbar.subCalls': 'Lệnh gọi con',
+  'toolbar.expandSubCalls': 'Mở rộng lệnh gọi con',
+  'toolbar.collapseSubCalls': 'Thu gọn lệnh gọi con',
+  'record.rawResult': 'Kết quả thô',
+  'record.renderedResult': 'Kết quả đã dựng',
+  'record.rawResultUnavailable': 'Kết quả thô chỉ có cho lệnh gọi công cụ đang trực tiếp',
+  'request.collapsedTool': 'lệnh gọi con',
 } satisfies Partial<Record<keyof typeof en, string>>

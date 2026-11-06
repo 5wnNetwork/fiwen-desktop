@@ -4,7 +4,8 @@ import { resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import type { DesktopPackageTargetName } from './package-target.ts'
 import { createDesktopS3 } from './desktop-s3.ts'
-import { resolveDesktopUploadConfig } from './desktop-auto-update-environment.mjs'
+import { requiredEnvironmentValue, resolveDesktopAutoUpdateEnvironment, resolveDesktopUploadConfig } from './desktop-auto-update-environment.mjs'
+import { desktopTargetPlatform } from './desktop-build-paths.mjs'
 import { loadDesktopPackageEnvironment } from './desktop-package-environment.mjs'
 import { createDesktopUploadPlan, type DesktopUploadPlan } from './desktop-upload-plan.ts'
 import { desktopReleaseTag, tagDesktopRelease } from './desktop-release-tag.ts'
@@ -14,18 +15,13 @@ const SUPPORTED_TARGETS = new Set<DesktopPackageTargetName>(['mac-arm64', 'mac-x
 
 function targetName(value: string): DesktopPackageTargetName {
   if (!SUPPORTED_TARGETS.has(value as DesktopPackageTargetName)) {
-    throw new Error(`desktop upload: unsupported target ${JSON.stringify(value)}; expected ${[...SUPPORTED_TARGETS].join(', ')}`)
+    throw new DesktopUploadUsageError(`desktop upload: unsupported target ${JSON.stringify(value)}; expected ${[...SUPPORTED_TARGETS].join(', ')}`)
   }
   return value as DesktopPackageTargetName
 }
 
-function requiredEnvironmentValue(environment: NodeJS.ProcessEnv, name: string): string {
-  const value = environment[name]?.trim()
-  if (value === undefined || value === '') {
-    throw new Error(`desktop upload: ${name} must be set to a non-empty value`)
-  }
-  return value
-}
+/** Invalid command arguments or release configuration, reported before network writes. */
+class DesktopUploadUsageError extends Error {}
 
 /**
  * Use the credential launcher's selected deployment only when it matches the packaged release destination.
@@ -41,15 +37,14 @@ export function resolveCredentialUploadEnvironment(
   selected: 'test' | 'production', bucket: string,
   target: DesktopPackageTargetName,
 ): NodeJS.ProcessEnv {
-  const platform = target === 'win-x64' ? 'win32' : 'darwin'
-  const arch = target === 'mac-arm64' ? 'arm64' : 'x64'
+  const { platform, arch } = desktopTargetPlatform(target)
   const destination = resolveDesktopUploadConfig(fileEnvironment, platform, arch)
   if (destination.environment !== selected || destination.bucket !== bucket) {
-    throw new Error('desktop upload: credential launcher deployment or bucket differs from the packaged release destination')
+    throw new DesktopUploadUsageError('desktop upload: credential launcher deployment or bucket differs from the packaged release destination')
   }
   if (injectedEnvironment.DSH_DESKTOP_AUTO_UPDATE_ENV !== selected
     || injectedEnvironment[`${selected === 'test' ? 'DOWNLOAD_TEST' : 'DOWNLOAD_PROD'}_S3_BUCKET`] !== bucket) {
-    throw new Error('desktop upload: credential launcher environment differs from its explicit arguments')
+    throw new DesktopUploadUsageError('desktop upload: credential launcher environment differs from its explicit arguments')
   }
   return {
     ...fileEnvironment,
@@ -70,21 +65,33 @@ export async function uploadDesktopTarget(args: string[]): Promise<void> {
   } })
   const target = positionals[0]
   if (target === undefined || positionals.length !== 1) {
-    throw new Error('desktop upload: expected exactly one target')
+    throw new DesktopUploadUsageError('desktop upload: expected exactly one target')
   }
   const name = targetName(target)
-  const fileEnvironment = loadDesktopPackageEnvironment(name === 'win-x64' ? 'win32' : 'darwin')
+  let fileEnvironment: NodeJS.ProcessEnv
+  try {
+    fileEnvironment = loadDesktopPackageEnvironment(desktopTargetPlatform(name).platform)
+  } catch {
+    // Loader diagnostics can quote dotenv contents, which may hold credentials.
+    throw new DesktopUploadUsageError('Cannot load target dotenv; check the target dotenv file and release settings.')
+  }
   const launcher = values['credential-launcher'] === true
   if (launcher ? values.environment === undefined || values.bucket === undefined
     : values.environment !== undefined || values.bucket !== undefined) {
-    throw new Error('desktop upload: credential launcher requires an explicit environment and bucket')
+    throw new DesktopUploadUsageError('desktop upload: credential launcher requires an explicit environment and bucket')
   }
   if (values.environment !== undefined && values.environment !== 'test' && values.environment !== 'production') {
-    throw new Error('desktop upload: credential launcher environment must be test or production')
+    throw new DesktopUploadUsageError('desktop upload: credential launcher environment must be test or production')
   }
   const environment = launcher
     ? resolveCredentialUploadEnvironment(fileEnvironment, process.env, values.environment as 'test' | 'production', values.bucket!, name)
     : fileEnvironment
+  try {
+    resolveDesktopAutoUpdateEnvironment(environment)
+  } catch {
+    // The resolver message names the invalid value; the usage message states the accepted ones.
+    throw new DesktopUploadUsageError('DSH_DESKTOP_AUTO_UPDATE_ENV must be "test" or "production".')
+  }
   const plan = await createDesktopUploadPlan(name, { environment, latest: values.latest === true })
   const s3 = createDesktopS3({
     accessKeyId: requiredEnvironmentValue(environment, plan.accessKeyIdEnvName),
@@ -122,9 +129,27 @@ function recordProductionRelease(plan: DesktopUploadPlan): void {
   process.stdout.write(`desktop upload: ${result.tag} ${result.status === 'created' ? 'records' : 'already recorded'} ${plan.commit}\n`)
 }
 
-if (process.argv[1] !== undefined && import.meta.filename === resolve(process.argv[1])) {
-  uploadDesktopTarget(process.argv.slice(2)).catch(() => {
-    process.stderr.write('desktop upload: failed; inspect the printed record directory if allocated. No automatic retry; reconcile remote state before another upload.\n')
+/**
+ * Report command failures without exposing raw storage or SDK exceptions.
+ * @param args Target and options forwarded by the package command or credential launcher.
+ * @returns Resolves after reporting any failure and setting the process exit status.
+ */
+export async function runDesktopUploadCommand(args: string[]): Promise<void> {
+  try {
+    await uploadDesktopTarget(args)
+  } catch (error) {
+    const usage = error instanceof DesktopUploadUsageError
+      || (error instanceof Error && 'code' in error && typeof error.code === 'string' && error.code.startsWith('ERR_PARSE_ARGS_'))
+    const message = usage
+      ? `desktop upload: ${error instanceof DesktopUploadUsageError ? error.message : 'invalid arguments'}. Usage: upload-target.ts <target> [--latest]; targets: mac-arm64, mac-x64, win-x64.`
+      : 'desktop upload: failed; inspect the printed record directory if allocated. No automatic retry; reconcile remote state before another upload.'
+    // The DPAPI launcher suppresses raw stderr; these diagnostics contain no SDK details.
+    const output = args.includes('--credential-launcher') ? process.stdout : process.stderr
+    output.write(`${message}\n`)
     process.exitCode = 1
-  })
+  }
+}
+
+if (process.argv[1] !== undefined && import.meta.filename === resolve(process.argv[1])) {
+  void runDesktopUploadCommand(process.argv.slice(2))
 }

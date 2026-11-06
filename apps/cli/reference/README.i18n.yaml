@@ -3,14 +3,14 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write apps/cli/reference/README.md
 /fwnd-cli-behavior-reference:
-  en: f5bd8669f5476b0e
+  en: 0747169d7f422a56
   zh: ac79a1cd9eca41a9
 /fwnd-cli-behavior-reference/profile-boot:
-  en: 6234b9dc8f7ce06a
-  zh: 57cb326ef8c1963c
+  en: 7a1d20fdadb49216
+  zh: 4bb5380f18da0789
 /fwnd-cli-behavior-reference/profile-boot/app-arguments:
-  en: ad4c0cfc2e46ef2b
-  zh: ed29daaf09779970
+  en: ff25c8b5c1a5cb1a
+  zh: 540bb147714186ea
 /fwnd-cli-behavior-reference/profile-boot/config-schema-dump:
   en: f7c190b04b934370
   zh: 3cac66cedf151d00
@@ -21,11 +21,11 @@
   en: 5b52155a14765c7f
   zh: 4a9cecdaab38466e
 /fwnd-cli-behavior-reference/web-profile:
-  en: 2abaaf1a9a565150
-  zh: 6882f62b5966ec8f
+  en: fdb9ce9adb7aa1cb
+  zh: 950963bdf839ad3e
 /fwnd-cli-behavior-reference/shared-deployment-behavior:
-  en: d0ae037035fb46f3
-  zh: f4728399f8d98ef1
+  en: 450fbc66e118a390
+  zh: f4a46ba34f3257b1
 /fwnd-cli-behavior-reference/source-execution:
-  en: ef47430835db4c41
-  zh: b5b0646924e3de52
+  en: 6b5ecfbac997e112
+  zh: aadce47f48230cf1

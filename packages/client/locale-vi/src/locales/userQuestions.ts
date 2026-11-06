@@ -15,8 +15,6 @@ export const vi = {
   'review.status': 'Đã trả lời',
   'review.skipped': 'Câu hỏi này đã bị bỏ qua.',
   'reply.label': 'Trả lời các câu hỏi đang chờ trước đó',
-  'reply.open': 'Mở chi tiết câu hỏi',
-  'reply.close': 'Đóng chi tiết câu hỏi',
   'reply.answerLabel': 'Trả lời: ',
   'reply.skipped': 'Đã bỏ qua',
   'nav.prev': 'Câu hỏi trước',
@@ -33,4 +31,6 @@ export const vi = {
   'plan.approve': 'Phê duyệt',
   'plan.decline': 'Từ chối',
   'plan.discuss': 'Yêu cầu thay đổi',
+  'text.expand': 'Mở rộng',
+  'text.collapse': 'Thu gọn',
 } satisfies Partial<Record<keyof typeof en, string>>

@@ -1,0 +1,15 @@
+{
+  "bucket": "replace-with-bucket",
+  "endpoint": "https://s3.REPLACE-WITH-REGION.wasabisys.com",
+  "region": "REPLACE-WITH-REGION",
+  "origin": "https://desktop.5wn.net",
+  "credentialsFile": "/absolute/path/to/packaging/secrets/s3-production.json",
+  "macOS": {
+    "signingIdentity": "REPLACE_WITH_DEVELOPER_ID_APPLICATION_IDENTITY",
+    "teamId": "XXXXXXXXXX"
+  },
+  "githubApp": {
+    "clientId": "REPLACE_WITH_GITHUB_APP_CLIENT_ID",
+    "privateKeyFile": "/absolute/path/to/packaging/publishing/keys/desktop-release-tagger.pem"
+  }
+}

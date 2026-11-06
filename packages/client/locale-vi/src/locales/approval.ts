@@ -7,4 +7,6 @@ export const vi = {
   'escalation': 'Công cụ {toolName} yêu cầu thực thi với quyền nâng cao',
   'reject': 'Từ chối',
   'allowOnce': 'Cho phép một lần',
+  'allow': 'Cho phép',
+  'allowAlways': 'Luôn cho phép',
 } satisfies Partial<Record<keyof typeof en, string>>

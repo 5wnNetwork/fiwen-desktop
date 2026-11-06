@@ -111,4 +111,9 @@ export const vi = {
   'unavailable': 'Trình duyệt này không ghi âm được. Hãy dùng trình duyệt hỗ trợ microphone.',
   'permission': 'Quyền truy cập microphone đang tắt. Hãy cho phép trong cài đặt trình duyệt và hệ thống.',
   'tooLarge': 'Bản ghi vượt giới hạn của dịch vụ. Hãy thử bản ghi ngắn hơn.',
+  'es': 'Tiếng Tây Ban Nha',
+  'fr': 'Tiếng Pháp',
+  'de': 'Tiếng Đức',
+  'ru': 'Tiếng Nga',
+  'pt': 'Tiếng Bồ Đào Nha',
 } satisfies Partial<Record<keyof typeof en, string>>

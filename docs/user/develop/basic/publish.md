@@ -8,7 +8,7 @@ To use a fresh source checkout instead, complete the [run-from-source section](.
 
 ## Two concepts, two manifests
 
-Installation is built on two concepts. Both are described by a `package.json`, but they carry different kinds of manifest under the `dsh` key, and they answer different questions:
+Installation is built on two concepts. Both are described by a `package.json`, but they carry different kinds of manifest under the `fwnd` key, and they answer different questions:
 
 - A **bundle** is an npm package that ships a configuration layer. Its manifest declares `dsh.bundle`, answering "what does this package contribute?": a patch file that inserts or overrides plugin rows.
 - A **profile** is a directory under `$DSH_HOME/profiles/<name>` describing one runnable composition. Its manifest declares `dsh.profile`, answering "which bundles compose this setup, in what order?".

@@ -19,4 +19,8 @@ export const vi = {
   'error.outsideWorkspace': 'Thư mục đó nằm ngoài workspace nên thanh bên sẽ không đọc.',
   'error.notDirectory': 'Đó không phải thư mục.',
   'error.unavailable': 'Đọc thất bại: {message}',
+  'entry.noViewer': 'Không có trình xem nào mở được tệp này.',
+  'navigator.show': 'Hiện cây tệp',
+  'navigator.hide': 'Ẩn cây tệp',
+  'navigator.resize': 'Đổi kích thước cây tệp',
 } satisfies Partial<Record<keyof typeof en, string>>
