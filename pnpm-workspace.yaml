@@ -16,6 +16,8 @@ packages:
 
 overrides:
   'extract-zip>yauzl': '3.4.0'
+  # pi-ai/openai resolve undici 8.10.2, below the TLS-validation and cache fixes (GHSA-2m5v-pch6-74hx, GHSA-4w7w-5xrc-9h26).
+  'undici@8.10.2': '8.12.3'
   '@deepseek-ai/cosmokit': 'link:vendor/cosmokit'
   '@deepseek-ai/schemastery': 'link:vendor/schemastery'
   # Resolved transitively by @anthropic-ai/claude-agent-sdk and @google/genai.

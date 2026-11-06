@@ -21,19 +21,39 @@ const MAX_SKILL_FILES = 200
 const MAX_SKILL_FILE_BYTES = 1024 * 1024
 
 /**
- * Environment keys that change interpreter or loader behavior. Their values
- * are hidden from the install review, so accepting them would let a catalog
- * execute code without the command line showing it.
+ * Environment keys that change interpreter, loader or command-resolution
+ * behavior. Their values are hidden from the install review, so accepting them
+ * would let a catalog run code the preview never shows — including a `PATH`
+ * that resolves the displayed command to a different binary.
  */
 const BLOCKED_ENV_KEYS = new Set([
-  'NODE_OPTIONS', 'NODE_PATH',
+  'NODE_OPTIONS', 'NODE_PATH', 'NODE_EXTRA_CA_CERTS',
   'LD_PRELOAD', 'LD_LIBRARY_PATH', 'LD_AUDIT',
   'DYLD_INSERT_LIBRARIES', 'DYLD_LIBRARY_PATH', 'DYLD_FRAMEWORK_PATH',
   'PYTHONSTARTUP', 'PYTHONHOME', 'PYTHONPATH',
   'PERL5OPT', 'RUBYOPT', 'BASH_ENV', 'ENV', 'SHELLOPTS',
   'GIT_CONFIG_GLOBAL', 'GIT_CONFIG_SYSTEM', 'GIT_EXEC_PATH',
   'NPM_CONFIG_USERCONFIG', 'NPM_CONFIG_GLOBALCONFIG', 'SSH_ASKPASS',
+  'PATH', 'PATHEXT', 'COMSPEC', 'SYSTEMROOT', 'WINDIR',
+  'ELECTRON_RUN_AS_NODE', 'JAVA_TOOL_OPTIONS', '_JAVA_OPTIONS', 'JDK_JAVA_OPTIONS',
+  'PIP_INDEX_URL', 'PIP_EXTRA_INDEX_URL', 'UV_INDEX_URL', 'POETRY_REPOSITORIES',
 ])
+
+/**
+ * Prefixes whose every variable redirects a toolchain to another registry or
+ * interpreter. Matched case-insensitively: npm and Windows accept either case
+ * for the same setting.
+ */
+const BLOCKED_ENV_PREFIXES = [
+  'NPM_CONFIG_', 'NPM_PACKAGE_', 'PIP_', 'UV_', 'POETRY_', 'CARGO_',
+  'GIT_', 'DOTNET_', 'MAVEN_', 'GRADLE_', 'YARN_', 'PNPM_',
+]
+
+/** True when an MCP item may not set this environment variable. */
+function isBlockedEnvKey(key: string): boolean {
+  const upper = key.toUpperCase()
+  return BLOCKED_ENV_KEYS.has(upper) || BLOCKED_ENV_PREFIXES.some(prefix => upper.startsWith(prefix))
+}
 
 type Json = Record<string, unknown>
 
@@ -163,7 +183,7 @@ function mcpPayloadAt(value: unknown, path: string): McpPayload {
     const env = stringDictAt(object.env, `${path}.env`)
     if (env !== undefined) {
       for (const key of Object.keys(env)) {
-        if (BLOCKED_ENV_KEYS.has(key.toUpperCase())) {
+        if (isBlockedEnvKey(key)) {
           fail(`${path}.env.${key}`, 'is not an allowed environment variable name')
         }
       }

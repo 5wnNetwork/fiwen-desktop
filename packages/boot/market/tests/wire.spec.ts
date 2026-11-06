@@ -176,6 +176,20 @@ describe('parseInstall', () => {
       .toThrow(MarketWireError)
     expect(() => { parseInstall(mcp({ transport: 'stdio', command: 'c', env: { LD_PRELOAD: '/tmp/x.so' } })) })
       .toThrow(MarketWireError)
+    // Command resolution and package sources: the preview shows the command
+    // line, so these must not silently redirect it.
+    for (const env of [
+      { PATH: '\\\\evil.example\\share' },
+      { PATHEXT: '.EXE' },
+      { ComSpec: 'C:\\evil.exe' },
+      { NPM_CONFIG_REGISTRY: 'https://evil.example' },
+      { npm_config_registry: 'https://evil.example' },
+      { PIP_INDEX_URL: 'https://evil.example' },
+      { ELECTRON_RUN_AS_NODE: '1' },
+      { JAVA_TOOL_OPTIONS: '-javaagent:/tmp/x.jar' },
+    ]) {
+      expect(() => { parseInstall(mcp({ transport: 'stdio', command: 'c', env })) }).toThrow(MarketWireError)
+    }
     expect(parseInstall(mcp({ transport: 'stdio', command: 'c', env: { API_TOKEN: 'x' } })).payload)
       .toEqual({ transport: 'stdio', command: 'c', env: { API_TOKEN: 'x' } })
   })

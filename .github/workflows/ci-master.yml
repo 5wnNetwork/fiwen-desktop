@@ -189,12 +189,12 @@ jobs:
           DSH_SNAPSHOT_MAX_CONCURRENCY: '1'
         run: pnpm run check:ci:linux-primary
 
-  # Hosted serial reference runs on master pushes. This job targets the generic
-  # `macos-latest` GitHub-hosted image, so it needs no custom pool. It does not
-  # produce a Linux hosted cache; decide whether to add a master seeder or remove
-  # the restore-only steps if cold starts become a concern.
+  # TODO(hosted-serial-ci): Re-enable the one remaining disabled hosted serial
+  # reference job (serial-macos) before release. Re-enabling serial-macos does
+  # not restore a Linux hosted-cache producer: decide whether to add a master
+  # seeder or remove the restore-only steps if cold starts become a concern.
   serial-macos:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: false
     name: serial / macos
     runs-on: macos-latest
     steps:
