@@ -64,17 +64,17 @@ jobs:
       matrix:
         include: ${{ fromJSON(needs.plan.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
         with:
           dest: ${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         with:
           node-version: 24
           cache: pnpm
-      - uses: actions/cache@v4
+      - uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: ~/.pkg-cache
           key: ssh-pkg-${{ matrix.target }}-${{ hashFiles('pnpm-lock.yaml') }}
@@ -120,7 +120,7 @@ jobs:
           test "${#archives[@]}" -eq 1
           pnpm exec tsx scripts/verify-ssh-helper-ssh.ts --archive="${archives[0]}" --report="dist-exe/ssh-helper/$HELPER_TARGET.ssh.json"
       - name: Upload verified archive and evidence
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: ssh-helper-${{ matrix.target }}
           path: dist-exe/ssh-helper/*

@@ -82,7 +82,7 @@ jobs:
       DSH_PACKAGING_PRESET: ${{ inputs.preset }}
       PACKAGE_TEST_RELEASE_ID: ${{ inputs.test_release_id }}
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         id: checkout
         with:
           persist-credentials: false
@@ -108,10 +108,10 @@ jobs:
           if(!fs.readFileSync('apps/desktop/scripts/prepare-macos-ci.mjs','utf8').includes('resolveDesktopBuildTarget')) throw Error('Source lacks Intel macOS CI support; select a newer source');
           if(!fs.readFileSync('apps/desktop/scripts/retain-desktop-ci.ts','utf8').includes('--check-runner')) throw Error('Source lacks independent Desktop artifact archival support; select a newer source');
           if(!fs.readFileSync('apps/desktop/scripts/desktop-ci-version.mjs','utf8').includes('PACKAGE_VERSION_MODE')) throw Error('Source lacks Desktop channel/version CI support; select a newer release');"
-      - uses: pnpm/action-setup@v5.0.0
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
         with:
           dest: ${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}
-      - uses: actions/setup-node@v7.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
       - name: Configure persistent package caches
@@ -174,7 +174,7 @@ jobs:
       - name: Retain packaging diagnostics
         continue-on-error: true
         if: always() && steps.checkout.outcome == 'success'
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: macos-x64-package-logs-${{ github.run_id }}-${{ github.run_attempt }}
           include-hidden-files: true
@@ -192,15 +192,15 @@ jobs:
       DESKTOP_PACKAGE_ATTEMPT: ${{ needs.package.outputs.attempt }}
       DESKTOP_PACKAGE_RUNNER: ${{ needs.package.outputs.runner-name }}
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
           path: artifact-archiver
-      - uses: pnpm/action-setup@v5.0.0
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v5.0.0
         with:
           package_json_file: artifact-archiver/package.json
           dest: ${{ runner.temp }}/archive-pnpm-${{ github.run_id }}-${{ github.run_attempt }}
-      - uses: actions/setup-node@v7.0.0
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24'
       - name: Configure persistent package caches
@@ -217,7 +217,7 @@ jobs:
         run: node --import tsx apps/desktop/scripts/archive-desktop-ci.ts
       - name: Retain installers for the selected mode
         if: success()
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ${{ env.DESKTOP_ARCHIVE_NAME }}
           path: ${{ steps.archive.outputs.path }}
