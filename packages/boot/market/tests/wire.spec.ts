@@ -56,6 +56,20 @@ describe('parseList', () => {
   })
 
   it.each([
+    ['/v1/market/icons/web-tools.png', '/v1/market/icons/web-tools.png'],
+    ['https://cdn.example.com/icon.png', 'https://cdn.example.com/icon.png'],
+    // Any other scheme would make the Web client fetch an arbitrary host.
+    ['http://tracker.example/pixel.png', null],
+    ['//tracker.example/pixel.png', null],
+    ['javascript:alert(1)', null],
+    ['', null],
+    [42, null],
+  ])('normalizes icon %j to %j', (value, expected) => {
+    const parsed = parseList({ items: [item({ icon: value })], total: 1 })
+    expect(parsed.items[0]!.icon).toBe(expected)
+  })
+
+  it.each([
     [{}, '$.items'],
     [{ items: 'x', total: 0 }, '$.items'],
     [{ items: [item({ id: 1 })], total: 0 }, '$.items[0].id'],
