@@ -383,12 +383,13 @@ async function main(): Promise<void> {
     : join(process.resourcesPath, 'runtime', 'primary-runtime')
   const activeProject = paths.profile
   const manager = new DesktopProjectManager(paths, resources)
-  // Packaged builds record their channel's backend and dashboard origins in the manifest;
-  // an explicit process environment value still wins.
+  // Packaged builds record their channel's backend and dashboard origins in the manifest.
+  // The manifest wins there: a writable environment (shell rc, launchd) could otherwise
+  // point the dashboard at another origin, which is handed the account token.
   if (app.isPackaged) {
     const { origin, dashOrigin } = readChannelOrigins(app.getAppPath())
-    if (process.env.FIWEN_ORIGIN === undefined && origin !== undefined) process.env.FIWEN_ORIGIN = origin
-    if (process.env.FIWEN_DASH_ORIGIN === undefined && dashOrigin !== undefined) process.env.FIWEN_DASH_ORIGIN = dashOrigin
+    if (origin !== undefined) process.env.FIWEN_ORIGIN = origin
+    if (dashOrigin !== undefined) process.env.FIWEN_DASH_ORIGIN = dashOrigin
   }
   // Dock and Finder launches inherit only launchd's environment; every Host shares one login-shell read.
   const loginShellRead = new AbortController()

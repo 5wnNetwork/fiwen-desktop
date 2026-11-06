@@ -77,6 +77,17 @@ function homepage(value: unknown): string | null {
   try { return new URL(value).protocol === 'https:' ? value : null } catch { return null }
 }
 
+/**
+ * An icon may be a same-origin path or an https URL. Any other scheme would make
+ * the Web client fetch an arbitrary host, leaking the reader's address.
+ */
+function icon(value: unknown): string | null {
+  if (typeof value !== 'string' || value === '') return null
+  if (value.startsWith('//')) return null
+  if (value.startsWith('/')) return value
+  return homepage(value)
+}
+
 function nullable(object: Json, key: string, path: string): string | null {
   const value = object[key]
   if (value === null || value === undefined) return null
@@ -104,7 +115,7 @@ function itemBase(object: Json, path: string) {
     categoryId: nullable(object, 'categoryId', path),
     title: textAt(object.title, `${path}.title`),
     summary: textAt(object.summary, `${path}.summary`),
-    icon: nullable(object, 'icon', path),
+    icon: icon(object.icon),
     author: nullable(object, 'author', path),
     homepage: homepage(object.homepage),
     version: stringAt(object.version, `${path}.version`),
