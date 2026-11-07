@@ -254,7 +254,7 @@ describe('CI workflow', () => {
     const job = workflowJob(loadWorkflow('.github/workflows/' + file), jobName)
     if (!Array.isArray(job.steps)) throw new TypeError(`${jobName} must define steps`)
     const steps = job.steps.filter(isRecord)
-    const checkout = steps.findIndex(step => step.uses?.startsWith('actions/checkout@'))
+    const checkout = steps.findIndex(step => usesOf(step).startsWith('actions/checkout@'))
     const restore = steps.findIndex(step => step.name === 'Restore coverage duration history')
     const coverage = steps.findIndex(step => step.run === command)
     const save = steps.findIndex(step => step.name === 'Save coverage duration history')
@@ -1181,7 +1181,7 @@ describe('Python release workflows', () => {
       step => typeof step.uses === 'string' && step.uses.startsWith('actions/checkout@'),
     )).toBe(false)
     expect([...runtimeSteps, ...sdkSteps].filter(
-      step => step.uses?.startsWith('pypa/gh-action-pypi-publish@'),
+      step => usesOf(step).startsWith('pypa/gh-action-pypi-publish@'),
     )).toHaveLength(2)
     expect(runtimePublish).toMatchObject({
       with: { 'packages-dir': 'dist/runtime/', attestations: false },
@@ -1701,4 +1701,9 @@ function workflowJob(workflow: Record<string, unknown>, job: string): Record<str
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+/** The `uses` ref of one parsed step, or '' when it has none. */
+function usesOf(step: unknown): string {
+  return isRecord(step) && typeof step.uses === 'string' ? step.uses : ''
 }
