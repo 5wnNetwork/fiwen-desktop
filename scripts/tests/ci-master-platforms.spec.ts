@@ -6,6 +6,18 @@ import { load } from 'js-yaml'
 import { describe, expect, it } from 'vitest'
 import { gatesForMode } from '../run-gates.ts'
 
+/**
+ * Matcher for a pinned action reference. The ref is a commit SHA, so expectations
+ * match on the action name. Vitest types the asymmetric matcher as `any`; the
+ * parsed step shape wants a string, so this narrows it once here.
+ * @param action - action name, e.g. `actions/checkout`.
+ * @returns the matcher, typed as the string the parsed step carries.
+ */
+function actionRef(action: string): string {
+  return expect.stringContaining(`${action}@`) as string
+}
+
+
 const root = resolve(import.meta.dirname, '../..')
 const masterPush = "github.event_name == 'push' && github.ref == 'refs/heads/master'"
 const runtimeBuilder = './.github/workflows/build-exe-for-python-sdk.yml'
@@ -128,7 +140,7 @@ describe('master-only platform scheduling', () => {
     expect(Object.values(master.jobs).flatMap(commands).filter(command => command.includes('wine-windows-gates.sh')))
       .toEqual(['bash scripts/wine-windows-gates.sh'])
     expect(wine.steps).toContainEqual(expect.objectContaining({
-      uses: expect.stringContaining('actions/cache@'), with: { path: '~/wine-debs', key: '${{ steps.wine-cache-key.outputs.key }}' },
+      uses: actionRef('actions/cache'), with: { path: '~/wine-debs', key: '${{ steps.wine-cache-key.outputs.key }}' },
     }))
     expect(commands(wine).join('\n')).toContain('--download-only wine')
     expect(wine.steps).toContainEqual(expect.objectContaining({ name: 'Shut down wineserver', if: 'always()' }))

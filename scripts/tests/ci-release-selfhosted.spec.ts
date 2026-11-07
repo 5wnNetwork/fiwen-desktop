@@ -7,6 +7,18 @@ import { runInNewContext } from 'node:vm'
 import { load } from 'js-yaml'
 import { describe, expect, it, onTestFinished } from 'vitest'
 
+/**
+ * Matcher for a pinned action reference. The ref is a commit SHA, so expectations
+ * match on the action name. Vitest types the asymmetric matcher as `any`; the
+ * parsed step shape wants a string, so this narrows it once here.
+ * @param action - action name, e.g. `actions/checkout`.
+ * @returns the matcher, typed as the string the parsed step carries.
+ */
+function actionRef(action: string): string {
+  return expect.stringContaining(`${action}@`) as string
+}
+
+
 const root = resolve(import.meta.dirname, '../..')
 const repository = '5wnNetwork/fiwen-desktop'
 const selfhosted = ['self-hosted', 'linux', 'x64', 'vm-backup']
@@ -119,7 +131,7 @@ for (const [file, jobIds] of [['release.yml', ['dependencies', 'pack']], ['relea
           expect(evaluate(job['runs-on'], context)).toBe(hosted)
         })
         it('cleans stale checkout output and isolates setup before any pnpm invocation', () => {
-          expect(job.steps[0]).toMatchObject({ uses: expect.stringContaining('actions/checkout@'), with: { clean: true, 'persist-credentials': false } })
+          expect(job.steps[0]).toMatchObject({ uses: actionRef('actions/checkout'), with: { clean: true, 'persist-credentials': false } })
           const cacheIndex = job.steps.findIndex(step => step.run?.includes('NODE_COMPILE_CACHE='))
           const pnpmIndex = job.steps.findIndex(step => step.uses?.startsWith('pnpm/') || /\bpnpm\b/.test(step.run ?? ''))
           expect(cacheIndex).toBeGreaterThan(0)
@@ -171,7 +183,7 @@ for (const [file, jobIds] of [['release.yml', ['dependencies', 'pack']], ['relea
             expect(commands).toContain('pnpm run release:pack --family ' + family + ' --out ' + output + ' --concurrency 8')
             expect(commands).toContain('pnpm run release:verify-packed-install --family ' + family + ' --from ' + output
               + (family === 'dsh' ? ' --from dist/npm-vendor --from dist/npm-landlock' : ''))
-            expect(job.steps.at(-1)).toMatchObject({ uses: expect.stringContaining('actions/upload-artifact@'), with: { path: output + '/*', 'retention-days': 7 } })
+            expect(job.steps.at(-1)).toMatchObject({ uses: actionRef('actions/upload-artifact'), with: { path: output + '/*', 'retention-days': 7 } })
           }
           expect(JSON.stringify(job)).not.toMatch(/secrets\.|release:publish|npm-publish/)
         })
@@ -254,7 +266,7 @@ it('downloads the selected producer artifact and verifies its build key before p
   const pack = publish.jobs['pack']!
   expect(pack.permissions).toEqual({ contents: 'read', actions: 'read' })
   const download = pack.steps.find(step => step.name === 'Download selected CUA helper')!
-  expect(download).toMatchObject({ uses: expect.stringContaining('actions/download-artifact@'), with: {
+  expect(download).toMatchObject({ uses: actionRef('actions/download-artifact'), with: {
     'artifact-ids': '${{ needs.cua-helper.outputs.artifact-id }}', 'run-id': '${{ needs.cua-helper.outputs.run-id }}',
     'github-token': '${{ github.token }}', path: 'dist/cua-helper',
   } })

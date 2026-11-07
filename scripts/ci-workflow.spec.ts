@@ -4,6 +4,18 @@ import { runInNewContext } from 'node:vm'
 import * as yaml from 'js-yaml'
 import { describe, expect, it } from 'vitest'
 
+/**
+ * Matcher for a pinned action reference. The ref is a commit SHA, so expectations
+ * match on the action name. Vitest types the asymmetric matcher as `any`; the
+ * parsed step shape wants a string, so this narrows it once here.
+ * @param action - action name, e.g. `actions/checkout`.
+ * @returns the matcher, typed as the string the parsed step carries.
+ */
+function actionRef(action: string): string {
+  return expect.stringContaining(`${action}@`) as string
+}
+
+
 function evaluateRunsOn(selector: unknown, context: Record<string, unknown>): unknown {
   if (typeof selector !== 'string') throw new TypeError('Runner selector must be a string')
   return runInNewContext(selector.trim().slice(3, -2), context, { timeout: 1000 })
@@ -732,7 +744,7 @@ describe('CI workflow', () => {
     expect(benchmark.steps).toContainEqual({
       name: 'Upload scaled benchmark report',
       if: '${{ !cancelled() }}',
-      uses: expect.stringContaining('actions/upload-artifact@'),
+      uses: actionRef('actions/upload-artifact'),
       with: {
         name: 'benchmark-report',
         path: 'benchmarks/.dsh-report/',
@@ -1392,7 +1404,7 @@ describe('Weighted approval workflow', () => {
       'timeout-minutes': 5,
     })
     expect(checkout).toMatchObject({
-      uses: expect.stringContaining('actions/checkout@'),
+      uses: actionRef('actions/checkout'),
       with: {
         ref: '${{ github.event.repository.default_branch }}',
         'persist-credentials': false,
@@ -1401,7 +1413,7 @@ describe('Weighted approval workflow', () => {
     const token = steps.find(step => step.id === 'decision-token')
     expect(token).toMatchObject({
       'continue-on-error': true,
-      uses: expect.stringContaining('actions/create-github-app-token@'),
+      uses: actionRef('actions/create-github-app-token'),
       with: {
         'client-id': '${{ vars.DSH_APPROVAL_APP_CLIENT_ID }}',
         'private-key': '${{ secrets.DSH_APPROVAL_APP_PRIVATE_KEY }}',
@@ -1520,7 +1532,7 @@ describe('Issue lifecycle workflow', () => {
     expect(tokenStep).toMatchObject({
       id: 'app-token',
       if: "${{ steps.preflight.outputs.needs-project == 'true' }}",
-      uses: expect.stringContaining('actions/create-github-app-token@'),
+      uses: actionRef('actions/create-github-app-token'),
       with: {
         'client-id': '${{ vars.DSH_ISSUE_APP_CLIENT_ID }}',
         'private-key': '${{ secrets.DSH_ISSUE_APP_PRIVATE_KEY }}',
