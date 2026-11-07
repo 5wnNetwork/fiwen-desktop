@@ -32,8 +32,6 @@ overrides:
   # release for memory exhaustion while validating oversized constrained
   # collections (GHSA-mrhx-c7xc-m3w5).
   'zod@<4.6.6': '4.6.7'
-  # libreoffice-kit's zip reader; 0.8.3 fixes an infinite loop in unzipSync.
-  'fflate@<0.8.3': '0.8.3'
   # The MCP SDK's optional HTTP-server subtree (express + hono). Fiwen only uses
   # its client transports, but the packages ship in the app bundle, so they are
   # pinned to their patched releases rather than left advisories.
