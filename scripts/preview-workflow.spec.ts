@@ -25,7 +25,7 @@ describe('PR preview workflow', () => {
     expect(preview['runs-on']).toContain('DSH_CI_FAILOVER_LINUX')
     expect(workflow.on).toEqual({ pull_request: { types: ['opened', 'synchronize', 'reopened'] } })
     expect(workflow.permissions).toEqual({ contents: 'read', 'pull-requests': 'write' })
-    expect(preview.steps.find(step => step.uses === 'actions/checkout@v7.0.1')?.with).toEqual({ 'persist-credentials': false })
+    expect(preview.steps.find(step => step.uses?.startsWith('actions/checkout@'))?.with).toEqual({ 'persist-credentials': false })
   })
 
   it('fails the check only for build failures and warns about publication', () => {

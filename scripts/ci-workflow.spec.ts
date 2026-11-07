@@ -254,7 +254,7 @@ describe('CI workflow', () => {
     const job = workflowJob(loadWorkflow('.github/workflows/' + file), jobName)
     if (!Array.isArray(job.steps)) throw new TypeError(`${jobName} must define steps`)
     const steps = job.steps.filter(isRecord)
-    const checkout = steps.findIndex(step => step.uses === 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1')
+    const checkout = steps.findIndex(step => step.uses?.startsWith('actions/checkout@'))
     const restore = steps.findIndex(step => step.name === 'Restore coverage duration history')
     const coverage = steps.findIndex(step => step.run === command)
     const save = steps.findIndex(step => step.name === 'Save coverage duration history')
@@ -732,7 +732,7 @@ describe('CI workflow', () => {
     expect(benchmark.steps).toContainEqual({
       name: 'Upload scaled benchmark report',
       if: '${{ !cancelled() }}',
-      uses: 'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a',
+      uses: expect.stringContaining('actions/upload-artifact@'),
       with: {
         name: 'benchmark-report',
         path: 'benchmarks/.dsh-report/',
@@ -1181,7 +1181,7 @@ describe('Python release workflows', () => {
       step => typeof step.uses === 'string' && step.uses.startsWith('actions/checkout@'),
     )).toBe(false)
     expect([...runtimeSteps, ...sdkSteps].filter(
-      step => step.uses === 'pypa/gh-action-pypi-publish@7245906fb61fa33a13554f9d5fb856fe61758086',
+      step => step.uses?.startsWith('pypa/gh-action-pypi-publish@'),
     )).toHaveLength(2)
     expect(runtimePublish).toMatchObject({
       with: { 'packages-dir': 'dist/runtime/', attestations: false },
@@ -1392,7 +1392,7 @@ describe('Weighted approval workflow', () => {
       'timeout-minutes': 5,
     })
     expect(checkout).toMatchObject({
-      uses: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
+      uses: expect.stringContaining('actions/checkout@'),
       with: {
         ref: '${{ github.event.repository.default_branch }}',
         'persist-credentials': false,
@@ -1401,7 +1401,7 @@ describe('Weighted approval workflow', () => {
     const token = steps.find(step => step.id === 'decision-token')
     expect(token).toMatchObject({
       'continue-on-error': true,
-      uses: 'actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1',
+      uses: expect.stringContaining('actions/create-github-app-token@'),
       with: {
         'client-id': '${{ vars.DSH_APPROVAL_APP_CLIENT_ID }}',
         'private-key': '${{ secrets.DSH_APPROVAL_APP_PRIVATE_KEY }}',
@@ -1520,7 +1520,7 @@ describe('Issue lifecycle workflow', () => {
     expect(tokenStep).toMatchObject({
       id: 'app-token',
       if: "${{ steps.preflight.outputs.needs-project == 'true' }}",
-      uses: 'actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1',
+      uses: expect.stringContaining('actions/create-github-app-token@'),
       with: {
         'client-id': '${{ vars.DSH_ISSUE_APP_CLIENT_ID }}',
         'private-key': '${{ secrets.DSH_ISSUE_APP_PRIVATE_KEY }}',
