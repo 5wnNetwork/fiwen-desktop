@@ -1,0 +1,40 @@
+{
+  "nsisLanguage": "VIETNAMESE",
+  "strings": {
+    "INSTALLER_INSTALL": "Cài đặt ngay",
+    "INSTALLER_FINISH": "Hoàn tất",
+    "INSTALLER_NATIVE_PROGRESS": "Đang chuẩn bị cài đặt… %d%%",
+    "INSTALLER_PROGRESS_EXTRACT": "Đang giải nén tệp… %d%%",
+    "INSTALLER_PROGRESS_COPY": "Đang cài đặt tệp… %d%%",
+    "INSTALLER_PROGRESS_REGISTER": "Đang hoàn tất cài đặt… %d%%",
+    "INSTALLER_PROGRESS_CLEAN": "Đang dọn tệp tạm… %d%%",
+    "INSTALLER_CHOOSE_PATH": "Chọn thư mục cài đặt",
+    "INSTALLER_BROWSE": "Chọn thư mục",
+    "INSTALLER_LAUNCH": "Mở ngay",
+    "INSTALLER_LAUNCH_FAILED": "Không mở được Fiwen Desktop. Hãy thử lại, hoặc bỏ chọn Mở ngay rồi đóng bộ cài.",
+    "INSTALLER_UI_ERROR": "Bộ cài không khởi tạo được cửa sổ. Hãy đóng rồi mở lại.",
+    "INSTALLER_THEME_ERROR": "Dùng /THEME=auto, /THEME=light hoặc /THEME=dark.",
+    "INSTALLER_FAILED": "Cài đặt chưa hoàn tất. Hãy đóng bộ cài và thử lại. Nếu vẫn lỗi, hãy tải lại bộ cài.",
+    "INSTALLER_RUNNING": "Fiwen Desktop đang chạy. Hãy thoát ứng dụng ở khay hệ thống rồi thử lại.",
+    "INSTALLER_DIRECTORY_FAILED": "Không thay thế được thư mục cài đặt.",
+    "INSTALLER_DIRECTORY_HINT": "Hãy kiểm tra quyền truy cập thư mục cài đặt, đóng các chương trình đang dùng tệp trong đó rồi chạy lại bộ cài. Nếu vẫn lỗi, hãy sao chép chi tiết lỗi.",
+    "INSTALLER_DIRECTORY_RESTORE_HINT": "Không khôi phục được bản cài trước đó. Hãy giữ thư mục sao lưu trong chi tiết lỗi và liên hệ hỗ trợ trước khi cài lại.",
+    "INSTALLER_PATH_INVALID": "Hãy chọn đường dẫn thư mục đầy đủ trên máy. Không hỗ trợ gốc ổ đĩa, thư mục hệ thống, liên kết và ký tự đặc biệt.",
+    "INSTALLER_PATH_OWNERSHIP": "Hãy chọn thư mục trống hoặc thư mục cài đặt Fiwen Desktop đã đăng ký.",
+    "INSTALLER_PATH_WRITABLE": "Không ghi được vào thư mục này. Hãy chọn thư mục mà người dùng hiện tại có quyền ghi.",
+    "INSTALLER_DISK_SPACE": "Không đủ dung lượng trống. Hãy chọn thư mục khác.",
+    "INSTALLER_PER_USER": "Bộ cài này chỉ cài cho người dùng hiện tại. Hãy gỡ bản cài cho mọi người dùng trước.",
+    "INSTALLER_EXTRACT_FAILED": "Không giải nén được các tệp ứng dụng.",
+    "INSTALLER_EXTRACT_HINT": "Có thể phần mềm bảo mật đã chặn một tệp, hoặc ổ đĩa đã đầy. Hãy đóng bộ cài và thử lại. Nếu vẫn lỗi, hãy gửi cho chúng tôi chi tiết lỗi bên dưới.",
+    "INSTALLER_EXTRACT_COPY": "Sao chép chi tiết lỗi",
+    "INSTALLER_EXTRACT_EXPAND": "Xem chi tiết",
+    "INSTALLER_EXTRACT_COLLAPSE": "Ẩn chi tiết",
+    "INSTALLER_EXTRACT_SAVED": "Đã lưu báo cáo đầy đủ vào %s",
+    "INSTALLER_EXTRACT_UNSAVED": "Không lưu được báo cáo đầy đủ. Hãy dùng Sao chép chi tiết lỗi để giữ lại.",
+    "INSTALLER_EXTRACT_COPIED": "Đã sao chép chi tiết lỗi vào clipboard."
+  },
+  "uninstaller": {
+    "welcome": "Chào mừng",
+    "finished": "đã được gỡ cài đặt"
+  }
+}
