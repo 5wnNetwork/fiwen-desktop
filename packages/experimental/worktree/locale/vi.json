@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Dịch vụ worktree",
+    "description": "Tạo worktree Git có tên và đổi thư mục làm việc của session hiện tại."
+  }
+}

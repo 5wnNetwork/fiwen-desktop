@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Máy chủ frontend tĩnh",
+    "description": "Phục vụ trang vào và tệp tĩnh của ứng dụng Web, từ chối đường dẫn nằm ngoài thư mục của chúng, và trả 404 cho tài nguyên bị thiếu."
+  }
+}

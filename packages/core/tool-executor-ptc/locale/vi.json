@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Thực thi tool PTC",
+    "description": "Thực thi tool thông qua chương trình run_code và tạo binding SDK."
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "MCP client",
+    "description": "Kết nối tới máy chủ MCP và cung cấp tool của chúng trong Harness."
+  }
+}

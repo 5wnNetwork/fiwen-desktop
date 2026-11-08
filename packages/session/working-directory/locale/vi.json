@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Thư mục làm việc của session",
+    "description": "Quản lý thư mục làm việc của session, lưu thay đổi thư mục và cung cấp context thư mục làm việc cho model."
+  }
+}

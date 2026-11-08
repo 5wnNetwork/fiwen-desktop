@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Tool terminal bền",
+    "description": "Cung cấp sáu tool PTY bền với quyền sở hữu session riêng biệt và tích hợp task chạy nền."
+  }
+}

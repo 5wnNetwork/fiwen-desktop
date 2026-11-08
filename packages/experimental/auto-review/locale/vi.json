@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "Auto review ủy quyền",
-    "description": "Thêm chế độ quyền Auto review dùng mô hình để đánh giá ủy quyền trước mỗi lần gọi công cụ."
+    "description": "Thêm chế độ quyền Auto review dùng model để đánh giá ủy quyền trước mỗi lần gọi tool."
   }
 }

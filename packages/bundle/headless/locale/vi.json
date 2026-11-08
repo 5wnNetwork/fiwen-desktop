@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Profile headless",
+    "description": "Chạy trực tiếp một task với runner Agent/Session lõi trên dsh-base, không cần lớp Host, HTTP hay trình duyệt."
+  }
+}

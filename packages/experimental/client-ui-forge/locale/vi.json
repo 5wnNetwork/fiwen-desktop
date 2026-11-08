@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Bảng yêu cầu thay đổi",
+    "description": "Hiển thị yêu cầu thay đổi của một session trong tab thanh bên và cho phép một session mới bắt đầu trong worktree."
+  }
+}

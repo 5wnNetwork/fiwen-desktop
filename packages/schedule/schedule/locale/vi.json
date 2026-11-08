@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "Lập lịch task",
-    "description": "Lưu automation task, chạy từng task trong session gốc khi đến hạn và cung cấp cho agent công cụ quản lý chúng."
+    "description": "Lưu automation task, chạy từng task trong session gốc khi đến hạn và cung cấp cho agent tool quản lý chúng."
   }
 }

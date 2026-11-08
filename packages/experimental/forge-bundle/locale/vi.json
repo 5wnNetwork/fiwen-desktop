@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Yêu cầu thay đổi & worktree",
+    "description": "Giữ các pull request GitHub được liên kết bên cạnh cuộc trò chuyện: theo dõi check và review, xem diff, và gửi phản hồi tới agent. Xem lại thay đổi cục bộ và dùng một worktree riêng để cô lập từng task. Các tính năng GitHub yêu cầu CLI gh được cài và đăng nhập trên host.",
+    "detail": "docs/DETAIL.md"
+  }
+}

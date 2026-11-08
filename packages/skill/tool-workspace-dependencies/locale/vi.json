@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Phụ thuộc workspace",
+    "description": "Cung cấp đường dẫn tuyệt đối tới các runtime Python, Node.js và pnpm đi kèm."
+  }
+}

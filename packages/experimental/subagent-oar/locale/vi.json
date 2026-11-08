@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Subagent OAR",
+    "description": "Ủy thác task cho các agent lập trình đã cài qua OAR, với cấu hình Codex và Claude Code."
+  }
+}

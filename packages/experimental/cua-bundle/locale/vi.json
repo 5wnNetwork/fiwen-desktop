@@ -1,0 +1,7 @@
+{
+  "meta": {
+    "title": "Sử dụng máy tính",
+    "description": "Hiện hỗ trợ macOS; hỗ trợ Windows đang được phát triển. Nạp tính năng sử dụng máy tính cho cả session PTC hiện có và session mới. Chuyển sang chế độ PTC và cấp quyền Trợ năng cùng Ghi màn hình để dùng tính năng này.",
+    "detail": "docs/DETAIL.md"
+  }
+}

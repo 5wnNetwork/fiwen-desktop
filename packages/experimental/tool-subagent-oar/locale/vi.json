@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Tool subagent OAR",
+    "description": "Chọn một agent bên ngoài đã cấu hình cho mỗi task độc lập."
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Tiến trình con SSH",
+    "description": "Cung cấp tiến trình con và terminal thông qua helper SSH POSIX dùng chung."
+  }
+}

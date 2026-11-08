@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Giao diện bản mod Claude Code",
+    "description": "Hiển thị cây tiện ích mở rộng của từng session phía trên ô nhập và gửi hành động của nút tới dịch vụ tiện ích mở rộng."
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Context tmux",
+    "description": "Lưu vị trí pane và cửa sổ tmux cho từng bước khi cần."
+  }
+}

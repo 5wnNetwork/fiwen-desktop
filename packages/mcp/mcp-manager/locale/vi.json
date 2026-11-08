@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Trình quản lý máy chủ MCP",
+    "description": "Quản lý các máy chủ MCP được cấu hình trong Cài đặt hoặc do plugin đăng ký, và báo cáo trạng thái kết nối của chúng."
+  }
+}

@@ -1,6 +1,6 @@
 {
   "meta": {
     "title": "Kết nối MCP demo",
-    "description": "Kết nối một máy chủ MCP từ xa để cung cấp công cụ của nó cho agent."
+    "description": "Kết nối một máy chủ MCP từ xa để cung cấp tool của nó cho agent."
   }
 }

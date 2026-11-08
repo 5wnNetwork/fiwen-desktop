@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Thực thi Bash cục bộ",
+    "description": "Chạy lệnh Bash trong các tiến trình con cục bộ."
+  }
+}

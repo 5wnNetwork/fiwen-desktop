@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Yêu cầu thay đổi GitHub",
+    "description": "Đọc yêu cầu thay đổi GitHub cho registry forge thông qua GitHub CLI trên host."
+  }
+}

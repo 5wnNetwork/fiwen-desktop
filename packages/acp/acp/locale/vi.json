@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Máy chủ ACP",
+    "description": "Chạy agent qua JSON-RPC trên đầu vào và đầu ra chuẩn để tự động hóa."
+  }
+}

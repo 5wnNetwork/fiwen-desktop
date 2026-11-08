@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Lưu trữ SQLite",
+    "description": "Lưu dữ liệu key-value của Harness trong SQLite."
+  }
+}
