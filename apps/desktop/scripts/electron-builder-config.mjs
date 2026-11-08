@@ -99,7 +99,12 @@ export function createElectronBuilderConfig(
   if (windowsSigner !== undefined) {
     installWindowsNsisBootstrapSigner({ sign: windowsSigner })
   }
-  const update = unsigned ? undefined : resolveDesktopAutoUpdateConfig(env, resolvedPlatform, resolvedArch)
+  // An explicit update origin also applies to unsigned builds: a fork that cannot
+  // sign still needs a feed. Nothing then pins the publisher, so that storage is
+  // trusted to serve code to every installed copy.
+  const update = unsigned && env.DSH_DESKTOP_UPDATE_ORIGIN === undefined
+    ? undefined
+    : resolveDesktopAutoUpdateConfig(env, resolvedPlatform, resolvedArch)
   if (preparedRuntime !== undefined) buildPaths.dsh = preparedRuntime
   // electron-builder merges extraMetadata into the packaged manifest, so a build version here reaches
   // the artifact names, the update feed, and the installed app.getVersion() the updater compares against.

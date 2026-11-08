@@ -157,6 +157,31 @@ function httpsOrigin(value, name) {
 }
 
 /**
+ * Validate a feed URL that carries a path, such as a release download directory.
+ * @param {string} value - Candidate feed URL.
+ * @param {string} name - Environment name used in the failure message.
+ * @returns {string} The URL without a trailing slash.
+ * @throws {Error} When the URL is not absolute HTTPS, or carries credentials, a query or a fragment.
+ */
+function httpsFeedUrl(value, name) {
+  let parsed
+  try {
+    parsed = new URL(value)
+  }
+  catch {
+    throw new Error(`desktop auto-update: ${name} must be an absolute HTTPS URL`)
+  }
+  if (parsed.protocol !== 'https:'
+    || parsed.username !== ''
+    || parsed.password !== ''
+    || parsed.search !== ''
+    || parsed.hash !== '') {
+    throw new Error(`desktop auto-update: ${name} must be an absolute HTTPS URL without credentials, query, or fragment`)
+  }
+  return parsed.href.replace(/\/$/u, '')
+}
+
+/**
  * Resolve the public updater URL and object prefixes for one release target.
  * @param {NodeJS.ProcessEnv} env - Packaging or upload environment.
  * @param {NodeJS.Platform} platform - Target Node.js platform.
@@ -169,29 +194,34 @@ export function resolveDesktopAutoUpdateConfig(env, platform, arch) {
   const environment = resolveDesktopAutoUpdateEnvironment(env)
   const target = resolveDesktopAutoUpdateTarget(platform, arch)
   const deployment = UPDATE_ENVIRONMENTS[environment]
-  let origin = deployment.fixedOrigin
+  // A fork without the release signing identity hosts its own feed. An explicit
+  // origin is that whole feed URL: assets sit flat in it, so no release prefix and
+  // no test release id apply.
+  const overrideOrigin = env.DSH_DESKTOP_UPDATE_ORIGIN?.trim()
+  const overridden = overrideOrigin !== undefined && overrideOrigin !== ''
+  let origin = overridden ? httpsFeedUrl(overrideOrigin, 'DSH_DESKTOP_UPDATE_ORIGIN') : deployment.fixedOrigin
   if (origin === undefined) {
     const { originEnvName } = deployment
     if (originEnvName === undefined) throw new Error('desktop auto-update: selected deployment has no origin')
     origin = httpsOrigin(requiredEnvironmentValue(env, originEnvName), originEnvName)
   }
   let releasePrefix = 'dsh-desk'
-  if (environment === 'test') {
+  if (environment === 'test' && !overridden) {
     const releaseId = requiredEnvironmentValue(env, 'DOWNLOAD_TEST_RELEASE_ID')
     if (!/^[a-f0-9]{32}$/u.test(releaseId)) {
       throw new Error('desktop auto-update: DOWNLOAD_TEST_RELEASE_ID must contain 32 lowercase hexadecimal characters')
     }
     releasePrefix += `/${releaseId}`
   }
-  const keyPrefix = `${releasePrefix}/feeds/${target}`
+  const keyPrefix = overridden ? '' : `${releasePrefix}/feeds/${target}`
   return {
     environment,
     channel,
     target,
     origin,
     keyPrefix,
-    binaryKeyPrefix: `${releasePrefix}/bin/${target}${channel === 'stable' ? '/stable' : ''}`,
-    publicUrl: `${origin}/${keyPrefix}/`,
+    binaryKeyPrefix: overridden ? target : `${releasePrefix}/bin/${target}${channel === 'stable' ? '/stable' : ''}`,
+    publicUrl: overridden ? `${origin}/` : `${origin}/${keyPrefix}/`,
   }
 }
 

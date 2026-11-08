@@ -35,6 +35,23 @@ describe('desktop auto-update environment', () => {
     })
   })
 
+  it('uses an explicit feed URL as the whole feed, including for unsigned builds', () => {
+    const environment = { DSH_DESKTOP_UPDATE_ORIGIN: 'https://downloads.example.com/fork/nightly' }
+    expect(resolveDesktopAutoUpdateConfig(environment, 'win32', 'x64')).toMatchObject({
+      publicUrl: 'https://downloads.example.com/fork/nightly/',
+      keyPrefix: '',
+      binaryKeyPrefix: 'win-x64',
+      // The override replaces the deployment, so no test release ID is required.
+      environment: 'test',
+    })
+  })
+
+  it.each(['http://downloads.example.com/fork', 'https://user:secret@downloads.example.com/fork',
+    'https://downloads.example.com/fork?token=1', 'not a url'])
+  ('rejects an unusable feed URL %j', (origin) => {
+    expect(() => resolveDesktopAutoUpdateConfig({ DSH_DESKTOP_UPDATE_ORIGIN: origin }, 'win32', 'x64'))
+      .toThrow(/DSH_DESKTOP_UPDATE_ORIGIN/u)
+  })
   it('defaults packages and uploads to the test deployment', () => {
     expect(resolveDesktopAutoUpdateEnvironment({})).toBe('test')
     expect(resolveDesktopAutoUpdateConfig({
