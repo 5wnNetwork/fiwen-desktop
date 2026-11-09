@@ -308,7 +308,8 @@ function registrationProblems(file: string): string[] {
   return problems
 }
 
-describe('shipped locale dictionaries', () => {
+// Sweeps every workspace package, so it outlives the default budget when the suite runs beside the client workers.
+describe('shipped locale dictionaries', { timeout: 90_000 }, () => {
   it('registers every shipped language alongside every object-form bilingual dictionary', () => {
     expect(sourceFiles().flatMap(registrationProblems)).toEqual([])
   })

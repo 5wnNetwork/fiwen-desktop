@@ -10,7 +10,7 @@ import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import type {} from '@deepseek-ai/dsh-market/types'
 import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import { MarketSection } from './MarketSection.tsx'
-import { en, zh, type MarketLocaleKey } from './locales.ts'
+import { zh, en, ja, es, fr, de, ru, pt, vi, type MarketLocaleKey } from './locales.ts'
 import { MarketController } from './market-store.ts'
 
 export type { MarketFace, MarketState } from './market-store.ts'
@@ -34,7 +34,7 @@ export const inject = ['slots', 'locale', 'remote', 'remote.market']
  * @param ctx - the browser plugin context.
  */
 export function apply(ctx: ClientContext): void {
-  ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-market: dictionaries')
+  ctx.effect(() => ctx.locale.register(NS, { zh, en, ja, es, fr, de, ru, pt, vi }), 'ui-market: dictionaries')
   const controller = new MarketController(ctx)
   ctx.effect(() => () => { controller.dispose() }, 'ui-market: controller')
   ctx.effect(() => {

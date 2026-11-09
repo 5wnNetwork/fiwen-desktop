@@ -5,7 +5,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-sidebar/client'
 import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import { FiwenBrandMark, FiwenBrandName, FiwenHeroBrandMark } from './Brand.tsx'
-import { en, zh, type BrandKey } from './locales.ts'
+import { zh, en, ja, es, fr, de, ru, pt, vi, type BrandKey } from './locales.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
@@ -24,7 +24,7 @@ export const inject = ['slots', 'locale']
  */
 export function apply(ctx: ClientContext): void {
   const namespace = 'ui-brand-fiwen'
-  ctx.effect(() => ctx.locale.register(namespace, { zh, en }), 'ui-brand-fiwen: dictionaries')
+  ctx.effect(() => ctx.locale.register(namespace, { zh, en, ja, es, fr, de, ru, pt, vi }), 'ui-brand-fiwen: dictionaries')
   ctx.slots.inject('sidebar.brand.mark', () =>
     ctx.slots.inject('sidebar.brand.name', () =>
       ctx.slots.inject('conversation.hero.brand.mark', function* () {
