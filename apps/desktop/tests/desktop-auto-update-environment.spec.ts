@@ -152,9 +152,9 @@ describe('desktop auto-update environment', () => {
 })
 
 it.each([
-  ['mac-arm64', 'dsh-latest-macos-arm64.dmg'],
-  ['mac-x64', 'dsh-latest-macos-x64.dmg'],
-  ['win-x64', 'dsh-latest-windows-x64.exe'],
+  ['mac-arm64', 'fiwen-latest-macos-arm64.dmg'],
+  ['mac-x64', 'fiwen-latest-macos-x64.dmg'],
+  ['win-x64', 'fiwen-latest-windows-x64.exe'],
 ] as const)('uses the production origin for website target %s', (target, filename) => {
   expect(desktopWebsiteInstallerUrl(target)).toBe(`https://desktop.5wn.net/desktop/${filename}`)
 })

@@ -79,7 +79,7 @@ it.each(['wrong-journal', 'upload', 'put', 'uploaded', 'metadata', 'metadata-ret
         const uploaded = scenario === 'put' || scenario === 'upload' || scenario === 'metadata'
         expect(output.mock.calls.map(call => String(call[0])).join('')).toContain(uploaded
           ? 'Website installer uploaded:' : 'identical remote bytes and download filename confirmed; skipped')
-        expect(server.requests[0]!.path.split('?')[0]).toBe('/production-123/desktop/dsh-latest-macos-arm64.dmg')
+        expect(server.requests[0]!.path.split('?')[0]).toBe('/production-123/desktop/fiwen-latest-macos-arm64.dmg')
         expect(server.requests.map(request => request.method)).toEqual(uploaded ? ['GET', 'PUT', 'GET'] : ['GET'])
         expect(JSON.parse(await readFile(join(records, 'state.json'), 'utf8'))).toMatchObject({ approval, upload: 'uploaded' })
         expect(await readFile(env.GITHUB_OUTPUT, 'utf8')).toContain(`record=${records}`)

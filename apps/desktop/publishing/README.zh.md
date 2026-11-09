@@ -69,9 +69,9 @@ Windows NSIS 上传要求安装包旁存在生成的非空 `.exe.blockmap`。blo
 
 ## 固定安装包下载
 
-上传设置 `Content-Disposition: attachment`，`filename` 沿用经校验安装包的 basename，保留完整版本、平台和架构。固定 `dsh-latest-*` URL 与 nightly/stable 升级通道独立，不另加命名后缀。发布后需验证 CDN 响应头透传及浏览器保存文件名。
+上传设置 `Content-Disposition: attachment`，`filename` 沿用经校验安装包的 basename，保留完整版本、平台和架构。固定 `fiwen-latest-*` URL 与 nightly/stable 升级通道独立，不另加命名后缀。发布后需验证 CDN 响应头透传及浏览器保存文件名。
 
-固定安装包下载在仓库根目录使用 `pnpm run upload:latest:mac:arm64`、`pnpm run upload:latest:mac:x64` 或 `pnpm run upload:latest:win:x64`。它们把已完成目标的 DMG 或 EXE 上传到 `desktop/dsh-latest-macos-arm64.dmg`、`desktop/dsh-latest-macos-x64.dmg` 或 `desktop/dsh-latest-windows-x64.exe`。生产 URL 以 `https://desktop.5wn.net/` 开头；测试 URL 使用 `DOWNLOAD_TEST_ORIGIN`。两个部署环境均复用目标 dotenv 中的部署、bucket 和凭据、全部常规发布校验以及下述上传审计。每个命令覆盖一个固定对象，不发布更新清单、blockmap 或发布标签。测试固定下载在测试 bucket 中跨发布 ID 共享；包内更新 URL 仍要求原有发布 ID。发布由操作人员显式执行，也允许预发布版本。生产命令随后提交一次 CDN URL 缓存清除任务并报告任务 ID，不查询或等待缓存清除完成。测试上传仍由部署基础设施管理缓存策略。本地回环测试覆盖上传行为；真实对象存储和 CDN 验收由发布操作人员负责。
+固定安装包下载在仓库根目录使用 `pnpm run upload:latest:mac:arm64`、`pnpm run upload:latest:mac:x64` 或 `pnpm run upload:latest:win:x64`。它们把已完成目标的 DMG 或 EXE 上传到 `desktop/fiwen-latest-macos-arm64.dmg`、`desktop/fiwen-latest-macos-x64.dmg` 或 `desktop/fiwen-latest-windows-x64.exe`。生产 URL 以 `https://desktop.5wn.net/` 开头；测试 URL 使用 `DOWNLOAD_TEST_ORIGIN`。两个部署环境均复用目标 dotenv 中的部署、bucket 和凭据、全部常规发布校验以及下述上传审计。每个命令覆盖一个固定对象，不发布更新清单、blockmap 或发布标签。测试固定下载在测试 bucket 中跨发布 ID 共享；包内更新 URL 仍要求原有发布 ID。发布由操作人员显式执行，也允许预发布版本。生产命令随后提交一次 CDN URL 缓存清除任务并报告任务 ID，不查询或等待缓存清除完成。测试上传仍由部署基础设施管理缓存策略。本地回环测试覆盖上传行为；真实对象存储和 CDN 验收由发布操作人员负责。
 
 
 

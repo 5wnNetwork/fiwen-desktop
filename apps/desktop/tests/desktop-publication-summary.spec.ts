@@ -48,7 +48,7 @@ it('fails instead of rendering success when an upload file cannot be read', asyn
 it('shows the fixed website replacement before production approval only when selected', async () => {
   const summary = await desktopPublicationSummary(source, plan, 'c'.repeat(64), true)
   await expect(summary).toMatchFileSnapshot('./expected/publication-production-website.md')
-  expect(summary).toContain('desktop.5wn.net/desktop/dsh-latest-windows-x64.exe')
+  expect(summary).toContain('desktop.5wn.net/desktop/fiwen-latest-windows-x64.exe')
   expect(summary).toContain('无防降级保护')
   expect(await desktopPublicationSummary(source, plan, 'c'.repeat(64), false)).not.toContain('官网固定安装包')
   expect(await desktopPublicationSummary({ ...source, preset: 'test', testReleaseId: 'a'.repeat(32) },

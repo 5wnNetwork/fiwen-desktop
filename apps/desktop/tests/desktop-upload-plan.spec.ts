@@ -154,7 +154,7 @@ describe('desktop upload plan', () => {
     expect(plan.artifacts).toHaveLength(1)
     expect(plan.artifacts[0]).toMatchObject({
       path: join(paths.artifactsRoot, 'fiwen-desktop-1.2.3-alpha.4-win-x64.exe'),
-      key: 'desktop/dsh-latest-windows-x64.exe', channelMetadata: false,
+      key: 'desktop/fiwen-latest-windows-x64.exe', channelMetadata: false,
       contentDisposition: 'attachment; filename="fiwen-desktop-1.2.3-alpha.4-win-x64.exe"',
     })
   })

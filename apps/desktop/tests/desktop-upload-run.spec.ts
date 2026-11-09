@@ -186,7 +186,7 @@ describe('release upload audit with the real S3 client and an isolated loopback 
 it('sends the fixed-download save filename through the real COS SDK', async () => {
   const f = await fixture('production')
   const contentDisposition = 'attachment; filename="fiwen-desktop-1.2.3-rc.5-win-x64.exe"'
-  const plan = { ...f.plan, artifacts: [{ ...f.plan.artifacts[0]!, key: 'desktop/dsh-latest-windows-x64.exe', contentDisposition }] }
+  const plan = { ...f.plan, artifacts: [{ ...f.plan.artifacts[0]!, key: 'desktop/fiwen-latest-windows-x64.exe', contentDisposition }] }
   const { s3, loopback } = await transport()
   await uploadDesktopRelease(plan, s3, f.records)
   expect(loopback.requests).toHaveLength(1)

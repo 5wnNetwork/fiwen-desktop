@@ -30,7 +30,7 @@ describe('desktop upload command', () => {
     const credentials = { DSH_DESKTOP_AUTO_UPDATE_ENV: environment, DOWNLOAD_TEST_S3_ACCESS_KEY_ID: 'fixture-id', DOWNLOAD_TEST_S3_SECRET_ACCESS_KEY: 'fixture-key' }
     const plan: DesktopUploadPlan = {
       environment, target: 'win-x64', version: '1.2.3-alpha.4',
-      publicUrl: 'https://desktop-updates.example.com/desktop/dsh-latest-windows-x64.exe',
+      publicUrl: 'https://desktop-updates.example.com/desktop/fiwen-latest-windows-x64.exe',
       bucket: 'fixture-bucket', endpoint: 'https://s3.example.com', region: 'us-east-1', accessKeyIdEnvName: 'DOWNLOAD_TEST_S3_ACCESS_KEY_ID',
       secretAccessKeyEnvName: 'DOWNLOAD_TEST_S3_SECRET_ACCESS_KEY', artifacts: [], commit: '0'.repeat(40), dirty: false,
     }
