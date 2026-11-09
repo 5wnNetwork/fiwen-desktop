@@ -1,4 +1,5 @@
 import { readInstallerLocales, renderInstallerStrings } from './installer-locales.mjs'
+import { optionalPayloads } from './optional-payloads.mjs'
 import { officePackageDirectories } from '../../../scripts/libreoffice-packages.mjs'
 import { X509Certificate } from 'node:crypto'
 import { readFileSync } from 'node:fs'
@@ -105,6 +106,9 @@ export function createElectronBuilderConfig(
   const update = unsigned && env.DSH_DESKTOP_UPDATE_ORIGIN === undefined
     ? undefined
     : resolveDesktopAutoUpdateConfig(env, resolvedPlatform, resolvedArch)
+  // Large payloads this installer omits; the application installs them on first use.
+  // Without a feed there is nowhere to fetch them from, so such a build carries everything.
+  const payloads = update === undefined ? [] : optionalPayloads(buildPaths, resolvedPlatform, resolvedArch)
   if (preparedRuntime !== undefined) buildPaths.dsh = preparedRuntime
   // electron-builder merges extraMetadata into the packaged manifest, so a build version here reaches
   // the artifact names, the update feed, and the installed app.getVersion() the updater compares against.
@@ -119,6 +123,24 @@ export function createElectronBuilderConfig(
   }
   const channelOrigin = httpsOrigin(env.FIWEN_ORIGIN, 'FIWEN_ORIGIN')
   const dashboardOrigin = httpsOrigin(env.FIWEN_DASH_ORIGIN, 'FIWEN_DASH_ORIGIN')
+  /**
+   * Move the declared payloads out of the packed application and into their own archives.
+   * Runs after every verification, so those still see the complete tree, and before the
+   * installer is built, so the installer carries only the core application.
+   * @param context - electron-builder's afterPack context.
+   * @param resourcesDir - Packed application's resources directory.
+   * @returns Completion once the manifest is written.
+   */
+  const splitOptionalPayloads = async (context, resourcesDir) => {
+    if (payloads.length === 0) return
+    const { packedPayloadDirectory, writePayloadArchive, writePayloadManifest } = await import('./optional-payloads.mjs')
+    const target = `${resolvedPlatform === 'win32' ? 'win' : resolvedPlatform === 'darwin' ? 'mac' : 'linux'}-${resolvedArch}`
+    const entries = []
+    for (const payload of payloads) {
+      entries.push(await writePayloadArchive(packedPayloadDirectory(payload, resourcesDir), payload, output.directory, target))
+    }
+    writePayloadManifest(entries, join(resourcesDir, 'optional-payloads.json'), update.publicUrl)
+  }
   return {
     appId,
     protocols: [{ name: 'Fiwen Desktop', schemes: ['fiwen'] }],
@@ -229,6 +251,7 @@ export function createElectronBuilderConfig(
         preparedRuntimeVersion ?? productVersion, { platform: resolvedPlatform, arch: resolvedArch })
       // Unsigned Windows builds skip electron-builder's afterSign hook.
       if (packagesWindows && unsigned) await verifyWindowsAsarUnpack(buildPaths.dsh, resourcesDir, windowsCode)
+      await splitOptionalPayloads(context, resourcesDir)
     },
     afterSign: async context => {
       if (windowsSigner !== undefined) {
@@ -261,6 +284,9 @@ export function createElectronBuilderConfig(
     },
     win: {
       icon: fileURLToPath(new URL('../resources/icon-windows.png', import.meta.url)),
+      // Chromium's own UI strings (context menus, dialogs inside the embedded browser).
+      // The product ships English and Vietnamese, so the other 50 locales are dead weight.
+      electronLanguages: ['en-US', 'vi'],
       forceCodeSigning: !unsigned,
       signtoolOptions: {
         sign: windowsSigner,

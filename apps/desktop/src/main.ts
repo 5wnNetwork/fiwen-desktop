@@ -27,6 +27,7 @@ import {
   type MenuItemConstructorOptions,
 } from 'electron'
 import { resolveDesktopPaths } from './paths.ts'
+import { offerOptionalPayloads } from './payload-prompt.ts'
 import { readChannelOrigins } from './channel-origin.ts'
 import { DesktopProjectManager } from './project-manager.ts'
 import { DesktopHostFatalError, DesktopHostProcess, DesktopHostUncleanExitError } from './host-process.ts'
@@ -1572,6 +1573,14 @@ async function main(): Promise<void> {
   }
   automaticCheck()
   await reconcileBackend().catch(() => undefined)
+  // Payloads the installer omitted are installed on demand, never on the startup path.
+  if (app.isPackaged) {
+    void offerOptionalPayloads({
+      resourcesDirectory: process.resourcesPath,
+      messages: locale.messages,
+      parent: () => currentMainWindow(),
+    }).catch((error: unknown) => { console.error('desktop optional payloads failed', error) })
+  }
   // Window lifecycle callbacks run while backend startup is pending.
   if (isQuitting()) return
   const window = currentMainWindow()

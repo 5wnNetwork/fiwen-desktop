@@ -188,6 +188,10 @@ export const en = {
   mandatoryCopyFailed: 'Could not copy the link. Select and copy it below.',
   mandatoryAddress: 'Download link',
   mandatoryNotification: 'Return to the application to confirm installation and restart.',
+  payloadTitle: 'Optional features',
+  payloadOffer: 'Download {size} for {features}? The app installs them once and keeps them for later.',
+  payloadDownload: 'Download',
+  payloadFailed: 'The download did not finish. Office features stay unavailable until it succeeds.',
 } as const
 
 /** Every Desktop locale supplies the complete English key set. */
@@ -381,6 +385,10 @@ export const zh = {
   mandatoryCopyFailed: '复制失败，请手动选择并复制下方链接。',
   mandatoryAddress: '下载链接',
   mandatoryNotification: '返回应用确认安装并重启。',
+  payloadTitle: '可选功能',
+  payloadOffer: '为 {features} 下载 {size}？只安装一次，之后可直接使用。',
+  payloadDownload: '下载',
+  payloadFailed: '下载未完成。在成功之前，Office 功能不可用。',
 } as const satisfies DesktopMessages
 
 export const vi = {
@@ -571,6 +579,10 @@ export const vi = {
   mandatoryCopyFailed: 'Không thể sao chép liên kết. Chọn và sao chép bên dưới.',
   mandatoryAddress: 'Liên kết tải xuống',
   mandatoryNotification: 'Quay lại ứng dụng để xác nhận cài đặt và khởi động lại.',
+  payloadTitle: 'Tính năng bổ sung',
+  payloadOffer: 'Tải {size} cho {features}? Chỉ cài một lần và dùng lại về sau.',
+  payloadDownload: 'Tải về',
+  payloadFailed: 'Chưa tải xong. Tính năng Office chưa dùng được cho tới khi tải thành công.',
 } as const satisfies DesktopMessages
 
 /** Japanese copy, checked against the English keys. */
@@ -762,6 +774,10 @@ export const ja = {
   mandatoryCopyFailed: 'リンクをコピーできませんでした。以下から選択してコピーしてください。',
   mandatoryAddress: 'ダウンロードリンク',
   mandatoryNotification: 'アプリに戻り、インストールと再起動を確認してください。',
+  payloadTitle: '追加機能',
+  payloadOffer: '{features} のために {size} をダウンロードしますか？一度インストールすれば以後も使えます。',
+  payloadDownload: 'ダウンロード',
+  payloadFailed: 'ダウンロードが完了しませんでした。成功するまで Office 機能は使えません。',
 } satisfies Record<keyof typeof en, string>
 
 /** Spanish dictionary, checked against the English keys. */
@@ -953,6 +969,10 @@ export const es = {
   mandatoryCopyFailed: 'No se pudo copiar el enlace. Selecciónelo y cópielo a continuación.',
   mandatoryAddress: 'Enlace de descarga',
   mandatoryNotification: 'Regrese a la aplicación para confirmar la instalación y reiniciar.',
+  payloadTitle: 'Funciones opcionales',
+  payloadOffer: '¿Descargar {size} para {features}? Se instala una sola vez.',
+  payloadDownload: 'Descargar',
+  payloadFailed: 'La descarga no terminó. Las funciones de Office siguen sin estar disponibles.',
 } satisfies DesktopMessages
 
 /** French dictionary, checked against the English keys. */
@@ -1144,6 +1164,10 @@ export const fr = {
   mandatoryCopyFailed: 'Impossible de copier le lien. Sélectionnez-le et copiez-le ci-dessous.',
   mandatoryAddress: 'Lien de téléchargement',
   mandatoryNotification: "Revenez à l'application pour confirmer l'installation et redémarrer.",
+  payloadTitle: 'Fonctions facultatives',
+  payloadOffer: 'Télécharger {size} pour {features} ? Installation unique.',
+  payloadDownload: 'Télécharger',
+  payloadFailed: 'Le téléchargement ne s’est pas terminé. Les fonctions Office restent indisponibles.',
 } satisfies DesktopMessages
 
 /** German dictionary, checked against the English keys. */
@@ -1335,6 +1359,10 @@ export const de = {
   mandatoryCopyFailed: 'Der Link konnte nicht kopiert werden. Wählen Sie es aus und kopieren Sie es unten.',
   mandatoryAddress: 'Download-Link',
   mandatoryNotification: 'Kehren Sie zur Anwendung zurück, um die Installation zu bestätigen und neu zu starten.',
+  payloadTitle: 'Optionale Funktionen',
+  payloadOffer: '{size} für {features} herunterladen? Einmalige Installation.',
+  payloadDownload: 'Herunterladen',
+  payloadFailed: 'Der Download wurde nicht abgeschlossen. Office-Funktionen bleiben nicht verfügbar.',
 } satisfies DesktopMessages
 
 /** Russian dictionary, checked against the English keys. */
@@ -1526,6 +1554,10 @@ export const ru = {
   mandatoryCopyFailed: 'Не удалось скопировать ссылку. Выделите и скопируйте его ниже.',
   mandatoryAddress: 'Ссылка для скачивания',
   mandatoryNotification: 'Вернитесь в приложение, чтобы подтвердить установку и перезапустить.',
+  payloadTitle: 'Дополнительные функции',
+  payloadOffer: 'Скачать {size} для {features}? Установка выполняется один раз.',
+  payloadDownload: 'Скачать',
+  payloadFailed: 'Загрузка не завершилась. Функции Office останутся недоступны.',
 } satisfies DesktopMessages
 
 /** Portuguese dictionary, checked against the English keys. */
@@ -1717,6 +1749,10 @@ export const pt = {
   mandatoryCopyFailed: 'Não foi possível copiar o link. Selecione e copie abaixo.',
   mandatoryAddress: 'Link de download',
   mandatoryNotification: 'Retorne ao aplicativo para confirmar a instalação e reinicie.',
+  payloadTitle: 'Recursos opcionais',
+  payloadOffer: 'Baixar {size} para {features}? Instalado uma única vez.',
+  payloadDownload: 'Baixar',
+  payloadFailed: 'O download não terminou. Os recursos do Office seguem indisponíveis.',
 } satisfies DesktopMessages
 
 const dictionaries = { en, zh, vi, ja, es, fr, de, ru, pt }
