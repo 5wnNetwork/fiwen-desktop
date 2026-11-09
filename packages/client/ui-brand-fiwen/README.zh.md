@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-本包让 Fiwen 部署在侧栏与会话首屏显示 Fiwen 标志与本地化产品名。标志是一个内联 SVG 圆角方块、内部镂空字母 F，名称通过本包注册的 locale 命名空间渲染，因此 `Fiwen Desktop` 与 `Fiwen 桌面端` 始终由词典提供。Fiwen bundle 启用本插件并禁用 `ui-brand-official`；使用其他品牌的部署应提供替代品牌包。本包不保留运行时状态，也不影响模型请求。
+本包让 Fiwen 部署在侧栏与会话首屏显示 Fiwen 标志与本地化产品名。标志是以 `src/client/assets/logo.png` 提供的 5wn 标志方块，名称通过本包注册的 locale 命名空间渲染，因此 `Fiwen Desktop` 与 `Fiwen 桌面端` 始终由词典提供。Fiwen bundle 启用本插件并禁用 `ui-brand-official`；使用其他品牌的部署应提供替代品牌包。本包不保留运行时状态，也不影响模型请求。
 
 ## 目录
 
@@ -43,7 +43,7 @@ kind: "package-reference"
 <details>
 <summary>实现细节——点击展开</summary>
 
-三个填充作为一组声明感知的注册安装：嵌套的 `ctx.slots.inject()` 调用等待侧栏与首屏声明，因此无论本行在声明者之前还是之后激活，这组注册都能工作；声明消失时全部填充一并撤回，HMR 期间也不会留下残缺的品牌混合。标志组件渲染带按实例唯一 mask id 的 Fiwen SVG；名称组件从本插件的 en/zh/vi 词典读取产品名。浏览器半部是 [`src/client/index.ts`](src/client/index.ts)；node 半部是一个空 Loader 座位。浏览器标题是构建环境的事（`DSH_CLIENT_TITLE`），不在 slot 系统之内。
+三个填充作为一组声明感知的注册安装：嵌套的 `ctx.slots.inject()` 调用等待侧栏与首屏声明，因此无论本行在声明者之前还是之后激活，这组注册都能工作；声明消失时全部填充一并撤回，HMR 期间也不会留下残缺的品牌混合。标志组件渲染本包资源中的 Fiwen 标志图片；名称组件从本插件的 en/zh/vi 词典读取产品名。浏览器半部是 [`src/client/index.ts`](src/client/index.ts)；node 半部是一个空 Loader 座位。浏览器标题是构建环境的事（`DSH_CLIENT_TITLE`），不在 slot 系统之内。
 
 </details>
 

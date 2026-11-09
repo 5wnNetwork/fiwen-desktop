@@ -23,6 +23,7 @@
       "default": "./lib/client.js"
     },
     "./src/*": "./src/*",
+    "./assets/*": "./lib/assets/*",
     "./package.json": "./package.json",
     "./locale/*.json": "./locale/*.json"
   },
@@ -59,6 +60,7 @@
   },
   "files": [
     "locale/*.json",
+    "lib/assets",
     "lib/index.js",
     "lib/client.js",
     "lib/types/**/*.d.ts"

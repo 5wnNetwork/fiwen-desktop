@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-This package gives a Fiwen deployment the Fiwen mark and the localized product name in the sidebar and the conversation hero. The mark is an inline SVG rounded square with a knocked-out letter F, and the name is rendered through this package's registered locale namespace, so `Fiwen Desktop` and `Fiwen 桌面端` stay locale-owned. The Fiwen bundle enables this plugin and disables `ui-brand-official`; deployments with another identity should provide a replacement brand package. It has no runtime state and does not affect model requests.
+This package gives a Fiwen deployment the Fiwen mark and the localized product name in the sidebar and the conversation hero. The mark is the 5wn logo tile shipped as `src/client/assets/logo.png`, and the name is rendered through this package's registered locale namespace, so `Fiwen Desktop` and `Fiwen 桌面端` stay locale-owned. The Fiwen bundle enables this plugin and disables `ui-brand-official`; deployments with another identity should provide a replacement brand package. It has no runtime state and does not affect model requests.
 
 ## Table of Contents
 
@@ -43,7 +43,7 @@ A deployment with its own identity leaves this package out and composes another 
 <details>
 <summary>Implementation internals — click to expand</summary>
 
-The three occupants install as one declaration-aware registration set: nested `ctx.slots.inject()` calls wait on the sidebar and hero declarations, so the set works whether this row activates before or after the declarer, withdraws all occupants when a declaration collapses, and leaves no partial brand mix during HMR. The mark component renders the Fiwen SVG with per-instance mask ids; the name component reads the product name from this plugin's en/zh/vi dictionaries. The browser half is [`src/client/index.ts`](src/client/index.ts); the node half is an empty Loader seat. The browser title is a build-environment concern (`DSH_CLIENT_TITLE`), outside the slot system.
+The three occupants install as one declaration-aware registration set: nested `ctx.slots.inject()` calls wait on the sidebar and hero declarations, so the set works whether this row activates before or after the declarer, withdraws all occupants when a declaration collapses, and leaves no partial brand mix during HMR. The mark component renders the Fiwen logo image from this package's assets; the name component reads the product name from this plugin's en/zh/vi dictionaries. The browser half is [`src/client/index.ts`](src/client/index.ts); the node half is an empty Loader seat. The browser title is a build-environment concern (`DSH_CLIENT_TITLE`), outside the slot system.
 
 </details>
 

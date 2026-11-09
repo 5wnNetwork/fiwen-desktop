@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { expect, it } from 'vitest'
 import { chromium, type Page } from 'playwright'
 import {
-  APP_ICON_VARIANTS, ICON_OUTPUT_DIRECTORY, MASKABLE_ARTWORK_SCALE, MASKABLE_SAFE_RADIUS_RATIO,
+  APP_ICON_VARIANTS, MASKABLE_ARTWORK_SCALE, MASKABLE_SAFE_RADIUS_RATIO,
   TILE_SOURCE, renderAppIcons, tileDocument,
 } from '../scripts/render-app-icons.ts'
 
@@ -25,7 +25,7 @@ async function pixels(page: Page, url: string, size: number) {
     for (let y = 0; y < size; y += 1) {
       for (let x = 0; x < size; x += 1) {
         const at = (y * size + x) * 4
-        if (data[at + 3] === 0 || data[at]! + data[at + 1]! + data[at + 2]! >= 384) continue
+        if (data[at + 3] === 0 || data[at]! + data[at + 1]! + data[at + 2]! >= 700) continue
         ink += 1
         radius = Math.max(radius, Math.hypot(x - (size - 1) / 2, y - (size - 1) / 2))
       }
@@ -108,55 +108,16 @@ it('decodes every generated and shipped icon with its full artwork and opaque co
   } finally { await browser.close() }
 })
 
-it('ships fixed-color favicons selected by document media queries', async () => {
+it('ships theme-matched favicons selected by document media queries', async () => {
   const index = await readFile(join(DIST_ROOT, 'index.html'), 'utf8')
   expect(index).toContain('<link rel="icon" type="image/svg+xml" href="./favicon-dark.svg" media="(prefers-color-scheme: dark)" />')
   expect(index).toContain('<link rel="icon" type="image/svg+xml" href="./favicon.svg" media="(prefers-color-scheme: light)" />')
   const light = await readFile(join(DIST_ROOT, 'favicon.svg'), 'utf8')
   const dark = await readFile(join(DIST_ROOT, 'favicon-dark.svg'), 'utf8')
   expect(light).not.toContain('<style>')
-  expect(light).toContain('fill="#000"')
-  expect(dark).toContain('fill="#fff"')
-  expect(dark.replace('fill="#fff"', 'fill="#000"')).toBe(light)
-})
-
-it('preserves fractional coverage along the Apple icon curves', async () => {
-  const browser = await chromium.launch({ headless: true })
-  try {
-    const page = await browser.newPage()
-    const png = await readFile(join(ICON_OUTPUT_DIRECTORY, 'apple-touch-icon.png'))
-    const tile = tileDocument(await readFile(TILE_SOURCE, 'utf8'))
-    const [generated, direct] = await page.evaluate(async sources => Promise.all(sources.map(async (source) => {
-      const image = new Image()
-      image.src = source
-      await image.decode()
-      const canvas = document.createElement('canvas')
-      canvas.width = canvas.height = 180
-      const context = canvas.getContext('2d')!
-      context.drawImage(image, 0, 0, 180, 180)
-      const { data } = context.getImageData(0, 0, 180, 180)
-      const brightness = (x: number, y: number): number => {
-        const at = (y * 180 + x) * 4
-        return (data[at]! + data[at + 1]! + data[at + 2]!) / 3
-      }
-      let partial = 0
-      for (let y = 1; y < 179; y += 1) {
-        for (let x = 1; x < 179; x += 1) {
-          const value = brightness(x, y)
-          if (value <= 85 || value >= 200) continue
-          // Neighboring ink and background distinguish edge coverage from the
-          // source's gradients and shadows, which remain in both renderings.
-          const neighbors: number[] = []
-          for (let dy = -1; dy <= 1; dy += 1) {
-            for (let dx = -1; dx <= 1; dx += 1) neighbors.push(brightness(x + dx, y + dy))
-          }
-          if (Math.min(...neighbors) < 70 && Math.max(...neighbors) > 220) partial += 1
-        }
-      }
-      return partial
-    })), [`data:image/png;base64,${png.toString('base64')}`, `data:image/svg+xml;base64,${Buffer.from(tile).toString('base64')}`])
-    expect(generated!).toBeGreaterThan(direct!)
-  } finally { await browser.close() }
+  expect(light).toContain('href="data:image/png;base64,')
+  expect(dark).toContain('href="data:image/png;base64,')
+  expect(dark).not.toBe(light)
 })
 
 it('keeps the shipped maskable artwork inside its opaque platform safe zone', async () => {

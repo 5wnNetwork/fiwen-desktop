@@ -24,7 +24,7 @@ describe('web install icons', () => {
     expect(tile).not.toContain('<g filter="url(#filter0_d_1637_371)">')
     expect(tile).not.toContain(`scale(${MASKABLE_ARTWORK_SCALE})`)
     expect(tile).toContain('<g filter="url(#filter1_ddi_1637_371)">')
-    expect(tile).toContain(source.match(/<path\b[^>]*>/u)![0])
+    expect(tile).toContain('href="data:image/png;base64,')
     expect(tile).toContain(source.match(/<defs>[\s\S]*<\/defs>/u)![0])
     expect(maskable).toContain(`transform="translate(552 544) scale(${MASKABLE_ARTWORK_SCALE}) translate(-552 -544)"`)
   })

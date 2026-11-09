@@ -4,15 +4,13 @@
  *
  * A browser installs a Web App only with a raster 192px and a 512px icon, masks
  * the icon it puts on the home screen, and has no manifest support for iOS,
- * which reads `apple-touch-icon` instead. The whale favicon is the bare mark
- * drawn edge to edge: handed to a launcher directly it loses its fins to the
- * mask, and it carries neither the tile nor a background of its own. This
- * script rasterizes the official application tile (`apps/desktop/resources/icon.svg`,
- * the artwork the desktop application ships) into the committed PNGs under
- * `public/`. Every variant crops the tile's drop shadow, which belongs to a
- * desktop window rather than a launcher; the maskable variant additionally
- * scales the whale inside the safe zone a platform mask may crop, leaving the
- * tile's own gradient to fill the icon so no mask meets a seam.
+ * which reads `apple-touch-icon` instead. This script rasterizes the Fiwen
+ * application tile (`apps/desktop/resources/icon.svg`, the artwork the desktop
+ * application ships) into the committed PNGs under `public/`. Every variant
+ * crops the tile's drop shadow, which belongs to a desktop window rather than a
+ * launcher; the maskable variant additionally scales the tile's artwork inside
+ * the safe zone a platform mask may crop, leaving the tile's own background to
+ * fill the icon so no mask meets a seam.
  *
  * The committed PNGs are the output; rerun
  * `pnpm --filter @deepseek-ai/dsh-web-frontend run render:app-icons` after the
@@ -48,11 +46,12 @@ const RENDER_SCALE = 4
 
 /**
  * Fraction of a maskable icon the artwork keeps: the platform may crop the
- * border outside it. The tile's own ink reaches 0.461 of its edge from the
- * centre, so 0.868 is the largest scale a circular mask still shows whole;
- * `pwa-manifest.e2e.ts` checks the committed artwork against that circle.
+ * border outside it. The logo's green tile reaches 0.655 of the icon edge from
+ * the centre at its rounded corners, so 0.60 keeps it inside the guaranteed 0.4
+ * safe radius (0.655 × 0.60 = 0.393); `pwa-manifest.e2e.ts` checks the committed
+ * artwork against that circle.
  */
-export const MASKABLE_ARTWORK_SCALE = 0.82
+export const MASKABLE_ARTWORK_SCALE = 0.6
 
 /** Radius a platform mask is guaranteed to show, as a fraction of the icon edge. */
 export const MASKABLE_SAFE_RADIUS_RATIO = 0.4
@@ -63,7 +62,7 @@ const SOURCE_ROOT = /^<svg[^>]*>/u
 /** The tile group's drop shadow; stripped because a launcher icon has no window around it. */
 const TILE_SHADOW_GROUP = '<g filter="url(#filter0_d_1637_371)">'
 
-/** The whale group inside the tile; the only element a maskable icon scales. */
+/** The logo group inside the tile; the only element a maskable icon scales. */
 const TILE_ARTWORK_GROUP = '<g filter="url(#filter1_ddi_1637_371)">'
 
 /** One committed install icon: the manifest or link member it serves and its edge in pixels. */
@@ -121,9 +120,9 @@ export function tileDocument(source: string): string {
 }
 
 /**
- * Rewrite the tile source into a maskable icon. The tile keeps its own gradient
- * and extent, so the icon's border is the real tile rather than an extension;
- * only the whale scales into the safe zone a platform mask may crop.
+ * Rewrite the tile source into a maskable icon. The tile keeps its own
+ * background and extent, so the icon's border is the real tile rather than an
+ * extension; only the logo scales into the safe zone a platform mask may crop.
  * @param source - complete `icon.svg` document.
  * @returns an SVG document whose artwork survives a circular mask whole.
  */

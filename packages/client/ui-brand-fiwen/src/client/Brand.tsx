@@ -1,28 +1,15 @@
-import { useId } from 'react'
 import type { PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { HeroBrandMarkOwnerProps } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { SidebarBrandMarkOwnerProps } from '@deepseek-ai/dsh-client-ui-sidebar/client'
+import logo from './assets/logo.png'
 
 /**
- * The Fiwen mark: a rounded square painted in the host text color with the
- * letter F knocked out, so the surface color shows through the glyph.
+ * The Fiwen mark: the 5wn logo tile, loaded from this package's assets.
  * @param props - Host-supplied mark size and optional geometry class.
- * @returns the Fiwen mark SVG.
+ * @returns the Fiwen mark image.
  */
 function FiwenMark({ size, className }: HeroBrandMarkOwnerProps) {
-  // The knocked-out F shares one <mask> per painted rect, so the mask id must
-  // be unique per mounted mark; useId keeps parallel sidebar and hero marks
-  // from pointing at each other's mask.
-  const maskId = useId().replaceAll(':', '')
-  return <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" className={className}>
-    <mask id={maskId}>
-      <rect width="24" height="24" fill="white" />
-      <rect x="7" y="5" width="3" height="14" fill="black" />
-      <rect x="7" y="5" width="10" height="3" fill="black" />
-      <rect x="7" y="10.5" width="8" height="3" fill="black" />
-    </mask>
-    <rect width="24" height="24" rx="6" fill="currentColor" mask={`url(#${maskId})`} />
-  </svg>
+  return <img src={logo} width={size} height={size} className={className} alt="" aria-hidden="true" />
 }
 
 /**
