@@ -149,7 +149,7 @@ function checkUv() {
     encoding: 'utf8', timeout: 45_000, windowsHide: true,
     env: { ...environment, PATH: `${bin}${delimiter}${systemBin}`, HOME: scratch, USERPROFILE: scratch,
       TMP: scratch, TEMP: scratch, TMPDIR: scratch, XDG_CACHE_HOME: scratch },
-  }).trim().split(' ')
+  }).trim().split(' ').slice(0, 2)
   assert.deepEqual(versionOf(process.platform === 'win32' ? 'uv.exe' : 'uv'), ['uv', versions.uv])
   assert.deepEqual(versionOf(process.platform === 'win32' ? 'uvx.exe' : 'uvx'), ['uvx', versions.uv])
 }
