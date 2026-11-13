@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-market",
   "description": "Fiwen marketplace Host service: browse the curated catalog and install free skills and MCP servers",
-  "version": "0.2.2-rc.1",
+  "version": "0.2.2-rc.4",
   "publishConfig": {
     "access": "public"
   },
