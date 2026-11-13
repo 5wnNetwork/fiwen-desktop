@@ -1137,10 +1137,9 @@ describe('bubblewrap preparation script', () => {
     ['ci.yml:node-24-coverage', hostedOnly],
     ['ci.yml:node-24-consumers', hostedOnly],
     ['ci.yml:node-compat', hostedOnly],
-    ['e2e.yml:e2e', undefined],
   ])
 
-  it.each(['ci.yml', 'ci-master.yml', 'e2e.yml'])(
+  it.each(['ci.yml', 'ci-master.yml'])(
     '%s caches the verified archive only on the lanes that run on ephemeral runners',
     (name) => {
       const script = readFileSync(resolve(root, 'scripts/prepare-ci-bubblewrap.sh'), 'utf8')

@@ -81,7 +81,7 @@ export const VI_DICTIONARIES = {
   'claude-code-mods': claudeCodeMods,
   'command': commands,
   'conversation': conversation,
-  'cordis': cordis,
+  '@deepseek-ai/cordis': cordis,
   'cotTranslation': cotTranslation,
   'deliverables': deliverables,
   'directory-browser': directoryBrowser,

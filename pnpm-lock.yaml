@@ -10585,9 +10585,6 @@ importers:
       '@deepseek-ai/dsh-brand':
         specifier: workspace:*
         version: link:../../util/brand
-      '@deepseek-ai/dsh-computer-use':
-        specifier: workspace:*
-        version: link:../../computer-use/computer-use
       '@deepseek-ai/dsh-storage-domain':
         specifier: workspace:*
         version: link:../../storage/storage-domain
@@ -10676,6 +10673,9 @@ importers:
       '@deepseek-ai/dsh-client-ui-user-questions':
         specifier: workspace:*
         version: link:../../client/ui-user-questions
+      '@deepseek-ai/dsh-computer-use':
+        specifier: workspace:*
+        version: link:../../computer-use/computer-use
       '@deepseek-ai/dsh-config-editor':
         specifier: workspace:*
         version: link:../../boot/config-editor
@@ -11714,9 +11714,6 @@ importers:
       '@deepseek-ai/dsh-official-bundles':
         specifier: workspace:*
         version: link:../../util/official-bundles
-      '@deepseek-ai/dsh-session':
-        specifier: workspace:*
-        version: link:../../core/session
       '@deepseek-ai/dsh-typert-protocol':
         specifier: workspace:*
         version: link:../../typert/protocol
@@ -11922,6 +11919,9 @@ importers:
       '@deepseek-ai/dsh-scope':
         specifier: workspace:*
         version: link:../../core/scope
+      '@deepseek-ai/dsh-session':
+        specifier: workspace:*
+        version: link:../../core/session
       '@deepseek-ai/dsh-session-projection':
         specifier: workspace:*
         version: link:../../session/session-projection

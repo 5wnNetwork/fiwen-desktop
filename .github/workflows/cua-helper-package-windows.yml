@@ -29,10 +29,10 @@ jobs:
       run-id: ${{ github.run_id }}
       build-key: ${{ steps.metadata.outputs.build-key }}
     steps:
-      - uses: actions/checkout@v7.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-dotnet@v5.4.0
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5.4.0
         with:
           dotnet-version: '10.0.x'
       - name: Restore locked Windows helper and run protocol checks
@@ -97,7 +97,7 @@ jobs:
               if (-not $zip.GetEntry($name)) { throw "Missing root entry in helper ZIP: $name" }
             }
           } finally { $zip.Dispose() }
-      - uses: actions/upload-artifact@v7.0.1
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         id: upload
         with:
           name: cua-helper-windows-${{ github.run_id }}-${{ github.run_attempt }}-${{ steps.metadata.outputs.build-key }}

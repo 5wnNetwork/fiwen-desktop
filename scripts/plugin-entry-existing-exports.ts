@@ -31,6 +31,10 @@ export const EXISTING_PLUGIN_ENTRY_EXPORTS = {
     'commitPreparedImageFile', 'normalizeImage', 'prepareImageFile', 'readImageFile', 'readRequestImageFile',
     'requestImageVariantId', 'saveImageFile', 'validateImageFile',
   ],
+  '@deepseek-ai/dsh-authorization': [
+    'ACCOUNT_SEPARATOR', 'SELECTION_SLOT', 'accountRecordId', 'accountSelectionOf', 'accountSlotOf',
+    'flowKeyOf', 'resolveRecordKey', 'selectionKeyFor',
+  ],
   '@deepseek-ai/dsh-bash-local': ['ENV_OVERRIDES', 'assertServiceableBashConfig'],
   '@deepseek-ai/dsh-client-connection': [
     'API_PATH', 'CONNECT_PATH', 'Peer', 'RpcId', 'clientRequestSchema', 'rpcErrorSchema', 'rpcIdSchema',
@@ -86,15 +90,17 @@ export const EXISTING_PLUGIN_ENTRY_EXPORTS = {
   ],
   '@deepseek-ai/dsh-jobs-local': ['TASK_WAIT_TIMEOUT'],
   '@deepseek-ai/dsh-llm': [
-    'ACCOUNT_QUOTA_EXCEEDED_CODE', 'APP_IDENTITY', 'AssistantStreamAccumulator', 'BlockAssembler',
-    'CONTEXT_SUMMARY_MAX_CHARS', 'CONTEXT_WINDOW_EXCEEDED_CODE', 'EMPTY_RESPONSE_CODE', 'IMAGE_OFFLOAD_REQUIRED_CODE',
-    'INVALID_CREDENTIAL_CODE', 'LLM_FAILURE_CODES', 'LlmAdapter', 'LlmAttemptId', 'MessageId', 'ProviderRequestId',
-    'QUOTA_EXCEEDED_CODE', 'RETRY_CODE_CHOICES', 'ReasoningEffortId', 'RetryPolicySchema', 'ToolCallId',
+    'ACCOUNT_PLAN_REQUIRED_CODE', 'ACCOUNT_QUOTA_EXCEEDED_CODE', 'APP_IDENTITY', 'AssistantStreamAccumulator',
+    'BlockAssembler', 'CONTEXT_SUMMARY_MAX_CHARS', 'CONTEXT_WINDOW_EXCEEDED_CODE', 'EMPTY_RESPONSE_CODE',
+    'IMAGE_OFFLOAD_REQUIRED_CODE', 'INVALID_CREDENTIAL_CODE', 'LLM_FAILURE_CODES', 'LLM_TOKEN_SAVER_MODES',
+    'LlmAdapter', 'LlmAttemptId', 'MessageId', 'PLAN_REQUIRED_CODE', 'ProviderRequestId', 'QUOTA_EXCEEDED_CODE',
+    'RETRY_CODE_CHOICES', 'ReasoningEffortId', 'RetryPolicySchema', 'ToolCallId',
     'assembleAssistantStream', 'assertUsableApiKey', 'assistantStreamChunks', 'assistantStreamFirstTokenTime',
     'assistantStreamHasVisibleContent', 'assistantStreamHasVisibleText', 'attributionHeaders', 'boundContextSummary',
     'callConfigEquals', 'chunkHasVisibleText', 'contentHasFile', 'contentHasImage', 'createAssistantMessage',
     'createDeveloperMessage', 'createMessage', 'createSystemMessage', 'createToolResultMessage', 'createUserMessage',
     'errorChain', 'expandAssistantStream', 'fileHandleText', 'freezeMessage', 'isAgentLoopRequest',
+    'isLlmTokenSaverMode', 'isLlmTokenSaverResolvedMode',
     'isContextWindowExceededError', 'isHarnessError', 'isQuotaExceededError', 'isTokenDelta', 'isVisibleChunk',
     'joinAssistantStreamText', 'lastAssistantStreamChunk', 'markAgentLoopRequest', 'normalizeApiKey',
     'offloadedImageText', 'projectFilesToText', 'projectImagesForTextModel', 'projectOffloadedImages',
@@ -220,7 +226,7 @@ export const EXISTING_PLUGIN_ENTRY_EXPORTS = {
     'presentSearchResult', 'searchMetaFromResult', 'searchMetaFromValue',
   ],
   '@deepseek-ai/dsh-tool-workspace-dependencies': [
-    'copyPrimaryRuntime', 'installPrimaryRuntime', 'parsePrimaryRuntime', 'primaryRuntimePythonAliases',
+    'copyPrimaryRuntime', 'installPrimaryRuntime', 'parsePrimaryRuntime', 'primaryRuntimePythonAliases', 'primaryRuntimeToolPath',
     'readPrimaryRuntime', 'resolvePrimaryRuntime', 'workspaceDependencyPaths',
   ],
   '@deepseek-ai/dsh-tools': [

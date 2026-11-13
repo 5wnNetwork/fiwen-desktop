@@ -83,6 +83,9 @@ export function resolveListingTiming(options: ModelListingOptions & ListingRetry
   if (modelsRetryAgeMs !== undefined && (!Number.isSafeInteger(modelsRetryAgeMs) || modelsRetryAgeMs < 0)) {
     throw new Error(`${owner}: modelsRetryAgeMs must be a non-negative safe integer`)
   }
+  if (modelsWithoutListing !== undefined && !['built-in', 'none'].includes(modelsWithoutListing)) {
+    throw new Error(`${owner}: modelsWithoutListing must be "built-in" or "none"`)
+  }
   return {
     timeoutMs: modelsTimeoutMs, maxAgeMs: modelsMaxAgeMs,
     ...modelsRetryAgeMs === undefined ? {} : { retryAgeMs: modelsRetryAgeMs },

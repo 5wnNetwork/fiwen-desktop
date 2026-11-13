@@ -1,6 +1,0 @@
-{
-  "meta": {
-    "title": "Runtime PTC Python",
-    "description": "Chạy mã gọi tool theo chương trình trong tiến trình con CPython."
-  }
-}

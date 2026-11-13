@@ -80,24 +80,19 @@ it('rejects non-master dispatch before scheduling a self-hosted job', () => {
   }
 })
 
-it('defaults to production website upload and separates cache-only recovery', () => {
+it('defaults to production website upload without a separate cache purge', () => {
   expect(workflow.on.workflow_dispatch).toMatchObject({ inputs: { upload_website: { type: 'boolean', default: true } } })
   expect(workflow.jobs.prepare!.env?.DESKTOP_UPLOAD_WEBSITE).toBe('${{ inputs.upload_website }}')
   expect(JSON.stringify(workflow)).not.toContain('DOWNLOAD_PROD_EO_ZONE_ID')
+  expect(workflow.jobs['purge-website-installer']).toBeUndefined()
   const upload = workflow.jobs['upload-website-installer']!
-  const purge = workflow.jobs['purge-website-installer']!
-  expect(purge.needs).toEqual(['route', 'prepare', 'upload-website-installer'])
+  expect(upload.needs).toEqual(['route', 'prepare', 'publish'])
   expect(upload.concurrency).toEqual({ group: 'desktop-website-upload-${{ needs.prepare.outputs.website-destination }}', 'cancel-in-progress': false })
-  expect(purge.concurrency).toEqual({ group: 'desktop-website-purge-${{ needs.prepare.outputs.website-destination }}', 'cancel-in-progress': false })
-  for (const job of [upload, purge]) {
-    expect(job.if).toBe("inputs.upload_website && needs.prepare.outputs.preset != 'test'")
-    expect(job.environment).toBe('desktop-production')
-    const preflight = job.steps.findIndex(step => step.run === 'node apps/desktop-publisher/src/preflight-desktop-publish-local.mjs')
-    expect(preflight).toBeGreaterThan(-1)
-    expect(preflight).toBeLessThan(job.steps.findIndex(step => step.run === 'pnpm install --frozen-lockfile'))
-    expect(job.env?.DESKTOP_WEBSITE_APPROVAL).toBe('${{ needs.prepare.outputs.website-approval }}')
-  }
+  expect(upload.if).toBe("inputs.upload_website && needs.prepare.outputs.preset != 'test'")
+  expect(upload.environment).toBe('desktop-production')
+  const preflight = upload.steps.findIndex(step => step.run === 'node apps/desktop-publisher/src/preflight-desktop-publish-local.mjs')
+  expect(preflight).toBeGreaterThan(-1)
+  expect(preflight).toBeLessThan(upload.steps.findIndex(step => step.run === 'pnpm install --frozen-lockfile'))
+  expect(upload.env?.DESKTOP_WEBSITE_APPROVAL).toBe('${{ needs.prepare.outputs.website-approval }}')
   expect(upload.steps.find(step => step.id === 'website')?.run).toBe('node --import tsx apps/desktop-publisher/src/publish-website-ci.ts upload')
-  expect(purge.steps.find(step => step.id === 'website')?.run).toBe('node --import tsx apps/desktop-publisher/src/publish-website-ci.ts purge')
-  expect(purge.steps.some(step => step.run?.includes('publish-desktop-ci.ts'))).toBe(false)
 })

@@ -253,10 +253,8 @@ function packageDirs() {
     for (const kid of kids) {
       const pkgJson = join(groupDir, kid, 'package.json')
       if (!existsSync(pkgJson)) continue
-      try {
-        const name = JSON.parse(readFileSync(pkgJson, 'utf8')).name
-        if (typeof name === 'string') pkgDirCache.set(name, join(groupDir, kid))
-      } catch { /* unreadable package.json: skip */ }
+      try { pkgDirCache.set(JSON.parse(readFileSync(pkgJson, 'utf8')).name, join(groupDir, kid)) }
+      catch (error) { /* A package.json that cannot be read or parsed names no package: skip it; the editor only lists names it can resolve. */ }
     }
   }
   return pkgDirCache
@@ -290,40 +288,40 @@ function clientNamespaceMap() {
   // index.ts: `import { vi as foo } from './x.ts'` + `'ns': foo` in VI_DICTIONARIES.
   const file = join(ROOT, 'packages/client/locale-vi/src/locales/index.ts')
   const map = new Map()
-  try {
-    const sf = ts.createSourceFile('index.ts', readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true)
-    const aliasToFile = new Map()
-    const nsToAlias = new Map()
-    for (const st of sf.statements) {
-      if (ts.isImportDeclaration(st) && ts.isStringLiteral(st.moduleSpecifier)
-        && st.importClause?.namedBindings !== undefined
-        && ts.isNamedImports(st.importClause.namedBindings)) {
-        const spec = st.moduleSpecifier.text
-        for (const el of st.importClause.namedBindings.elements) {
-          aliasToFile.set(el.name.text, spec)
-        }
+  let source
+  try { source = readFileSync(file, 'utf8') }
+  catch (error) { /* The dictionary index is optional in this checkout: without it no namespace label can be derived, so the map stays empty. */ return map }
+  const sf = ts.createSourceFile('index.ts', source, ts.ScriptTarget.Latest, true)
+  const aliasToFile = new Map()
+  const nsToAlias = new Map()
+  for (const st of sf.statements) {
+    if (ts.isImportDeclaration(st) && ts.isStringLiteral(st.moduleSpecifier)
+      && st.importClause?.namedBindings !== undefined
+      && ts.isNamedImports(st.importClause.namedBindings)) {
+      const spec = st.moduleSpecifier.text
+      for (const el of st.importClause.namedBindings.elements) {
+        aliasToFile.set(el.name.text, spec)
       }
-      if (ts.isVariableStatement(st)) {
-        for (const decl of st.declarationList.declarations) {
-          if (!ts.isIdentifier(decl.name) || decl.name.text !== 'VI_DICTIONARIES') continue
-          const init = decl.initializer === undefined ? undefined : unwrapExpression(decl.initializer)
-          if (init === undefined || !ts.isObjectLiteralExpression(init)) continue
-          for (const prop of init.properties) {
-            if (!ts.isPropertyAssignment(prop) || !ts.isIdentifier(prop.initializer)) continue
-            const key = propKeyName(prop)
-            if (key !== undefined) nsToAlias.set(prop.initializer.text, key)
-          }
+    }
+    if (ts.isVariableStatement(st)) {
+      for (const decl of st.declarationList.declarations) {
+        if (!ts.isIdentifier(decl.name) || decl.name.text !== 'VI_DICTIONARIES') continue
+        const init = decl.initializer === undefined ? undefined : unwrapExpression(decl.initializer)
+        if (init === undefined || !ts.isObjectLiteralExpression(init)) continue
+        for (const prop of init.properties) {
+          if (!ts.isPropertyAssignment(prop) || !ts.isIdentifier(prop.initializer)) continue
+          const key = propKeyName(prop)
+          if (key !== undefined) nsToAlias.set(prop.initializer.text, key)
         }
       }
     }
-    for (const [alias, spec] of aliasToFile) {
-      const ns = nsToAlias.get(alias)
-      if (ns !== undefined && spec.startsWith('./')) map.set(spec.slice(2, -3), ns)
-    }
-  } catch { /* namespace labels are best-effort */ }
+  }
+  for (const [alias, spec] of aliasToFile) {
+    const ns = nsToAlias.get(alias)
+    if (ns !== undefined && spec.startsWith('./')) map.set(spec.slice(2, -3), ns)
+  }
   return map
 }
-
 /** Import type specifier → resolved upstream file path (or undefined). */
 function resolveUpstream(fileText) {
   const sf = ts.createSourceFile('vi.ts', fileText, ts.ScriptTarget.Latest, true)

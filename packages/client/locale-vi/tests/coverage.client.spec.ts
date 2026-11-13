@@ -106,7 +106,7 @@ const PAIRS: Record<string, { en: Dict; vi: Dict }> = {
   'claude-code-mods': { en: claudeCodeModsEn, vi: VI_DICTIONARIES['claude-code-mods'] },
   'command': { en: commandsEn, vi: VI_DICTIONARIES['command'] },
   'conversation': { en: conversationEn, vi: VI_DICTIONARIES['conversation'] },
-  'cordis': { en: cordisEn, vi: VI_DICTIONARIES['cordis'] },
+  '@deepseek-ai/cordis': { en: cordisEn, vi: VI_DICTIONARIES['@deepseek-ai/cordis'] },
   'cotTranslation': { en: cotTranslationEn, vi: VI_DICTIONARIES['cotTranslation'] },
   'deliverables': { en: deliverablesEn, vi: VI_DICTIONARIES['deliverables'] },
   'directory-browser': { en: directoryBrowserEn(), vi: VI_DICTIONARIES['directory-browser'] },
