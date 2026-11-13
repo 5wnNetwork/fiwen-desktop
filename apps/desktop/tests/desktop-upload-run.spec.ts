@@ -98,9 +98,11 @@ describe('release upload audit with the real S3 client and an isolated loopback 
     }
     const plan = await json<RecordedPlan>(join(directory, 'plan.json'))
     expect(plan.artifacts[0]!.sha512).toBe(createHash('sha512').update(BINARY_BYTES).digest('base64'))
-    for (const source of ['upload-target.ts', 'desktop-s3.ts']) {
-      expect(plan.sourceSha256[source]).toBe(createHash('sha256')
-        .update(await readFile(join(import.meta.dirname, '../scripts', source))).digest('hex'))
+    for (const [source, path] of [
+      ['upload-target.ts', join(import.meta.dirname, '../scripts/upload-target.ts')],
+      ['desktop-s3.ts', join(import.meta.dirname, '../../desktop-publisher/src/desktop-s3.ts')],
+    ] as const) {
+      expect(plan.sourceSha256[source]).toBe(createHash('sha256').update(await readFile(path)).digest('hex'))
     }
     const result = await json(join(directory, 'result.json'))
     expect(result).toMatchObject({ success: true, stage: 'complete', confirmedPuts: 2, publicReadback: 'not-performed' })

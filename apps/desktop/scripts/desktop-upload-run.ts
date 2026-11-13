@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto'
 import { createReadStream } from 'node:fs'
 import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { Readable } from 'node:stream'
 import { PutObjectCommand, type S3Client } from '@aws-sdk/client-s3'
 import type { DesktopUploadArtifact, DesktopUploadPlan } from '@deepseek-ai/dsh-desktop-publisher/desktop-upload-types.ts'
@@ -13,7 +14,12 @@ const FAILURE_CODES = new Set(['AccessDenied', 'InternalError', 'NoSuchBucket', 
   'RequestTimeout', 'TimeoutError', 'AbortError', 'ECONNRESET', 'ETIMEDOUT', 'ENOTFOUND', 'ENOSPC', 'EACCES', 'EPERM', 'ENOENT'])
 
 /** Object keys fingerprinted into every upload record to bind evidence to this uploader. */
-const UPLOADER_SOURCES = ['desktop-upload-run.ts', 'upload-target.ts', 'desktop-upload-plan.ts', 'desktop-s3.ts']
+const UPLOADER_SOURCES: Record<string, string> = {
+  'desktop-upload-run.ts': fileURLToPath(new URL('./desktop-upload-run.ts', import.meta.url)),
+  'upload-target.ts': fileURLToPath(new URL('./upload-target.ts', import.meta.url)),
+  'desktop-upload-plan.ts': fileURLToPath(new URL('./desktop-upload-plan.ts', import.meta.url)),
+  'desktop-s3.ts': fileURLToPath(new URL('../../desktop-publisher/src/desktop-s3.ts', import.meta.url)),
+}
 
 async function fingerprint(artifact: DesktopUploadArtifact) {
   const sha512 = createHash('sha512')
@@ -85,8 +91,8 @@ export async function uploadDesktopRelease(plan: DesktopUploadPlan, s3: S3Client
       artifacts.push({ ...artifact, ...await fingerprint(artifact) })
     }
     const sourceSha256: Record<string, string> = {}
-    for (const filename of UPLOADER_SOURCES) {
-      sourceSha256[filename] = createHash('sha256').update(await readFile(join(import.meta.dirname, filename))).digest('hex')
+    for (const [filename, path] of Object.entries(UPLOADER_SOURCES)) {
+      sourceSha256[filename] = createHash('sha256').update(await readFile(path)).digest('hex')
     }
     await writeFile(join(directory, 'plan.json'), `${JSON.stringify({ schemaVersion: 1,
       environment: plan.environment, target: plan.target, version: plan.version, bucket: plan.bucket,
