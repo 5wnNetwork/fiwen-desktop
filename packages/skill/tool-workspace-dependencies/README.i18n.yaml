@@ -3,14 +3,14 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/skill/tool-workspace-dependencies/README.md
 /:
-  en: e562521af5095c9b
-  zh: f879f7db6ee3c2b9
+  en: 35a50cfe9a23042f
+  zh: 008fd303720e398d
 /deepseek-ai-dsh-tool-workspace-dependencies:
   en: 36dcf46cd91bba1f
   zh: 576d796ea71f640c
 /deepseek-ai-dsh-tool-workspace-dependencies/summary:
-  en: 564382de2022c781
-  zh: 22657ad5d2c8efd2
+  en: b9602c8367ea1b7b
+  zh: d6786cdba67eee26
 /deepseek-ai-dsh-tool-workspace-dependencies/table-of-contents:
   en: d152484eb41ac6b4
   zh: 43ad67236ccda19a
@@ -21,11 +21,11 @@
   en: 97b1f99b4e9c2569
   zh: bf6c6ce74073413f
 /deepseek-ai-dsh-tool-workspace-dependencies/use-this-package/payload-layout:
-  en: 709eda9a01bc0a81
-  zh: bb4693ddd755866a
+  en: 542dc10ca54f06b9
+  zh: e4ade15f3cdd76dc
 /deepseek-ai-dsh-tool-workspace-dependencies/use-this-package/build-a-carrier-payload:
-  en: 0f3e570525053f09
-  zh: 1b0cd3b653e1bd5d
+  en: 4c52c0679468a6b3
+  zh: 7aeb85470cf138c2
 /deepseek-ai-dsh-tool-workspace-dependencies/understand-the-implementation:
   en: 0121e57a754cb26f
   zh: 2933fc0415da013d
@@ -51,8 +51,8 @@
   en: f8ffc2b983f05ffc
   zh: 8573891441963be4
 /deepseek-ai-dsh-tool-workspace-dependencies/model-experience/tool-result/what-the-model-sees:
-  en: c25c9db51e7d06da
-  zh: a4cdcd37bd501503
+  en: 67ffe47667aea38b
+  zh: 54f49dc5e794ae0e
 /deepseek-ai-dsh-tool-workspace-dependencies/model-experience/tool-result/token-effect:
   en: 0efada793d1e65b1
   zh: 3eed908f43174b88

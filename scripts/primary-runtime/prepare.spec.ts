@@ -4,9 +4,61 @@ import { mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from 'node:fs/
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { zipSync } from 'fflate'
+import { create } from 'tar'
 import { expect, it } from 'vitest'
-import { downloadPrimaryRuntimeAsset, prepareOfficeSkillAssets, primaryRuntimePayloadDigest, prunePnpmForeignNativePackages, smokePrimaryRuntime, unpackPrimaryRuntimeWheel } from './prepare.ts'
+import { downloadPrimaryRuntimeAsset, downloadUvRuntime, prepareOfficeSkillAssets, primaryRuntimePayloadDigest, prunePnpmForeignNativePackages, smokePrimaryRuntime, unpackPrimaryRuntimeWheel, unpackUvRuntime } from './prepare.ts'
 import lock from './lock.json' with { type: 'json' }
+
+it('pins uv per target with a distinct archive and digest', () => {
+  expect(lock.uvVersion).toMatch(/^\d+\.\d+\.\d+$/u)
+  for (const [target, artifact] of Object.entries(lock.targets)) {
+    expect(artifact.uvArchive).toMatch(/^uv-[a-z0-9_]+-(?:pc-windows-msvc\.zip|apple-darwin\.tar\.gz|unknown-linux-gnu\.tar\.gz)$/u)
+    expect(artifact.uvSha256).toMatch(/^[a-f0-9]{64}$/u)
+    // The archive name must name the same platform the target lock already declares.
+    expect(artifact.uvArchive).toContain(target.startsWith('win') ? 'windows' : target.startsWith('mac') ? 'darwin' : 'linux')
+  }
+  expect(new Set(Object.values(lock.targets).map(artifact => artifact.uvSha256)).size).toBe(Object.keys(lock.targets).length)
+})
+
+it('extracts both uv executables from a Windows archive whose entries are flat', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'primary-uv-win-'))
+  try {
+    const archive = join(root, 'uv.zip')
+    await writeFile(archive, zipSync({ 'uv.exe': Buffer.from('uv-binary'), 'uvx.exe': Buffer.from('uvx-binary'), 'uvw.exe': Buffer.from('uvw-binary') }))
+    await unpackUvRuntime('win-x64', archive, join(root, 'uv'))
+    expect((await readdir(join(root, 'uv', 'bin'))).sort()).toEqual(['uv.exe', 'uvx.exe'])
+    expect(await readFile(join(root, 'uv', 'bin', 'uv.exe'), 'utf8')).toBe('uv-binary')
+    expect(await readFile(join(root, 'uv', 'bin', 'uvx.exe'), 'utf8')).toBe('uvx-binary')
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+it('extracts uv executables from a POSIX archive nested under its platform directory', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'primary-uv-mac-'))
+  try {
+    const directory = lock.targets['mac-arm64'].uvArchive.replace(/\.tar\.gz$/u, '')
+    const staged = join(root, 'staged', directory)
+    await mkdir(staged, { recursive: true })
+    await writeFile(join(staged, 'uv'), Buffer.from([1, 2, 3]))
+    await writeFile(join(staged, 'uvx'), Buffer.from([4, 5, 6]))
+    const archive = join(root, 'uv.tar.gz')
+    await create({ gzip: true, file: archive, cwd: join(root, 'staged') }, [directory])
+    await unpackUvRuntime('mac-arm64', archive, join(root, 'uv'))
+    expect((await readdir(join(root, 'uv', 'bin'))).sort()).toEqual(['uv', 'uvx'])
+    expect([...await readFile(join(root, 'uv', 'bin', 'uv'))]).toEqual([1, 2, 3])
+    // POSIX targets must stay executable; Windows ignores the mode bits.
+    if (process.platform !== 'win32') expect((await stat(join(root, 'uv', 'bin', 'uv'))).mode & 0o111).not.toBe(0)
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
+
+it('rejects a uv archive that is not the locked download', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'primary-uv-mismatch-'))
+  try {
+    await writeFile(join(root, lock.targets['win-x64'].uvSha256), zipSync({ 'uv.exe': Buffer.from('wrong') }))
+    await expect(downloadUvRuntime('win-x64', join(root, 'uv'), root)).rejects.toThrow('checksum mismatch')
+    // The stale cache entry is removed so a later run downloads again.
+    await expect(readFile(join(root, lock.targets['win-x64'].uvSha256))).rejects.toMatchObject({ code: 'ENOENT' })
+  } finally { await rm(root, { recursive: true, force: true }) }
+})
 
 it('covers every SDK wheel target with the shared interpreter lock', () => {
   const platforms = JSON.parse(readFileSync(new URL('../../python/sdk-runtime/platforms.json', import.meta.url), 'utf8')) as Record<string, unknown>

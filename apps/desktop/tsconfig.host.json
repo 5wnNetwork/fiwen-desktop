@@ -46,6 +46,9 @@
     },
     {
       "path": "../../packages/client/ui-file-actions"
+    },
+    {
+      "path": "../../packages/skill/tool-workspace-dependencies"
     }
   ],
   "exclude": [

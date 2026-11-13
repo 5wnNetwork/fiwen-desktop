@@ -10,6 +10,7 @@ const state = vi.hoisted(() => ({
   root: '',
   target: 'mac-arm64' as 'mac-arm64' | 'mac-x64' | 'win-x64',
   pnpm: '11.7.0' as string | undefined,
+  uv: '0.12.3' as string | undefined,
   failure: undefined as 'electron' | 'primary' | 'cli' | undefined,
   preparePrimary: vi.fn(),
   extractElectron: vi.fn(),
@@ -50,6 +51,7 @@ beforeEach(() => {
   state.root = mkdtempSync(join(tmpdir(), 'desktop-runtime-preparation-'))
   state.target = 'mac-arm64'
   state.pnpm = '11.7.0'
+  state.uv = '0.12.3'
   state.failure = undefined
   process.argv = [process.execPath, 'prepare-runtime.ts']
   vi.stubEnv('DSH_DESKTOP_PACKAGING_RUN_DIR', undefined)
@@ -65,7 +67,7 @@ beforeEach(() => {
     writeFileSync(join(root, 'runtime.json'), JSON.stringify({
       desktopVersion: '1.0.0', platform: state.target === 'win-x64' ? 'win32' : 'darwin',
       arch: state.target === 'mac-arm64' ? 'arm64' : 'x64',
-      python: '3.12.14', node: '24.17.0', pnpm: state.pnpm, pythonPackages: { numpy: '2.3.5' },
+      python: '3.12.14', node: '24.17.0', pnpm: state.pnpm, uv: state.uv, pythonPackages: { numpy: '2.3.5' },
     }))
   })
 })
@@ -90,7 +92,7 @@ it.each(['mac-arm64', 'mac-x64', 'win-x64'] as const)('prepares %s with one pnpm
   expect(readFileSync(join(runtime, 'cli', 'command-manager.js'), 'utf8')).toBe('command manager fixture')
   expect(existsSync(join(runtime, 'cli', 'command-path.ps1'))).toBe(true)
   expect(JSON.parse(readFileSync(join(runtime, 'versions.json'), 'utf8'))).toEqual({
-    schemaVersion: 1, node: '24.18.1', pnpm: '11.7.0',
+    schemaVersion: 1, node: '24.18.1', pnpm: '11.7.0', uv: '0.12.3',
   })
   expect(state.preparePrimary).toHaveBeenCalledWith({ deferSmoke: windows })
   if (windows) expect(state.commandLink).not.toHaveBeenCalled()
@@ -117,6 +119,17 @@ it.each([
   state.target = 'win-x64'
   process.argv.push('--defer-primary-runtime-smoke')
   state.pnpm = pnpm
+  await expect(import('../scripts/prepare-runtime.ts')).rejects.toThrow(error)
+  expect(existsSync(join(state.root, 'runtime', 'versions.json'))).toBe(false)
+})
+
+it.each([
+  ['not-a-version', 'primary runtime: invalid metadata'],
+  [undefined, 'primary-runtime manifest has no uv version'],
+])('rejects uv metadata %s even when Windows smoke is deferred', async (uv, error) => {
+  state.target = 'win-x64'
+  process.argv.push('--defer-primary-runtime-smoke')
+  state.uv = uv
   await expect(import('../scripts/prepare-runtime.ts')).rejects.toThrow(error)
   expect(existsSync(join(state.root, 'runtime', 'versions.json'))).toBe(false)
 })

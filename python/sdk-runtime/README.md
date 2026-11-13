@@ -10,7 +10,7 @@ The wheel installs a `fwnd` console command and the `deepseek_harness_runtime` P
 
 Production executables are named `deepseek-harness-sdk-runtime-<platform>-<arch>` under the module's `runtime/` directory; Windows uses the `.exe` suffix. Linux and macOS wheels include a target-native `-rg` sidecar, Windows includes `-rg.exe`, and macOS also includes `-spawn-helper` for `node-pty`. Published targets are Linux x64, Linux arm64, macOS arm64, macOS x64, and Windows x64. The wheel tag and payload must match exactly; no Windows arm64 wheel is published.
 
-The wheel carries only the executable, native execution helpers, and `<platform>-<arch>/` with `downloads.json` and the lightweight `office-skills/` tree. CPython, authoring libraries, standalone Node, pnpm, and the complete Office sidecar are optional downloads. Importing Python modules, starting SDK profiles, and processing Office files never download resources.
+The wheel carries only the executable, native execution helpers, and `<platform>-<arch>/` with `downloads.json` and the lightweight `office-skills/` tree. CPython, authoring libraries, standalone Node, pnpm, uv, and the complete Office sidecar are optional downloads. Importing Python modules, starting SDK profiles, and processing Office files never download resources.
 
 Download either resource explicitly before using it:
 
@@ -21,7 +21,7 @@ office = download_office()
 primary_runtime = download_primary_runtime()
 ```
 
-`download_office()` downloads the locked npm Kit, target engine, and complete dependency tree, plus standalone Node for the Kit CLI. `download_primary_runtime()` independently downloads CPython, locked Python libraries, Node, pnpm, and Office skills. Both return absolute resource directories and reuse completed caches. The authoring download validates its target, interpreters, library directory and skills before returning. The existing local `installPrimaryRuntime()` operation still copies an already available payload; it does not download. The shared builder applies the [NumPy/pandas test-file exclusions](../../apps/desktop/README.md#bundled-workspace-dependencies).
+`download_office()` downloads the locked npm Kit, target engine, and complete dependency tree, plus standalone Node for the Kit CLI. `download_primary_runtime()` independently downloads CPython, locked Python libraries, Node, pnpm, uv, and Office skills. Both return absolute resource directories and reuse completed caches. The authoring download validates its target, interpreters, library directory and skills before returning. The existing local `installPrimaryRuntime()` operation still copies an already available payload; it does not download. The shared builder applies the [NumPy/pandas test-file exclusions](../../apps/desktop/README.md#bundled-workspace-dependencies).
 
 `DSH_RESOURCE_CACHE` selects an absolute cache root, defaulting to `~/.cache/deepseek-harness/resources`. Resource identities include the release's locked inputs. Downloads verify archive hashes and package identities, preserve executable permissions, and publish completed directories atomically. Failed downloads can be retried. `DSH_RESOURCE_DOWNLOAD_TIMEOUT_MS` bounds each archive download, including its body; the default is `300000`, and accepted values are integers from `1` to `2147483647`. Downloads follow the Harness proxy environment policy. Installed wheel files are never modified. Release versions have separate cache directories; unused versions require manual removal. Downloads use the locked upstream URLs without a registry or mirror override.
 

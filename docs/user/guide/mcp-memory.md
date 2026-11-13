@@ -99,3 +99,18 @@ Copy the same entry fields and use a unique `id` and `serverName`:
 ```
 
 For a remote server, use `transport: streamable-http`, `url`, and `headers` instead. Provider-specific installation, identity, authentication, models, embeddings, persistence, and licensing remain the provider's responsibility.
+
+Desktop also resolves `uvx` and `uv` from its bundled runtime, so a Python server published to PyPI needs no separate uv installation:
+
+```yaml
+- insert:
+    - id: memory-uvx
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: my-memory
+        transport: stdio
+        command: uvx
+        args: ['my-memory-mcp@1.2.3']
+```
+
+The first launch of a `uvx` server downloads its Python interpreter and package unless the network is unavailable or the uv cache is already warm. Pin an exact version rather than a floating tag so restarts reuse the same environment. Other carriers, including the `fwnd` CLI in a container, must install uv themselves.

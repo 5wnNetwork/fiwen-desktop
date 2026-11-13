@@ -778,6 +778,9 @@ export async function render(): Promise<string> {
     ? collectClaudeDistribution(manifests)
     : undefined
   const nonPermissiveDev = devDeps.filter(dep => !isPermissive(dep.license))
+  const pnpmVersion = (JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8')) as {
+    devDependencies: { pnpm: string }
+  }).devDependencies.pnpm
   assertRuntimeLicenses(runtimeDeps)
   assertRuntimeLicenses(bundledPython)
   const patchedLines = patched.map(({ spec, patch }) => `- \`${spec}\` — [\`${patch}\`](${patch})`)
@@ -846,6 +849,16 @@ The [shared runtime lock](scripts/primary-runtime/lock.json) records each distri
 | Distribution | Locked version | Project license |
 | --- | --- | --- |
 ${bundledPython.map(dep => `| [\`${dep.name}\`](${dep.repo}) | ${dep.version} | ${dep.license} |`).join('\n')}
+
+## Bundled runtime executables
+
+Desktop distributes these upstream executables inside its primary runtime payload; they run as separate processes and are not linked into any Host or browser bundle. Node.js and uv come from the [shared runtime lock](scripts/primary-runtime/lock.json); pnpm is the root workspace's pinned package manager.
+
+| Executable | Locked version | Project license |
+| --- | --- | --- |
+| [Node.js](https://github.com/nodejs/node) | ${primaryRuntimeLock.nodeVersion} | MIT |
+| [pnpm](https://github.com/pnpm/pnpm) | ${pnpmVersion} | MIT |
+| [uv](https://github.com/astral-sh/uv) | ${primaryRuntimeLock.uvVersion} | MIT / Apache-2.0 |
 
 ## First-party native packages
 

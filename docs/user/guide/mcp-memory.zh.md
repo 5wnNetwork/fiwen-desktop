@@ -99,3 +99,18 @@ Engram 负责存储和项目选择：它默认使用 `~/.engram`，从 DSH 工�
 ```
 
 对于远程服务器，请改用 `transport: streamable-http`、`url` 和 `headers`。提供方专属的安装、身份、认证、模型、embedding、持久化和许可仍由提供方负责。
+
+Desktop 还会从随包运行时解析 `uvx` 与 `uv`，因此发布到 PyPI 的 Python 服务器无需另外安装 uv：
+
+```yaml
+- insert:
+    - id: memory-uvx
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: my-memory
+        transport: stdio
+        command: uvx
+        args: ['my-memory-mcp@1.2.3']
+```
+
+首次启动 `uvx` 服务器时会下载其 Python 解释器与包，除非网络不可用或 uv 缓存已预热。请固定精确版本而不是浮动标签，以便重启复用同一环境。其他载体（包括容器中的 `fwnd` CLI）必须自行安装 uv。

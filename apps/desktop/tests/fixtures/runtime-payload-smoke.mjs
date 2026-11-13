@@ -132,11 +132,33 @@ function checkHtml() {
   assert.match(markdown, /\| x\s+\| 7\s+\|/u)
 }
 
+/** Resolve and run the bundled uv launchers with no inherited developer toolchain. */
+function checkUv() {
+  const primary = join(resourcesRuntime, 'primary-runtime')
+  const versions = JSON.parse(readFileSync(join(resourcesRuntime, 'versions.json'), 'utf8'))
+  const manifest = JSON.parse(readFileSync(join(primary, 'runtime.json'), 'utf8'))
+  assert.equal(versions.uv, manifest.uv)
+  const bin = join(primary, 'dependencies', 'uv', 'bin')
+  const systemBin = process.platform === 'win32' ? join(process.env.SystemRoot, 'System32') : '/usr/bin:/bin'
+  const environment = Object.fromEntries(Object.entries(process.env).filter(([name]) => (
+    /^(?:systemroot|windir|comspec)$/iu.test(name)
+  )))
+  const run = name => execFileSync(join(bin, name), ['--version'], {
+    encoding: 'utf8', timeout: 45_000, windowsHide: true,
+    env: { ...environment, PATH: `${bin}${delimiter}${systemBin}`, HOME: scratch, USERPROFILE: scratch,
+      TMP: scratch, TEMP: scratch, TMPDIR: scratch, XDG_CACHE_HOME: scratch },
+  }).trim()
+  assert.equal(run(process.platform === 'win32' ? 'uv.exe' : 'uv'), `uv ${versions.uv}`)
+  assert.equal(run(process.platform === 'win32' ? 'uvx.exe' : 'uvx'), `uvx ${versions.uv}`)
+}
+
 try {
   const builtin = requireRuntime('node-addon-require-builtin')
   assert.equal(typeof builtin.requireBuiltin('internal/modules/esm/loader').getOrInitializeCascadedLoader, 'function')
   console.error('runtime payload: pnpm')
   await checkPnpm(resourcesRuntime)
+  console.error('runtime payload: uv')
+  checkUv()
   console.error('runtime payload: koffi')
   checkKoffi()
   console.error('runtime payload: sharp')
@@ -156,5 +178,5 @@ try {
 // Natural event-loop drain includes node-pty's worker and console-list helper teardown.
 process.once('beforeExit', () => {
   console.log(JSON.stringify({ node: process.versions.node, platform: process.platform, arch: process.arch,
-    koffi: true, sharp: true, html: true, pty: true, pnpm: true, grep: true, glob: true }))
+    koffi: true, sharp: true, html: true, pty: true, pnpm: true, uv: true, grep: true, glob: true }))
 })

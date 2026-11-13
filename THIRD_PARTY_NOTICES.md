@@ -317,6 +317,16 @@ The [shared runtime lock](scripts/primary-runtime/lock.json) records each distri
 | [`tzdata`](https://github.com/python/tzdata) | 2025.2 | Apache-2.0 |
 | [`xlsxwriter`](https://github.com/jmcnamara/XlsxWriter) | 3.2.9 | BSD-2-Clause |
 
+## Bundled runtime executables
+
+Desktop distributes these upstream executables inside its primary runtime payload; they run as separate processes and are not linked into any Host or browser bundle. Node.js and uv come from the [shared runtime lock](scripts/primary-runtime/lock.json); pnpm is the root workspace's pinned package manager.
+
+| Executable | Locked version | Project license |
+| --- | --- | --- |
+| [Node.js](https://github.com/nodejs/node) | 24.21.0 | MIT |
+| [pnpm](https://github.com/pnpm/pnpm) | 11.28.5 | MIT |
+| [uv](https://github.com/astral-sh/uv) | 0.12.3 | MIT / Apache-2.0 |
+
 ## First-party native packages
 
 `@deepseek-ai/node-addon-system` (and its platform packages) is built and released from this repository under BSD 3-Clause. It is listed here for completeness; it is first-party, not third-party.

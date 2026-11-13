@@ -1023,7 +1023,7 @@ def _smoke_sdk_authoring_cached(base_url: str, executable: Path, update_snapshot
                 for actual, token in snapshot_directory_replacements(root, "{{cwd}}"):
                     catalogs = [catalog.replace(actual, token) for catalog in catalogs]
                 visible = {"tool": schema, "catalogs": catalogs, "result": {**dependencies, "python": "{{python}}", "pythonPackages": "{{site-packages}}",
-                           **{name: "{{" + name + "}}" for name in ("node", "nodePackages", "pnpm")}}}
+                           **{name: "{{" + name + "}}" for name in ("node", "nodePackages", "pnpm", "uv", "uvx")}}}
                 compare_snapshot_files(
                     {"model-visible.json": json.dumps(visible, indent=2, ensure_ascii=False) + "\n"},
                     update_snapshots, AUTHORING_SNAPSHOT_DIRECTORY,

@@ -42,6 +42,8 @@ export interface PrimaryRuntimeManifest {
   readonly node?: string
   /** Bundled pnpm version; requires a bundled Node.js executable. */
   readonly pnpm?: string
+  /** Bundled `uv` version; absent when the payload ships no uv executables. */
+  readonly uv?: string
   /** All recorded Python distribution versions; empty for legacy files without a distribution map. */
   readonly pythonPackages: Readonly<Record<string, string>>
 }
@@ -53,6 +55,10 @@ export interface WorkspaceDependencies {
   readonly pnpm?: string
   readonly pythonPackages: string
   readonly nodePackages?: string
+  /** Bundled `uv` executable; absent when the payload ships no uv. */
+  readonly uv?: string
+  /** Bundled `uvx` executable; absent when the payload ships no uv. */
+  readonly uvx?: string
   /** Locked distribution versions; excludes packages users add to the installed environment. */
   readonly pythonDistributions: Readonly<Record<string, string>>
 }
@@ -83,11 +89,11 @@ export function parsePrimaryRuntime(value: unknown): PrimaryRuntimeManifest {
   if (!isRecord(value)) throw new Error('primary runtime: invalid metadata')
   const legacy = value.components !== undefined
   const versions = legacy ? value.components : value
-  if (!isRecord(versions) || (legacy && ['python', 'node', 'pnpm'].some(key => value[key] !== undefined))) {
+  if (!isRecord(versions) || (legacy && ['python', 'node', 'pnpm', 'uv'].some(key => value[key] !== undefined))) {
     throw new Error('primary runtime: invalid metadata')
   }
   const { desktopVersion, platform, arch, payloadDigest } = value
-  const { python, node, pnpm } = versions
+  const { python, node, pnpm, uv } = versions
   const pythonPackages = value.pythonPackages === undefined && legacy ? {} : value.pythonPackages
   if (typeof desktopVersion !== 'string' || desktopVersion.length === 0
     || typeof platform !== 'string' || !PLATFORMS.includes(platform)
@@ -95,6 +101,7 @@ export function parsePrimaryRuntime(value: unknown): PrimaryRuntimeManifest {
     || !isVersion(python)
     || (node !== undefined && !isVersion(node))
     || (pnpm !== undefined && (!isVersion(pnpm) || node === undefined))
+    || (uv !== undefined && !isVersion(uv))
     || (payloadDigest !== undefined && (typeof payloadDigest !== 'string' || !/^[a-f0-9]{64}$/u.test(payloadDigest)))
     || !isDistributionMap(pythonPackages)) {
     throw new Error('primary runtime: invalid metadata')
@@ -118,6 +125,7 @@ export function parsePrimaryRuntime(value: unknown): PrimaryRuntimeManifest {
     python,
     ...(node === undefined ? {} : { node }),
     ...(pnpm === undefined ? {} : { pnpm }),
+    ...(uv === undefined ? {} : { uv }),
     pythonPackages,
   }
 }
@@ -175,6 +183,24 @@ export async function copyPrimaryRuntime(source: string, destination: string, ma
 }
 
 /**
+ * List the bundled interpreter directories of a primary-runtime payload for `PATH`.
+ * Directory layout, not the manifest, decides membership: a partial payload contributes only
+ * the directories it actually carries.
+ * @param root - Absolute primary-runtime payload directory.
+ * @param exists - Existence check for a candidate directory.
+ * @returns Existing directories in `PATH` precedence order.
+ */
+export function primaryRuntimeToolPath(root: string, exists: (path: string) => boolean): string[] {
+  const dependencies = join(root, 'dependencies')
+  return [
+    join(dependencies, 'uv', 'bin'),
+    join(dependencies, 'node', 'bin'),
+    join(dependencies, 'python'),
+    join(dependencies, 'python', 'bin'),
+  ].filter(exists)
+}
+
+/**
  * Resolve platform-specific interpreter and library locations without changing the environment.
  * @param root - Absolute payload or installation directory.
  * @param manifest - Validated runtime metadata.
@@ -188,10 +214,15 @@ export function workspaceDependencyPaths(root: string, manifest: PrimaryRuntimeM
     nodePackages: join(dependencies, 'node', 'node_modules'),
   }
   const pnpm = manifest.pnpm === undefined ? {} : { pnpm: join(dependencies, 'pnpm', 'bin', 'pnpm.mjs') }
+  const uv = manifest.uv === undefined ? {} : {
+    uv: join(dependencies, 'uv', 'bin', windows ? 'uv.exe' : 'uv'),
+    uvx: join(dependencies, 'uv', 'bin', windows ? 'uvx.exe' : 'uvx'),
+  }
   return {
     python: join(dependencies, 'python', ...(windows ? ['python.exe'] : ['bin', 'python3'])),
     ...node,
     ...pnpm,
+    ...uv,
     pythonPackages: join(dependencies, 'python', ...(windows ? ['Lib'] : ['lib', `python${manifest.python.split('.').slice(0, 2).join('.')}`]), 'site-packages'),
     pythonDistributions: manifest.pythonPackages,
   }
@@ -199,7 +230,7 @@ export function workspaceDependencyPaths(root: string, manifest: PrimaryRuntimeM
 
 async function validatePayloadEntries(paths: WorkspaceDependencies): Promise<void> {
   for (const [path, kind] of [
-    [paths.python, 'file'], [paths.node, 'file'], [paths.pnpm, 'file'],
+    [paths.python, 'file'], [paths.node, 'file'], [paths.pnpm, 'file'], [paths.uv, 'file'], [paths.uvx, 'file'],
     [paths.pythonPackages, 'directory'], [paths.nodePackages, 'directory'],
   ] as const) {
     if (path === undefined) continue
@@ -293,7 +324,7 @@ export function apply(ctx: Context, config: Config): void {
   })
   ctx.tools.register(defineTool({
     name: 'load_workspace_dependencies',
-    description: 'Get absolute paths to bundled Python and library directories, plus bundled Python distribution versions. Node.js and pnpm paths are included when the payload provides them. Python includes numpy, pandas, python-docx, python-pptx, openpyxl, Pillow, lxml, and XlsxWriter. Use these libraries for Office files unless the user or workspace instructions select another environment. When Node.js and pnpm paths are returned, run pnpm with that Node executable and pnpm script path. This does not change PATH or package-manager settings.',
+    description: 'Get absolute paths to bundled Python and library directories, plus bundled Python distribution versions. Node.js, pnpm and uv paths are included when the payload provides them. Python includes numpy, pandas, python-docx, python-pptx, openpyxl, Pillow, lxml, and XlsxWriter. Use these libraries for Office files unless the user or workspace instructions select another environment. When Node.js and pnpm paths are returned, run pnpm with that Node executable and pnpm script path. Run uvx servers with the returned uvx executable. This does not change PATH or package-manager settings.',
     parameters: {},
     output: {
       schema: {
@@ -304,6 +335,8 @@ export function apply(ctx: Context, config: Config): void {
           pnpm: { type: 'string', description: 'Absent when the payload ships no pnpm.' },
           pythonPackages: { type: 'string', required: true },
           nodePackages: { type: 'string', description: 'Absent when the payload ships no Node.js.' },
+          uv: { type: 'string', description: 'Absent when the payload ships no uv.' },
+          uvx: { type: 'string', description: 'Absent when the payload ships no uv.' },
           pythonDistributions: { type: 'object', additionalProperties: true, required: true, description: 'Bundled distribution names and versions recorded in runtime.json; excludes user-installed additions.' },
         },
       },

@@ -2,7 +2,7 @@
 
 import { execFileSync } from 'node:child_process'
 import { createHash, randomUUID } from 'node:crypto'
-import { cpSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, renameSync, rmSync, writeFileSync } from 'node:fs'
+import { chmodSync, cpSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, readlinkSync, renameSync, rmSync, writeFileSync } from 'node:fs'
 import { cp } from 'node:fs/promises'
 import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
@@ -106,6 +106,46 @@ export async function downloadNodeRuntime(target: PrimaryRuntimeTarget, destinat
   }
 }
 
+/**
+ * Stage `uv` and `uvx` from a hash-verified release archive.
+ * Windows archives are flat; POSIX archives nest every file under one platform directory.
+ * @param target - Target interpreter platform.
+ * @param archive - Downloaded release archive.
+ * @param destination - Directory receiving `bin/uv` and `bin/uvx`.
+ * @returns Resolves after both executables are present.
+ */
+export async function unpackUvRuntime(target: PrimaryRuntimeTarget, archive: string, destination: string): Promise<void> {
+  const staging = mkdtempSync(join(tmpdir(), 'dsh-uv-'))
+  try {
+    if (target === 'win-x64') await extractZip(archive, { dir: staging })
+    else await extractTar({ file: archive, cwd: staging })
+    const source = target === 'win-x64' ? staging : join(staging, lock.targets[target].uvArchive.replace(/\.tar\.gz$/u, ''))
+    const bin = join(destination, 'bin')
+    mkdirSync(bin, { recursive: true })
+    for (const name of ['uv', 'uvx']) {
+      const file = target === 'win-x64' ? `${name}.exe` : name
+      cpSync(join(source, file), join(bin, file))
+      if (target !== 'win-x64') chmodSync(join(bin, file), 0o755)
+    }
+  } finally {
+    rmSync(staging, { recursive: true, force: true })
+  }
+}
+
+/**
+ * Download the locked uv release for one target and stage its executables.
+ * @param target - Target interpreter platform.
+ * @param destination - Directory receiving `bin/uv` and `bin/uvx`.
+ * @param cache - Verified archive cache.
+ * @returns Resolves after extracting the executables.
+ */
+export async function downloadUvRuntime(target: PrimaryRuntimeTarget, destination: string, cache: string): Promise<void> {
+  const artifact = lock.targets[target]
+  const archive = await downloadPrimaryRuntimeAsset(
+    `https://github.com/astral-sh/uv/releases/download/${lock.uvVersion}/${artifact.uvArchive}`, artifact.uvSha256, cache)
+  await unpackUvRuntime(target, archive, destination)
+}
+
 async function pythonArchive(target: keyof typeof lock.targets, cache: string): Promise<string> {
   const artifact = lock.targets[target]
   const filename = `cpython-${lock.pythonVersion}+${lock.pythonRelease}-${artifact.pythonTarget}-install_only_stripped.tar.gz`
@@ -122,11 +162,13 @@ async function pythonArchive(target: keyof typeof lock.targets, cache: string): 
 export function primaryRuntimePayloadDigest(
   target: keyof typeof lock.targets, runtimeLock: typeof lock, pnpmVersion: string | undefined,
 ): string {
-  const { pythonVersion, pythonRelease, nodeVersion, wheels, pythonPackages } = runtimeLock
+  const { pythonVersion, pythonRelease, nodeVersion, uvVersion, wheels, pythonPackages } = runtimeLock
+  const bundlesToolchain = pnpmVersion !== undefined
   // Identity preserves key order within the selected target, wheel records and distribution map, plus wheel-entry order.
   // Bump format when extraction or assembly changes payload bytes without changing locked inputs.
   return createHash('sha256').update(JSON.stringify({
-    format: 8, target, pythonVersion, pythonRelease, nodeVersion: pnpmVersion === undefined ? undefined : nodeVersion,
+    format: 9, target, pythonVersion, pythonRelease,
+    nodeVersion: bundlesToolchain ? nodeVersion : undefined, uvVersion: bundlesToolchain ? uvVersion : undefined,
     artifact: runtimeLock.targets[target], wheels, pythonPackages, pnpm: pnpmVersion,
   })).digest('hex')
 }
@@ -222,11 +264,14 @@ export async function preparePrimaryRuntime(options: PreparePrimaryRuntimeOption
     const platform = target === 'win-x64' ? 'win32' : target.startsWith('linux-') ? 'linux' : 'darwin'
     const arch = target.endsWith('-arm64') ? 'arm64' : 'x64'
     let pnpmVersion: string | undefined
+    let uvVersion: string | undefined
     if (!options.pythonOnly) {
       const node = join(dependencies, 'node')
       await downloadNodeRuntime(target, node, paths.downloads)
       mkdirSync(join(node, 'node_modules'))
       writeFileSync(join(node, 'node_modules', 'README.txt'), 'Reserved for bundled Node packages. pnpm uses its default installation directories.\n')
+      uvVersion = lock.uvVersion
+      await downloadUvRuntime(target, join(dependencies, 'uv'), paths.downloads)
       if (options.pnpmArchive !== undefined) {
         pnpmVersion = options.pnpmArchive.version
         await downloadRuntimeNpmPackage(options.pnpmArchive, join(dependencies, 'pnpm'), paths.downloads)
@@ -245,6 +290,7 @@ export async function preparePrimaryRuntime(options: PreparePrimaryRuntimeOption
       payloadDigest: primaryRuntimePayloadDigest(target, lock, pnpmVersion),
       python: lock.pythonVersion,
       ...(pnpmVersion === undefined ? {} : { node: lock.nodeVersion, pnpm: pnpmVersion }),
+      ...(uvVersion === undefined ? {} : { uv: uvVersion }),
       pythonPackages: lock.pythonPackages,
     }
     const entries = workspaceDependencyPaths(output, manifest)
@@ -293,6 +339,14 @@ export function smokePrimaryRuntime(root: string, environment: NodeJS.ProcessEnv
   execFileSync(entries.python, ['-I', '-B', '-m', 'pip', 'check'], options)
   if (entries.node !== undefined) execFileSync(entries.node, ['-e', `if (process.versions.node !== ${JSON.stringify(manifest.node)}) process.exit(1)`], options)
   if (entries.pnpm !== undefined && entries.node !== undefined) execFileSync(entries.node, [entries.pnpm, '--version'], options)
+  if (entries.uv !== undefined) {
+    // The release binary appends its build identity after the version, for example `uv 0.12.3 (… x86_64-pc-windows-msvc)`.
+    const reported = String(execFileSync(entries.uv, ['--version'], { ...options, stdio: ['ignore', 'pipe', 'inherit'] })).trim().split(' ')
+    if (reported[0] !== 'uv' || reported[1] !== manifest.uv) {
+      throw new Error(`primary runtime: bundled uv reports ${JSON.stringify(reported.join(' '))}`)
+    }
+  }
+  if (entries.uvx !== undefined) execFileSync(entries.uvx, ['--version'], options)
 }
 
 if (import.meta.main) {

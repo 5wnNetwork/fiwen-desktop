@@ -2,10 +2,13 @@
   "nodeVersion": "24.21.0",
   "pythonVersion": "3.12.14",
   "pythonRelease": "20260901",
+  "uvVersion": "0.12.3",
   "targets": {
     "win-x64": {
       "nodeArchive": "win-x64.zip",
       "nodeSha256": "158f7685b44de51f6c0df1d153526cbcd3e1bc739a8dfc607721cef75de9e541",
+      "uvArchive": "uv-x86_64-pc-windows-msvc.zip",
+      "uvSha256": "b23350c79e8ad0192b8124af13a0f17e8d4e4549524785e1aef389ae5a06990e",
       "pythonTarget": "x86_64-pc-windows-msvc",
       "pythonSha256": "7c45c9622400d578709a9b2cddbe8124cc21d382409d9f13406d706d28e31b14",
       "wheels": [
@@ -30,6 +33,8 @@
     "mac-arm64": {
       "nodeArchive": "darwin-arm64.tar.gz",
       "nodeSha256": "bed7eea5325e1108f32ce5228ddd6a5f0f08a499ee42aa7442aea583702f6057",
+      "uvArchive": "uv-aarch64-apple-darwin.tar.gz",
+      "uvSha256": "546f7f8a6c70ff13a3a9d2bc958db3427298cebf3e0cb756f9177133b7068843",
       "pythonTarget": "aarch64-apple-darwin",
       "pythonSha256": "81a359f1cfadd4da11766534c5913791cea55f26e1bb902cacd2a531bb1e4b2b",
       "wheels": [
@@ -54,6 +59,8 @@
     "mac-x64": {
       "nodeArchive": "darwin-x64.tar.gz",
       "nodeSha256": "1462cb3b3046b815cf8ea436d3da450ec1a9f11dac7e5a46b0ada5305d7e8097",
+      "uvArchive": "uv-x86_64-apple-darwin.tar.gz",
+      "uvSha256": "4c9f52262a14da336e4a42ed24992d12d0c956acde87619e4611d321dffa602b",
       "pythonTarget": "x86_64-apple-darwin",
       "pythonSha256": "65b195c9cedc1fef6767f044f9822069adbd1bd9204d424ece4628776fdc04bb",
       "wheels": [
@@ -78,6 +85,8 @@
     "linux-x64": {
       "nodeArchive": "linux-x64.tar.gz",
       "nodeSha256": "6e1db87ef58b8819e5d5402eff1536491b18edd8eb7bee5ef7897876e88dc5ff",
+      "uvArchive": "uv-x86_64-unknown-linux-gnu.tar.gz",
+      "uvSha256": "600cf9a742aca00d292673b16b5acffaa7b8c269a364ad0c2e79498dcb1fe101",
       "pythonTarget": "x86_64-unknown-linux-gnu",
       "pythonSha256": "72748da13197c1fb161e3afeef20a6a385ff24f2165e6e2758e47008e7faba4c",
       "wheels": [
@@ -102,6 +111,8 @@
     "linux-arm64": {
       "nodeArchive": "linux-arm64.tar.gz",
       "nodeSha256": "724282c3b43aec998aa9527380465b45d229e021b58035f5f4f63095eabfe5d5",
+      "uvArchive": "uv-aarch64-unknown-linux-gnu.tar.gz",
+      "uvSha256": "bb66cb52e7b1823aed1183630d8d8e5c958840d584a4c55ec10a4cfc168dcca2",
       "pythonTarget": "aarch64-unknown-linux-gnu",
       "pythonSha256": "577b4bec0793ad1ff0cbff9adbd0df078eddde38a4c41bf5d83ad381a85ee39d",
       "wheels": [

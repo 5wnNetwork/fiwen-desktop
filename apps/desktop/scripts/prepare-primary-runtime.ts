@@ -29,6 +29,7 @@ export function smokePrimaryRuntime(root: string): void {
   if (Object.keys(manifest.pythonPackages).length === 0) throw new Error('primary runtime: missing Python distribution versions; prepare the payload before running its smoke checks.')
   const entries = workspaceDependencyPaths(root, manifest)
   if (entries.node === undefined || entries.pnpm === undefined) throw new Error('primary runtime: the Desktop payload must declare node and pnpm components.')
+  if (entries.uv === undefined || entries.uvx === undefined) throw new Error('primary runtime: the Desktop payload must declare uv components.')
   smokePayload(root, scrubWindowsSigningEnvironment(process.env))
 }
 
