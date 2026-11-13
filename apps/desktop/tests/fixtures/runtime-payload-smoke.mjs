@@ -143,13 +143,15 @@ function checkUv() {
   const environment = Object.fromEntries(Object.entries(process.env).filter(([name]) => (
     /^(?:systemroot|windir|comspec)$/iu.test(name)
   )))
-  const run = name => execFileSync(join(bin, name), ['--version'], {
+  // The release binaries append their build identity after the version, for example
+  // `uv 0.12.3 (… x86_64-pc-windows-msvc)`.
+  const versionOf = name => execFileSync(join(bin, name), ['--version'], {
     encoding: 'utf8', timeout: 45_000, windowsHide: true,
     env: { ...environment, PATH: `${bin}${delimiter}${systemBin}`, HOME: scratch, USERPROFILE: scratch,
       TMP: scratch, TEMP: scratch, TMPDIR: scratch, XDG_CACHE_HOME: scratch },
-  }).trim()
-  assert.equal(run(process.platform === 'win32' ? 'uv.exe' : 'uv'), `uv ${versions.uv}`)
-  assert.equal(run(process.platform === 'win32' ? 'uvx.exe' : 'uvx'), `uvx ${versions.uv}`)
+  }).trim().split(' ')
+  assert.deepEqual(versionOf(process.platform === 'win32' ? 'uv.exe' : 'uv'), ['uv', versions.uv])
+  assert.deepEqual(versionOf(process.platform === 'win32' ? 'uvx.exe' : 'uvx'), ['uvx', versions.uv])
 }
 
 try {
