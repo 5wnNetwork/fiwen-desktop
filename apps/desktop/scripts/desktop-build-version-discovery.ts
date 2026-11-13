@@ -20,10 +20,10 @@
 import { readdir } from 'node:fs/promises'
 import { parse } from 'semver'
 import { desktopBuildVersionPrefix, validateDesktopBuildVersion } from './desktop-build-version.mjs'
-import { DESKTOP_AUTO_UPDATE_ENV, resolveDesktopUploadConfig } from './desktop-auto-update-environment.mjs'
-import { ListObjectsV2Command } from '@aws-sdk/client-s3'
-import { createDesktopS3 } from './desktop-s3.ts'
-import { s3Operation } from './s3-operation.ts'
+import { DESKTOP_AUTO_UPDATE_ENV, resolveDesktopUploadConfig } from '@deepseek-ai/dsh-desktop-publisher/desktop-auto-update-environment.mjs'
+import { ListObjectsV2Command, type ListObjectsV2CommandOutput } from '@aws-sdk/client-s3'
+import { createDesktopS3 } from '@deepseek-ai/dsh-desktop-publisher/desktop-s3.ts'
+import { s3Operation } from '@deepseek-ai/dsh-desktop-publisher/s3-operation.ts'
 import type { DesktopPackageTargetName } from './package-target.ts'
 
 /** How long the whole bucket listing may take before the suggestion falls back to local artifacts. */
@@ -106,10 +106,11 @@ async function remoteVersions(options: DesktopBuildVersionSuggestionOptions): Pr
   let marker: string | undefined
   try {
     do {
-      const page = await s3Operation(Math.max(1, deadline - Date.now()), signal => s3.send(new ListObjectsV2Command({
-        Bucket: update.bucket, MaxKeys: LISTING_PAGE_SIZE,
-        Prefix: `${update.binaryKeyPrefix}/fiwen-desktop-`, ...marker === undefined ? {} : { ContinuationToken: marker },
-      }), { abortSignal: signal }), 'ListObjectsV2').then(data => ({
+      const page = await s3Operation<ListObjectsV2CommandOutput>(
+        Math.max(1, deadline - Date.now()), signal => s3.send(new ListObjectsV2Command({
+          Bucket: update.bucket, MaxKeys: LISTING_PAGE_SIZE,
+          Prefix: `${update.binaryKeyPrefix}/fiwen-desktop-`, ...marker === undefined ? {} : { ContinuationToken: marker },
+        }), { abortSignal: signal }), 'ListObjectsV2').then(data => ({
         keys: (data.Contents ?? []).flatMap(object => object.Key === undefined ? [] : [object.Key]),
         next: data.IsTruncated === true ? data.NextContinuationToken : undefined,
       }))

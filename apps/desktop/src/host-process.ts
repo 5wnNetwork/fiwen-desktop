@@ -1,12 +1,11 @@
 /** Electron Node-mode child lifecycle for the shared Web application. */
 
 import { spawn, type ChildProcess } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { DesktopParentAuthentication } from './parent-authentication.ts'
 import { join } from 'node:path'
 import { z } from 'zod'
 import type { PlatformSession } from '@deepseek-ai/dsh-deepseek-account'
 import { desktopNodeEnvironment } from './node-environment.ts'
-import { primaryRuntimeToolPath } from '@deepseek-ai/dsh-tool-workspace-dependencies'
 import { parsePluginOperationRecord, type PluginOperationRecord, type PluginOperationRunId } from '@deepseek-ai/dsh-plugin-manager/diagnostic'
 
 interface ReadyEvent {
@@ -63,6 +62,18 @@ export const QUIT_INSPECTION_DEADLINE_MS = 2_000
 const MAX_HOST_DIAGNOSTIC_CHARS = 64 * 1024
 const runIdSchema = z.uuid()
 
+function isOwnedHostUrl(value: unknown): value is string {
+  if (typeof value !== 'string') return false
+  try {
+    const url = new URL(value)
+    return (url.protocol === 'http:' || url.protocol === 'https:')
+      && url.hostname === '127.0.0.1' && url.username === '' && url.password === ''
+      && url.pathname === '/' && url.search === '' && url.hash === ''
+  } catch (_invalidUrl) {
+    return false
+  }
+}
+
 function isDesktopHostEvent(message: unknown): message is DesktopHostEvent {
   if (typeof message !== 'object' || message === null || !('type' in message)) return false
   const candidate = message as Record<string, unknown>
@@ -72,7 +83,7 @@ function isDesktopHostEvent(message: unknown): message is DesktopHostEvent {
     case 'shutdown-complete':
       return true
     case 'ready':
-      return typeof candidate.url === 'string'
+      return isOwnedHostUrl(candidate.url)
     case 'platform-session': {
       const session = candidate.session
       if (session === null) return true
@@ -125,10 +136,12 @@ async function exitsWithin(exit: Promise<void>, milliseconds: number): Promise<b
   }
 }
 
-/** Browser authentication URL reported by the running Web application. */
+/** Host readiness plus the parent-owned credential used only by the main process. */
 export interface DesktopHostReady {
   readonly url: string
   readonly injections?: readonly unknown[] | undefined
+  /** Cookie header for the owned Host; synthesized locally and never received from the renderer. */
+  readonly authenticationCookie: string
 }
 
 /** The child has exited, but task teardown did not finish successfully. */
@@ -158,6 +171,7 @@ export class DesktopHostFatalError extends Error {
 
 /** One Web backend running under the Electron executable in Node mode. */
 export class DesktopHostProcess {
+  readonly #authentication = new DesktopParentAuthentication()
   private runId: PluginOperationRunId | undefined
   private child: ChildProcess | undefined
   private readyResolve!: (ready: DesktopHostReady) => void
@@ -184,8 +198,7 @@ export class DesktopHostProcess {
    * @param inspectPort - Optional loopback inspector port for workspace development.
    * @param environment - Environment inherited by the Host and its plugin subprocesses.
    * @param onFailure - Receives the first unexpected child failure, including after readiness.
-   * @param primaryRuntime - Optional bundled dependency payload; when supplied, missing sibling
-   *   `office-skills` resources fail Host startup.
+   * @param primaryRuntime - Optional bundled dependency payload; the Host exposes it to its profile as `DSH_PRIMARY_RUNTIME`.
    * @param packageManager - Bundled pnpm entry and Node launcher directory, scoped to package operations.
    * @param onPlatformSession - Private credential updates for embedded Platform views.
    * @param onPluginOperation - Optional diagnostic sink; malformed records are ignored without failing the Host.
@@ -211,19 +224,18 @@ export class DesktopHostProcess {
   async start(): Promise<DesktopHostReady> {
     if (this.child !== undefined) return this.readyPromise
     const entry = join(this.runtimeDir, 'node_modules', '@deepseek-ai', 'dsh-desktop-host', 'lib', 'index.js')
-    const primaryRuntime = this.primaryRuntime ?? join(this.runtimeDir, '..', 'runtime', 'primary-runtime')
     const child = spawn(this.node, [
       '--expose-internals',
       ...(this.inspectPort === undefined ? [] : [`--inspect=127.0.0.1:${String(this.inspectPort)}`]),
       entry,
       this.runtimeDir,
       this.projectDir,
-      primaryRuntime,
+      // Empty asks the Host for the payload beside its runtime directory, so that layout has one owner.
+      this.primaryRuntime ?? '',
       ...this.packageManager === undefined ? [] : [this.packageManager.pnpm, this.packageManager.nodeBin],
     ], {
       cwd: this.projectDir,
-      env: desktopNodeEnvironment(this.node, undefined, this.environment,
-        primaryRuntimeToolPath(primaryRuntime, existsSync)),
+      env: desktopNodeEnvironment(this.node, undefined, this.environment),
       stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
     })
     this.child = child
@@ -247,8 +259,24 @@ export class DesktopHostProcess {
         child.kill('SIGTERM')
         return
       }
-      if (message.type === 'starting') this.runId = message.runId
-      else if (message.type === 'ready') this.readyResolve({ url: message.url, injections: message.injections })
+      if (message.type === 'starting') {
+        if (this.runId === undefined && !this.failureReported && !this.stopping) {
+          this.runId = message.runId
+          void this.#authentication.deliver(child).catch((error: unknown) => {
+            this.fail(error instanceof Error ? error : new Error(String(error)))
+            child.kill('SIGTERM')
+          })
+        }
+      }
+      else if (message.type === 'ready') {
+        void this.#authentication.readyCookie().then((authenticationCookie) => {
+          if (this.failureReported || this.stopping) return
+          this.readyResolve({ url: message.url, injections: message.injections, authenticationCookie })
+        }, (error: unknown) => {
+          this.fail(error instanceof Error ? error : new Error(String(error)))
+          child.kill('SIGTERM')
+        })
+      }
       else if (message.type === 'platform-session') this.onPlatformSession?.(message.session)
       else if (message.type === 'shutdown-complete') {
         if (this.stopping) this.shutdownCompleted = true

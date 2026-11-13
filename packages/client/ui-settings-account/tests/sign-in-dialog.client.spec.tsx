@@ -12,7 +12,8 @@ function dialogProps(attempt: AccountView['attempt'], copy: typeof en | typeof z
   const start = vi.fn(async () => {})
   const cancel = vi.fn(async () => {})
   const close = vi.fn()
-  return { start, cancel, close, colorScheme, t: (key: keyof typeof en) => copy[key],
+  const useApiKey = vi.fn()
+  return { start, cancel, close, useApiKey, colorScheme, t: (key: keyof typeof en) => copy[key],
     account: { view: { status: 'signed-out' as const, attempt, links: { usageUrl: 'https://platform.deepseek.com/usage', topUpUrl: 'https://platform.deepseek.com/top_up' } }, details: undefined, avatar: undefined, failed: false } }
 }
 function mount(attempt: AccountView['attempt'], copy: typeof en | typeof zh = en, colorScheme: 'light' | 'dark' = 'dark') {
@@ -20,12 +21,12 @@ function mount(attempt: AccountView['attempt'], copy: typeof en | typeof zh = en
   render(<SignInDialog {...props} />)
   return props
 }
-it.each([en, zh])('offers sign in as the only credential action', async (copy) => {
+it.each([en, zh])('offers sign in or the existing API key editor', async (copy) => {
   const props = mount(null, copy)
   await expect(`${screen.getByRole('dialog').textContent}\n`).toMatchFileSnapshot(`./expected/login-${copy === en ? 'en' : 'zh'}.txt`)
-  expect(screen.queryByRole('button', { name: copy.addApiKey })).toBeNull()
-  await act(async () => { fireEvent.click(screen.getByRole('button', { name: copy.signIn })) })
-  expect(props.start).toHaveBeenCalledOnce()
+  fireEvent.click(screen.getByRole('button', { name: copy.addApiKey }))
+  expect(props.useApiKey).toHaveBeenCalledOnce()
+  expect(props.start).not.toHaveBeenCalled()
 })
 it.each([en, zh])('requires a user action after timeout', async (copy) => {
   const props = mount({ id, phase: 'expired', errorCode: 'expired' }, copy)
@@ -38,7 +39,7 @@ it.each([en, zh])('shows waiting actions and cancels before dismissing', async (
   const props = mount({ id, phase: 'waiting-browser', authorizeUrl: 'https://platform.deepseek.com/dsh/authorize?state=example' }, copy)
   expect(screen.getByRole('button', { name: copy.waiting }).hasAttribute('disabled')).toBe(true)
   await expect(`${screen.getByRole('dialog').textContent}\n`).toMatchFileSnapshot(`./expected/login-waiting-${copy === en ? 'en' : 'zh'}.txt`)
-  await act(async () => { fireEvent.click(screen.getByRole('button', { name: copy.close })) })
+  await act(async () => { fireEvent.click(screen.getByRole('button', { name: copy.cancel })) })
   expect(props.cancel).toHaveBeenCalledExactlyOnceWith(id)
   expect(props.close).toHaveBeenCalledOnce()
 })
@@ -186,6 +187,8 @@ it('does not report workspace login views or login choices', async () => {
   view.rerender(<SignInDialog {...props} colorScheme="light" />)
   await act(async () => { fireEvent.click(screen.getByRole('button', { name: en.signIn })) })
   expect(props.start).toHaveBeenCalledOnce()
+  await act(async () => { fireEvent.click(screen.getByRole('button', { name: en.addApiKey })) })
+  expect(props.useApiKey).toHaveBeenCalledOnce()
   expect(track).not.toHaveBeenCalled()
 })
 

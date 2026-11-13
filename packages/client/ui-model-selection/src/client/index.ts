@@ -30,8 +30,6 @@ import { ModelSelect } from './ModelSelect.tsx'
 import { en, ja, es, fr, de, ru, pt, zh, type ModelKey } from './locales.ts'
 import { orderModelProviders } from './provider-order.ts'
 
-export { ProviderAccountsDirectory } from './accounts.ts'
-export type { ProviderAccounts, ProviderAccountsState } from './accounts.ts'
 export { ModelDirectory } from './directory.ts'
 export type { ModelDirectoryState } from './directory.ts'
 export { ModelDirectoryResolver } from './service.ts'
@@ -92,12 +90,10 @@ function selectionOf(state: ModelDirectoryState, id: string): ModelSelection | u
       const reasoningEffort = sameRoute
         ? state.current?.reasoningEffort ?? model.reasoning?.defaultEffort
         : model.reasoning?.defaultEffort
-      const tokenSaver = sameRoute ? state.current?.tokenSaver : undefined
       return {
         provider: group.id,
         model: model.id,
         ...reasoningEffort === undefined ? {} : { reasoningEffort },
-        ...tokenSaver === undefined ? {} : { tokenSaver },
       }
     }
   }
@@ -108,7 +104,7 @@ function selectionOf(state: ModelDirectoryState, id: string): ModelSelection | u
 const NS = 'model'
 
 /** Required services: the contribution registry, the seat's slot registry, locale, and the service's own faces. */
-export const inject = ['commandUi', 'locale', 'sessions', 'slots', 'remote', 'remote.session', 'remote.authorization']
+export const inject = ['commandUi', 'locale', 'sessions', 'slots', 'remote', 'remote.session']
 
 /**
  * Client plugin body: mount ModelDirectoryResolver, register the `model` dictionaries,
@@ -138,7 +134,6 @@ export function apply(ctx: ClientContext): void {
       available: session => sessions.subagentAddress(session.sessionId) === undefined,
       ui: {
         kind: 'popupSelect',
-        searchMode: 'fuzzy-label',
         searchLabels: () => ({
           placeholder: t('search.placeholder'),
           empty: t('empty.models'),
@@ -179,6 +174,7 @@ export function apply(ctx: ClientContext): void {
       children: {
         'conversation.input.model.label': { kind: 'single', scope: 'session', inline: true },
         'conversation.input.model.options': { kind: 'list', scope: 'session' },
+        'conversation.input.model.pane': { kind: 'keyed', scope: 'session' },
       },
       inject: (sessionId): ModelSelectInjected => {
         const directory = models.directoryFor(sessionId)
@@ -186,18 +182,12 @@ export function apply(ctx: ClientContext): void {
         return {
           available,
           directory: directory.store,
-          accounts: models.accounts.store,
           load: () => {
-            if (!available) return
-            directory.load().catch(() => { /* surfaced on the store */ })
-            void models.accounts.load()
+            if (available) directory.load().catch(() => { /* surfaced on the store */ })
           },
           resolveText: text => ctx.locale.resolveText(text),
           select: (selection: ModelSelection) => available
             ? directory.select(selection)
-            : Promise.resolve(undefined),
-          selectAccount: (provider: string, account: string) => available
-            ? models.accounts.select(provider, account)
             : Promise.resolve(undefined),
         }
       },

@@ -7,13 +7,14 @@ import Schema from '@deepseek-ai/schemastery'
 import { Context } from '@deepseek-ai/cordis'
 import { bindSnapshotSelector, RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
 import type {
-  AuthorizationAccountView, AuthorizationEntryView, CredentialInfo, RemoteResult, SettingsNamespaceView,
+  CredentialInfo, RemoteResult, SettingsNamespaceView,
 } from '@deepseek-ai/dsh-api-remotes/client'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import {
   ModelsSection, needsSetup, providerCopy, providerTargetLabel, removeProviderProfile,
 } from '../src/client/ModelsSection.tsx'
 import type { ModelsSectionInjected, ModelsSectionProps } from '../src/client/ModelsSection.tsx'
+import { ApiKeyInput } from '../src/client/ApiKeyInput.tsx'
 import { ProviderEditor, pathOps } from '../src/client/ProviderEditor.tsx'
 import type { ProviderEditorProps } from '../src/client/ProviderEditor.tsx'
 import {
@@ -222,27 +223,13 @@ function scriptedFace(overrides: {
         Promise.resolve(remoteOk(
           Object.fromEntries(refs.map(ref => [ref, {
             configured: ref === 'OPENAI_API_KEY',
-            ...ref === 'OPENAI_API_KEY' ? { source: 'file' } : {},
+            ...ref === 'OPENAI_API_KEY' ? { source: 'file', masked: '••••••••' } : {},
             writable: true,
           }])),
         ))),
       set,
       unset,
     },
-    authorization: {
-      list: vi.fn((): Promise<RemoteResult<AuthorizationEntryView[]>> => Promise.resolve(remoteOk([]))),
-      begin: vi.fn(() => Promise.resolve(remoteOk({ status: 'authorized' }))),
-      answer: vi.fn(() => Promise.resolve(remoteOk(true))),
-      decline: vi.fn(() => Promise.resolve(remoteOk(true))),
-      cancel: vi.fn(() => Promise.resolve(remoteOk(undefined))),
-      signOut: vi.fn(() => Promise.resolve(remoteOk(undefined))),
-      listAccounts: vi.fn((): Promise<RemoteResult<AuthorizationAccountView[]>> => Promise.resolve(remoteOk([]))),
-      selectAccount: vi.fn(() => Promise.resolve(remoteOk(undefined))),
-      quota: vi.fn(() => Promise.resolve(remoteOk(undefined))),
-    },
-    // The forwarded-event subscription seat; this spec emits no events, so
-    // the disposer is the only part that must exist.
-    $on: vi.fn(() => vi.fn()),
   }
   return { face, update, mutate, set, unset }
 }
@@ -384,74 +371,6 @@ describe('ModelsSection', () => {
     const row = within(edit.closest('li')!)
     expect(row.getByText(en.keyFallbackUnchecked)).toBeTruthy()
     expect(row.queryByText(en.keyFallbackMissing.replace('{hint}', 'OPENAI_API_KEY'))).toBeNull()
-  })
-
-  it('marks a grant-signed row configured and offers subscription sign-in in its editor', async () => {
-    const scripted = scriptedFace()
-    scripted.face.authorization.list.mockResolvedValue(remoteOk([{
-      key: 'llm-pi-ai/anthropic' as never, label: 'Claude Pro/Max',
-      methods: [{ id: 'oauth', label: 'Sign in with Claude' }], inFlight: false, configured: true,
-    }]))
-    // A configured flow lists its stored records — here just the base record
-    // the lone sign-in wrote.
-    scripted.face.authorization.listAccounts.mockResolvedValue(remoteOk([
-      { key: 'llm-pi-ai/anthropic' as never, account: '', selected: true },
-    ]))
-    // Give anthropic a stored profile so the joined row is configured.
-    const piAi = wireNamespaces().find(view => view.ns === 'llm-pi-ai')!
-    const providers = { ...(piAi.value as { providers: object }).providers, anthropic: {} }
-    scripted.face.settings.describe.mockImplementation(() => Promise.resolve(remoteOk({
-      writable: true, hasDocument: false,
-      namespaces: wireNamespaces().map(view => view.ns !== 'llm-pi-ai' ? view : { ...view, value: { providers }, user: { providers } }),
-    })))
-    const { renderSlot } = await mountFace(scripted)
-    const row = within(screen.getByRole('button', { name: 'Edit anthropic' }).closest('li')!)
-    expect(row.getByLabelText(en.credentialConfigured)).toBeTruthy()
-    const seat = renderSlot.mock.calls.find(call => (call[1] as { provider?: { provider?: string } })?.provider?.provider === 'anthropic')
-    expect(seat?.[1]).toMatchObject({ configured: true, keyConfigured: true })
-    expect(seat?.[2]).toMatchObject({ entryKey: 'llm-pi-ai' })
-    fireEvent.click(row.getByRole('button', { name: 'Edit anthropic' }))
-    const editor = row.getByText(en.subscription).closest('div')!
-    // The joined account list discloses the selected account in its header;
-    // expanding exposes the add-account row, and sign-out sits in the row's
-    // overflow menu.
-    fireEvent.click(within(editor).getByRole('button', { name: en.accountBase, expanded: false }))
-    expect(within(editor).getByRole('button', { name: en.accountAdd })).toBeTruthy()
-    fireEvent.click(within(editor).getByRole('button', { name: en.accountActions }))
-    expect(screen.getByRole('menuitem', { name: en.signOut })).toBeTruthy()
-  })
-
-  it('shows no credential dot on an env-less OAuth route no flow has claimed', async () => {
-    const scripted = scriptedFace()
-    scripted.face.llm.listConfigurableProviders.mockResolvedValue(remoteOk([
-      { provider: 'openai-codex', displayName: 'Codex', settingsNs: 'llm-pi-ai',
-        settingsPath: ['providers', 'openai-codex'], defaultBaseURL: 'https://chatgpt.com/backend-api',
-        baseURLEnv: [], nativeAuth: { env: [], oauth: true } },
-      { provider: 'plain', displayName: 'plain', settingsNs: 'llm-plain', settingsPath: ['profiles', 'plain'] },
-    ]))
-    const piAi = wireNamespaces().find(view => view.ns === 'llm-pi-ai')!
-    const providers = { ...(piAi.value as { providers: object }).providers, 'openai-codex': {} }
-    scripted.face.settings.describe.mockImplementation(() => Promise.resolve(remoteOk({
-      writable: true, hasDocument: false,
-      namespaces: wireNamespaces().map(view => view.ns !== 'llm-pi-ai' ? view : { ...view, value: { providers }, user: { providers } }),
-    })))
-    await mountFace(scripted)
-    const row = within(screen.getByText('Codex').closest('li')!)
-    // No env var to check and no flow to grant it: neither dot applies.
-    expect(row.queryByLabelText(en.credentialMissing)).toBeNull()
-    expect(row.queryByLabelText(en.credentialConfigured)).toBeNull()
-  })
-
-  it('offers subscription sign-in on a dormant catalog card before any profile exists', async () => {
-    const scripted = scriptedFace()
-    scripted.face.authorization.list.mockResolvedValue(remoteOk([{
-      key: 'llm-pi-ai/anthropic' as never, label: 'Claude Pro/Max',
-      methods: [{ id: 'oauth', label: 'Sign in with Claude' }], inFlight: false, configured: false,
-    }]))
-    await mountFace(scripted)
-    fireEvent.click(screen.getByRole('button', { name: en.add }))
-    fireEvent.change(screen.getByLabelText(en.provider), { target: { value: 'anthropic' } })
-    expect(screen.getByRole('button', { name: 'Sign in with Claude' })).toBeTruthy()
   })
 
   it('waits for the current snapshot when a setup surface remounts during refresh', async () => {
@@ -907,6 +826,10 @@ describe('ModelsSection', () => {
       .toEqual([{ op: 'set', path: ['b'], value: 2 }, { op: 'set', path: ['d'], value: 3 }])
     expect(pathOps([], undefined, {})).toEqual([])
     expect(pathOps([], { a: 1 }, { a: 1 })).toEqual([])
+    expect(pathOps([], { p: { m: 'x', n: 1 } }, { p: { m: 'y' } }))
+      .toEqual([{ op: 'set', path: ['p', 'm'], value: 'y' }, { op: 'unset', path: ['p', 'n'] }])
+    expect(pathOps([], {}, { p: { m: 'x' } })).toEqual([{ op: 'set', path: ['p', 'm'], value: 'x' }])
+    expect(pathOps([], { p: 'x' }, { p: { m: 'x' } })).toEqual([{ op: 'set', path: ['p'], value: { m: 'x' } }])
   })
 
   it('stores a typed key write-only from the setup card without touching settings', async () => {
@@ -1533,7 +1456,7 @@ describe('ModelsSection', () => {
     fireEvent.click(screen.getByRole('button', { name: openaiCopy(en.editProvider) }))
     // The field names the profile's reference; a stored value stays hidden.
     const editorKey = await screen.findByLabelText<HTMLInputElement>(en.keyInput)
-    expect(editorKey.placeholder).toBe(en.keyPlaceholderSaved)
+    expect(editorKey.placeholder).toBe('••••••••')
     // pi-ai carries Base URL too: the stored override shows as the value and
     // the effective profile endpoint, ahead of the catalog's, as its placeholder.
     fireEvent.click(screen.getByText(en.customized))
@@ -1719,7 +1642,7 @@ describe('ModelsSection', () => {
     face.credentials.describe.mockImplementation(() => Promise.resolve(remoteFail('down', 'gateway/internal')))
     fireEvent.click(screen.getByRole('button', { name: openaiCopy(en.editProvider) }))
     const editorKey = await screen.findByLabelText<HTMLInputElement>(en.keyInput)
-    expect(editorKey.placeholder).toBe(en.keyPlaceholderSaved)
+    expect(editorKey.placeholder).toBe('••••••••')
     fireEvent.change(editorKey, { target: { value: 'sk-live' } })
     fireEvent.click(screen.getByText(en.apply))
     await waitFor(() => { expect(set).toHaveBeenCalledTimes(1) })
@@ -2282,31 +2205,256 @@ describe('apiKeyFailure', () => {
   })
 })
 
-it.each(['file', 'env', 'project-env', 'user-env'] as const)('shows only the blank-input environment detection for source %s', (source) => {
+it.each(['file', 'env', 'project-env', 'user-env'] as const)('shows the existing authentication with a blank input for source %s', (source) => {
   renderPiAiEditor('openai', piAiNamespaceWith('openai', { apiKeyEnv: 'OPENAI_API_KEY' }), {
-    credential: { configured: true, source, writable: true },
+    credential: { configured: true, source, writable: true, ...source === 'file' ? { masked: '••••••••' } : {} },
   })
   const hint = en.keyFallbackDetected.replace('{hint}', 'OPENAI_API_KEY')
   const input = screen.getByLabelText<HTMLInputElement>(en.keyInput)
   expect(screen.queryByText(/^API key source:/)).toBeNull()
-  if (source === 'file') expect(screen.queryByText(hint)).toBeNull()
+  if (source === 'file') expect(screen.getByText(en.keySaved)).toBeTruthy()
   else expect(screen.getAllByText(hint)).toHaveLength(1)
   expect(input.value).toBe('')
   expect(input.placeholder)
-    .toBe(source === 'file' ? en.keyPlaceholderSaved : en.keyPlaceholderFallback.replace('{hint}', 'OPENAI_API_KEY'))
+    .toBe(source === 'file' ? '••••••••' : en.keyPlaceholderFallback.replace('{hint}', 'OPENAI_API_KEY'))
   fireEvent.change(input, { target: { value: 'new-key' } })
   expect(screen.queryByText(hint)).toBeNull()
   expect(screen.queryByText(/^API key source:/)).toBeNull()
-  expect(input.getAttribute('aria-describedby')).toBeNull()
+  if (source === 'file') {
+    expect(document.getElementById(input.getAttribute('aria-describedby')!)?.textContent).toBe(en.keyReplacePending)
+  } else {
+    expect(screen.queryByText(en.keyReplacePending)).toBeNull()
+    expect(input.getAttribute('aria-describedby')).toBeNull()
+  }
   fireEvent.change(input, { target: { value: '' } })
-  if (source === 'file') expect(screen.queryByText(hint)).toBeNull()
+  if (source === 'file') expect(screen.getByText(en.keyRemovePendingEnvironment.replace('{hint}', 'OPENAI_API_KEY'))).toBeTruthy()
   else expect(screen.getAllByText(hint)).toHaveLength(1)
+})
+
+it.each([
+  ['openai', `sk-proj-${'•'.repeat(8)}wxyz`],
+  ['anthropic', `sk-ant-a${'•'.repeat(8)}wxyz`],
+  ['google', `AIzaS${'•'.repeat(8)}wxyz`],
+  ['deepseek', `sk-abcde${'•'.repeat(8)}wxyz`],
+  ['acme-gateway', `vendor_abcde${'•'.repeat(8)}wxyz`],
+] as const)('protects the saved %s key and reveals only its replacement', (provider, masked) => {
+  renderPiAiEditor(provider, piAiNamespaceWith(provider, { apiKeyEnv: 'TEAM_API_KEY' }), {
+    credential: { configured: true, source: 'file', writable: true, masked },
+  })
+  const input = screen.getByLabelText<HTMLInputElement>(en.keyInput)
+  expect(input.value).toBe('')
+  expect(input.type).toBe('password')
+  expect(input.placeholder).toBe(masked)
+  expect(screen.queryByRole('button', { name: 'Clear saved key' })).toBeNull()
+  expect(screen.queryByRole('button', { name: en.keyReveal })).toBeNull()
+  expect(fireEvent.copy(input)).toBe(false)
+  expect(fireEvent.cut(input)).toBe(false)
+  fireEvent.change(input, { target: { value: 'replacement-key' } })
+  expect(screen.queryByText(en.keySaved)).toBeNull()
+  expect(document.getElementById(input.getAttribute('aria-describedby')!)?.textContent).toBe(en.keyReplacePending)
+  fireEvent.click(screen.getByRole('button', { name: en.keyReveal }))
+  expect(input.type).toBe('text')
+  expect(input.value).toBe('replacement-key')
+  expect(fireEvent.copy(input)).toBe(true)
+  expect(fireEvent.cut(input)).toBe(true)
+  fireEvent.change(input, { target: { value: '' } })
+  expect(screen.getByText(en.keyRemovePendingEnvironment.replace('{hint}', 'TEAM_API_KEY'))).toBeTruthy()
+  expect(input.placeholder).toBe(en.keyPlaceholderFallback.replace('{hint}', 'TEAM_API_KEY'))
+  expect(screen.queryByLabelText(en.keyReveal)).toBeNull()
+})
+
+it('hides the reveal control and masks a disabled key draft', () => {
+  const view = render(<ApiKeyInput value="new-key" t={t} />)
+  fireEvent.click(screen.getByRole('button', { name: en.keyReveal }))
+  expect(screen.getByRole<HTMLInputElement>('textbox').type).toBe('text')
+  view.rerender(<ApiKeyInput value="new-key" t={t} disabled />)
+  expect(screen.queryByRole('button')).toBeNull()
+  expect(document.querySelector('input')?.type).toBe('password')
+})
+
+it('does not invent a preview when the credential provider omits it', () => {
+  renderPiAiEditor('openai', piAiNamespaceWith('openai', { apiKeyEnv: 'OPENAI_API_KEY' }), {
+    credential: { configured: true, source: 'file', writable: true },
+  })
+  const input = screen.getByLabelText<HTMLInputElement>(en.keyInput)
+  expect(input.value).toBe('')
+  expect(input.placeholder).toBe('')
+  expect(screen.getByText(en.keySaved)).toBeTruthy()
+  expect(screen.queryByRole('button', { name: en.keyReveal })).toBeNull()
+})
+
+it.each(['Backspace', 'Delete'])('stages whole saved-key deletion with %s and can cancel it', async (key) => {
+  const { unset } = await mountSection()
+  const edit = () => screen.getByRole('button', { name: openaiCopy(en.editProvider) })
+  fireEvent.click(edit())
+  let input = screen.getByLabelText<HTMLInputElement>(en.keyInput)
+  expect(input.placeholder).toBe('••••••••')
+  fireEvent.keyDown(input, { key: 'ArrowLeft' })
+  expect(input.placeholder).toBe('••••••••')
+  fireEvent.keyDown(input, { key })
+  expect(input.placeholder).toBe(en.keyPlaceholderFallback.replace('{hint}', 'OPENAI_API_KEY'))
+  expect(screen.getByText(en.keyRemovePendingEnvironment.replace('{hint}', 'OPENAI_API_KEY'))).toBeTruthy()
+  expect(unset).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('button', { name: en.cancel }))
+  expect(unset).not.toHaveBeenCalled()
+  fireEvent.click(edit())
+  input = screen.getByLabelText<HTMLInputElement>(en.keyInput)
+  expect(input.placeholder).toBe('••••••••')
+  fireEvent.keyDown(input, { key })
+  fireEvent.click(screen.getByRole('button', { name: en.apply }))
+  await waitFor(() => { expect(unset).toHaveBeenCalledExactlyOnceWith('OPENAI_API_KEY') })
+})
+
+it('keeps a saved read-only credential masked when deletion is unavailable', () => {
+  renderPiAiEditor('openai', piAiNamespaceWith('openai', { apiKeyEnv: 'OPENAI_API_KEY' }), {
+    credential: { configured: true, source: 'file', writable: false, masked: '••••••••' },
+  })
+  const input = screen.getByLabelText<HTMLInputElement>(en.keyInput)
+  fireEvent.keyDown(input, { key: 'Delete' })
+  expect(input.placeholder).toBe('••••••••')
+  expect(screen.queryByText(en.keyRemovePending)).toBeNull()
+  fireEvent.change(input, { target: { value: 'replacement' } })
+  fireEvent.change(input, { target: { value: '' } })
+  expect(input.placeholder).toBe('••••••••')
+})
+
+it('keeps a hidden OAuth reference out of the saved API-key controls', () => {
+  renderPiAiEditor('anthropic', piAiNamespaceWith('anthropic', { apiKeyEnv: 'ANTHROPIC_OAUTH_TOKEN' }), {
+    credential: { configured: true, source: 'file', writable: true, masked: '••••••••' },
+  })
+  const input = screen.getByLabelText<HTMLInputElement>(en.keyInput)
+  expect(input.value).toBe('')
+  expect(input.placeholder).toBe(en.keyPlaceholder)
+  fireEvent.keyDown(input, { key: 'Delete' })
+  expect(screen.queryByText(en.keyRemovePending)).toBeNull()
+})
+
+it.each([
+  ['google', 'GOOGLE_API_KEY', { env: ['GEMINI_API_KEY'], oauth: false }, true],
+  ['openai', 'TEAM_API_KEY', { env: ['OPENAI_API_KEY'], oauth: false }, false],
+  ['acme', 'ACME_API_KEY', undefined, false],
+] as const)('clears %s through its saved reference and preserves the endpoint', async (provider, ref, nativeAuth, removesReference) => {
+  const { face, unset, set, mutate } = scriptedFace()
+  const namespace = piAiNamespaceWith(provider, { apiKeyEnv: ref, baseURL: 'https://gateway.example/v1' })
+  const closed = vi.fn()
+  render(<ProviderEditor provider={provider} displayName={provider} namespace={namespace}
+    settingsPath={['providers', provider]} schema={settingsSchema} operations={operationsWith(face)}
+    t={t} readOnly={false} onClose={closed} {...nativeAuth === undefined ? {} : { nativeAuth }}
+    credential={{ configured: true, source: 'file', writable: true, masked: '••••••••' }} />)
+  fireEvent.keyDown(screen.getByLabelText(en.keyInput), { key: 'Delete' })
+  const envRef = removesReference && nativeAuth !== undefined ? nativeAuth.env[0] : ref
+  expect(screen.getByLabelText<HTMLInputElement>(en.keyInput).placeholder)
+    .toBe(en.keyPlaceholderFallback.replace('{hint}', envRef))
+  expect(screen.getByText(en.keyRemovePendingEnvironment.replace('{hint}', envRef))).toBeTruthy()
+  fireEvent.click(screen.getByText(en.customized))
+  expect(screen.getByRole<HTMLButtonElement>('button', { name: en.fetchModels }).disabled).toBe(true)
+  fireEvent.click(screen.getByRole('button', { name: en.apply }))
+  await waitFor(() => { expect(closed).toHaveBeenCalledWith(true) })
+  expect(unset).toHaveBeenCalledExactlyOnceWith(ref)
+  expect(set).not.toHaveBeenCalled()
+  if (removesReference) expect(mutate.mock.calls[0]?.[1])
+    .toEqual([{ op: 'unset', path: ['providers', provider, 'apiKeyEnv'] }])
+  else expect(mutate).not.toHaveBeenCalled()
+})
+
+it('keeps the clear hint generic when native authentication has no visible environment reference', () => {
+  renderPiAiEditor('openai', piAiNamespaceWith('openai', { apiKeyEnv: 'OPENAI_API_KEY' }), {
+    nativeAuth: { env: [], oauth: false },
+    credential: { configured: true, source: 'file', writable: true, masked: '••••••••' },
+  })
+  fireEvent.keyDown(screen.getByLabelText(en.keyInput), { key: 'Delete' })
+  expect(screen.getByText(en.keyRemovePending)).toBeTruthy()
+  expect(screen.getByLabelText<HTMLInputElement>(en.keyInput).placeholder).toBe(en.keyPlaceholder)
+})
+
+it.each(['cancel', 'replace'])('keeps authentication unchanged after refused deletion, then %s', async (action) => {
+  const { face, unset, set, mutate } = scriptedFace({
+    unset: vi.fn(() => Promise.resolve(remoteFail('credential store locked'))),
+  })
+  const closed = vi.fn()
+  render(<ProviderEditor provider="google" displayName="Google"
+    namespace={piAiNamespaceWith('google', { apiKeyEnv: 'GOOGLE_API_KEY' })}
+    settingsPath={['providers', 'google']} schema={settingsSchema} operations={operationsWith(face)}
+    t={t} readOnly={false} onClose={closed} nativeAuth={{ env: ['GEMINI_API_KEY'], oauth: false }}
+    credential={{ configured: true, source: 'file', writable: true, masked: '••••••••' }} />)
+  fireEvent.keyDown(screen.getByLabelText(en.keyInput), { key: 'Delete' })
+  fireEvent.click(screen.getByRole('button', { name: en.apply }))
+  await screen.findByText('credential store locked')
+  expect(mutate).not.toHaveBeenCalled()
+  expect(screen.getByText(en.keyRemovePendingEnvironment.replace('{hint}', 'GEMINI_API_KEY'))).toBeTruthy()
+  if (action === 'cancel') {
+    fireEvent.click(screen.getByRole('button', { name: en.cancel }))
+    expect(closed).toHaveBeenCalledWith(false)
+  } else {
+    fireEvent.change(screen.getByLabelText(en.keyInput), { target: { value: 'new-key' } })
+    expect(screen.queryByText('credential store locked')).toBeNull()
+    fireEvent.click(screen.getByRole('button', { name: en.apply }))
+    await waitFor(() => { expect(closed).toHaveBeenCalledWith(true) })
+    expect(set).toHaveBeenCalledExactlyOnceWith('GOOGLE_API_KEY', 'new-key')
+  }
+  expect(unset).toHaveBeenCalledExactlyOnceWith('GOOGLE_API_KEY')
+  expect(mutate).not.toHaveBeenCalled()
+})
+
+it.each(['retry', 'close'])('reports a completed deletion when settings fail, then %s', async (action) => {
+  const namespace = piAiNamespaceWith('google', { apiKeyEnv: 'GOOGLE_API_KEY' })
+  const written = { ...namespace, revision: namespace.revision + 1,
+    user: { providers: { google: {} } }, value: { providers: { google: {} } } }
+  const mutate = vi.fn().mockResolvedValueOnce(remoteFail('settings locked')).mockResolvedValueOnce(remoteOk(written))
+  const { face, unset } = scriptedFace({ mutate })
+  const closed = vi.fn()
+  render(<ProviderEditor provider="google" displayName="Google" namespace={namespace}
+    settingsPath={['providers', 'google']} schema={settingsSchema} operations={operationsWith(face)}
+    t={t} readOnly={false} onClose={closed} nativeAuth={{ env: ['GEMINI_API_KEY'], oauth: false }}
+    credential={{ configured: true, source: 'file', writable: true, masked: '••••••••' }} />)
+  fireEvent.keyDown(screen.getByLabelText(en.keyInput), { key: 'Delete' })
+  fireEvent.click(screen.getByRole('button', { name: en.apply }))
+  await screen.findByText('settings locked')
+  expect(screen.getByText(en.keyRemoveApplied)).toBeTruthy()
+  expect(screen.getByLabelText<HTMLInputElement>(en.keyInput).disabled).toBe(true)
+  if (action === 'retry') {
+    fireEvent.click(screen.getByRole('button', { name: en.apply }))
+    await waitFor(() => { expect(closed).toHaveBeenCalledWith(true) })
+    expect(mutate).toHaveBeenCalledTimes(2)
+  } else {
+    fireEvent.click(screen.getByRole('button', { name: en.close }))
+    expect(closed).toHaveBeenCalledWith(false)
+    expect(mutate).toHaveBeenCalledOnce()
+  }
+  expect(unset).toHaveBeenCalledExactlyOnceWith('GOOGLE_API_KEY')
+})
+
+it('clears the selected reference when refreshed metadata names a different credential', async () => {
+  const { face, unset, mutate } = scriptedFace()
+  const props: ProviderEditorProps = {
+    provider: 'openai', displayName: 'OpenAI', namespace: piAiNamespaceWith('openai', { apiKeyEnv: 'OLD_KEY' }),
+    settingsPath: ['providers', 'openai'], schema: settingsSchema, operations: operationsWith(face),
+    t, readOnly: false, onClose: vi.fn(), credential: { configured: true, source: 'file', writable: true, masked: '••••••••' },
+  }
+  const view = render(<ProviderEditor {...props} />)
+  fireEvent.keyDown(screen.getByLabelText(en.keyInput), { key: 'Delete' })
+  view.rerender(<ProviderEditor {...props} namespace={piAiNamespaceWith('openai', { apiKeyEnv: 'NEW_KEY' })} />)
+  fireEvent.click(screen.getByRole('button', { name: en.apply }))
+  await waitFor(() => { expect(unset).toHaveBeenCalledExactlyOnceWith('OLD_KEY') })
+  expect(mutate).not.toHaveBeenCalled()
+})
+
+it('clears the detected native key instead of an unused derived reference', async () => {
+  const { face, unset, mutate } = scriptedFace()
+  render(<ProviderEditor provider="google" displayName="Google" namespace={piAiNamespaceWith('google', {})}
+    settingsPath={['providers', 'google']} schema={settingsSchema} operations={operationsWith(face)}
+    t={t} readOnly={false} onClose={vi.fn()} nativeAuth={{ env: ['GEMINI_API_KEY'], oauth: false }}
+    credentialChecks={{ GEMINI_API_KEY: { configured: true, source: 'file', writable: true, masked: '••••••••' } }} />)
+  fireEvent.keyDown(screen.getByLabelText(en.keyInput), { key: 'Delete' })
+  fireEvent.click(screen.getByRole('button', { name: en.apply }))
+  await waitFor(() => { expect(unset).toHaveBeenCalledExactlyOnceWith('GEMINI_API_KEY') })
+  expect(mutate).not.toHaveBeenCalled()
 })
 
 it.each([
   ['unconfigured', { apiKeyEnv: 'OPENAI_API_KEY' }, { configured: false, source: 'env', writable: true }],
   ['unknown source', { apiKeyEnv: 'OPENAI_API_KEY' }, { configured: true, source: 'oauth', writable: true }],
-  ['native authentication', {}, { configured: true, source: 'file', writable: true }],
+  ['native authentication', {}, { configured: true, source: 'file', writable: true, masked: '••••••••' }],
 ] as const)('does not guess a source for %s', (_label, profile, credential) => {
   renderPiAiEditor('openai', piAiNamespaceWith('openai', profile), { credential })
   expect(screen.queryByText(/^API key source:/)).toBeNull()
@@ -2317,7 +2465,7 @@ it('refreshes a blank editor from saved credentials to environment detection wit
   const { face, controller } = await mountSection()
   const reads = face.credentials.describe.mock.calls.length
   fireEvent.click(screen.getByRole('button', { name: openaiCopy(en.editProvider) }))
-  expect(screen.getByLabelText<HTMLInputElement>(en.keyInput).placeholder).toBe(en.keyPlaceholderSaved)
+  expect(screen.getByLabelText<HTMLInputElement>(en.keyInput).placeholder).toBe('••••••••')
   expect(screen.queryByText(/^API key source:/)).toBeNull()
   expect(screen.queryByText(/Env var detected/)).toBeNull()
   expect(face.credentials.describe).toHaveBeenCalledTimes(reads)

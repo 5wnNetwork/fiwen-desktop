@@ -23,7 +23,6 @@ export const vi = {
   'command.failed': 'Thất bại',
   'command.failedReason': 'Thất bại: {reason}',
   'mode.label': 'Bật làm việc nhóm tác tử',
-  'mode.infoLabel': 'Giới thiệu làm việc nhóm tác tử',
   'mode.description': 'Phối hợp công việc và tiến độ giữa các tác tử bằng bảng nhiệm vụ chung để có kết quả tốt hơn với việc phức tạp, với chi phí token cao hơn tương ứng.',
   'mode.failed': 'Không xác nhận được việc lưu thiết lập làm việc nhóm tác tử. Hãy thử lại: {message}',
   'disable.title': 'Tắt làm việc nhóm tác tử?',

@@ -11,10 +11,4 @@ export const vi = {
   'workerFailed': 'Quá trình kết xuất PDF không thể tiếp tục. Vui lòng thử lại.',
   'unsupported': 'Xem trước PDF cần toàn bộ nội dung tệp.',
   'retry': 'Thử lại',
-  'zoomControls': 'Điều khiển thu phóng',
-  'zoomMenu': 'Chọn mức thu phóng',
-  'zoomOut': 'Thu nhỏ',
-  'zoomIn': 'Phóng to',
-  'zoomFitWidth': 'Vừa chiều rộng',
-  'zoomValue': '{percent}%',
 } satisfies Partial<Record<keyof typeof en, string>>

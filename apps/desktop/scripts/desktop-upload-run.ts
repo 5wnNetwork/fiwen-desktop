@@ -5,8 +5,8 @@ import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { Readable } from 'node:stream'
 import { PutObjectCommand, type S3Client } from '@aws-sdk/client-s3'
-import type { DesktopUploadArtifact, DesktopUploadPlan } from './desktop-upload-plan.ts'
-import { s3Operation } from './s3-operation.ts'
+import type { DesktopUploadArtifact, DesktopUploadPlan } from '@deepseek-ai/dsh-desktop-publisher/desktop-upload-types.ts'
+import { s3Operation } from '@deepseek-ai/dsh-desktop-publisher/s3-operation.ts'
 import { recordPackagingEvent } from './packaging-run.mjs'
 
 const FAILURE_CODES = new Set(['AccessDenied', 'InternalError', 'NoSuchBucket', 'BadDigest', 'SignatureDoesNotMatch',

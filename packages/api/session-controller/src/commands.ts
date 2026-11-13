@@ -15,7 +15,7 @@ import type {
 import type { FileUploadReceiptId, StagedAttachment } from '@deepseek-ai/dsh-client-file-upload/types'
 import type {} from '@deepseek-ai/dsh-client-file-upload'
 import {
-  isLlmTokenSaverMode, ReasoningEffortId, createUserMessage, freezeMessage,
+  isLlmTokenSaverMode, type ReasoningEffortId, createUserMessage, freezeMessage,
 } from '@deepseek-ai/dsh-llm'
 import type { MessageId, MessageSource } from '@deepseek-ai/dsh-llm'
 import { buildForkSeed } from '@deepseek-ai/dsh-session/fork'
@@ -180,7 +180,7 @@ export class SessionCommandController {
           model: request.model,
           ...(request.reasoningEffort === undefined
             ? {}
-            : { reasoningEffort: ReasoningEffortId(request.reasoningEffort) }),
+            : { reasoningEffort: brandString<ReasoningEffortId>(request.reasoningEffort) }),
           ...(request.tokenSaver === undefined ? {} : { tokenSaver: request.tokenSaver }),
         }
         await this.ctx.llm.resolveCallConfig(selected)

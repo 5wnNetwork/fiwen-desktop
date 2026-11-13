@@ -33,7 +33,10 @@
     "examples/github-review/cordis.yml",
     "examples/github-review/github-ready-review-rule.mjs",
     "lib/types/**/*.js",
-    "lib/types/**/*.d.ts"
+    "lib/types/**/*.d.ts",
+    "lib/types/**/*.d.ts.map",
+    "lib/**/*.js.map",
+    "src"
   ],
   "license": "MIT",
   "peerDependencies": {
@@ -44,6 +47,7 @@
     "@deepseek-ai/dsh-webhook": "workspace:*"
   },
   "dependencies": {
+    "@deepseek-ai/dsh-brand": "workspace:*",
     "@deepseek-ai/dsh-util-values": "workspace:*",
     "@deepseek-ai/schemastery": "workspace:~",
     "@octokit/webhooks": "^14.2.0"

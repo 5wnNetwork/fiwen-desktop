@@ -2,22 +2,18 @@
 import { Big } from 'big.js'
 import { useEffect, useRef, useState, type MouseEvent } from 'react'
 import { Button, IconRightUpOutlineRegular } from '@deepseek-ai/dsh-client-ui-primitives'
-import type { AccountDetails, AccountPlan, AccountView, SignInAttemptId } from '@deepseek-ai/dsh-deepseek-account/types'
+import type { AccountDetails, AccountView, SignInAttemptId } from '@deepseek-ai/dsh-deepseek-account/types'
 import type { PropsRuntime, PropsLocale, InjectFace, HostObservable } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ThemeSnapshot } from '@deepseek-ai/dsh-client-ui-theme/client'
 import type { PlatformPage, PlatformPages } from './platform-pages.ts'
-import type { BalanceCurrency } from './formatBalance.ts'
+import { formatBalance } from './formatBalance.ts'
 import { AccountAvatar } from './AccountAvatar.tsx'
 import type { AccountAvatarSnapshot } from './account-avatar.ts'
 import { authorizeUrlWithTheme } from './authorize-url.ts'
-import type { BonusNotice } from './bonus-notices.ts'
 import css from './AccountSection.module.css'
 
 /** Safe account snapshot shared by the settings page and launcher. */
 export interface AccountSnapshot {
-  /** Server-authored notices in front-to-back order, absent when none are available. */
-  notices?: readonly BonusNotice[]
-
   /** Latest Host state, absent until the stream responds. */
   view: AccountView | undefined
   /** Sanitized profile and balance query outcomes, absent while loading. */
@@ -30,7 +26,7 @@ export interface AccountSnapshot {
   loginVisible?: boolean
   /** Latest explicit start request failed before a Host state was available. */
   loginFailed?: boolean
-  /** Model credential onboarding owns the login dialog and delays bonus notices while mounted. */
+  /** Model credential onboarding owns the login dialog and delays account notifications while mounted. */
   onboarding?: boolean
   /** Desktop introduction covers the workspace during loading, saving, and exit animation.
    * True on Desktop until shell.overlay reports visibility, false in browsers; Desktop layouts must render that slot.
@@ -54,12 +50,6 @@ export interface AccountSectionInjected {
   subscribeModelSignInRequired?: (listener: () => void) => () => void
   /** Desktop-only: show one page in the account feature's shared native host; absent in ordinary browsers. */
   openPlatformPage?: PlatformPages['open']
-  /** Locale-aware balance display for one wallet currency. */
-  formatWalletBalance: (balance: string, currency: BalanceCurrency) => string
-  /** Locale-aware medium date for a plan expiry timestamp. */
-  formatPlanDate: (iso: string) => string
-  /** Locale-aware duration until the plan's quota reset instant. */
-  formatPlanResetIn: (iso: string) => string
 
   /** Account stream owned by the Host and theme snapshots published by the renderer, observed through framework hooks. */
   hooks: {
@@ -68,19 +58,17 @@ export interface AccountSectionInjected {
     theme: HostObservable<ThemeSnapshot>
   }
   /**
-   * Retry a failed avatar and read the profile, balance, bonus wallets and unnotified bonus once. The Settings launcher
+   * Retry a failed avatar, read the profile and balances, and notify account refresh extensions. The Settings launcher
    * calls it on each entry, and a page opener on return from top-up.
    * @returns after the account queries settle; image loading completes independently.
    */
   refreshAccount: () => Promise<void>
+  /** Open the external support questionnaire with the account, build and environment sampled by this click. */
+  contactUs: () => void
   /** Open or dismiss the login dialog. */
   showLogin: (visible: boolean) => void
   /** Claim dialog ownership for the onboarding step. */
   setOnboarding: (active: boolean) => void
-  /** @param orderId - notice whose card finished a presented frame while visible. */
-  bonusNoticeShown: (orderId: BonusNotice['orderId']) => void
-  /** @param orderId - notice the user closed. */
-  bonusNoticeDismissed: (orderId: BonusNotice['orderId']) => void
   /** @returns after the login attempt is created. */
   start: () => Promise<void>
   /** @param id - attempt to cancel. @returns after cancellation or an already-admitted commit. */
@@ -94,11 +82,7 @@ export interface AccountSectionInjected {
 export type AccountSectionProps =
   PropsRuntime<'settings.section'> & PropsLocale<'settings.account'> & InjectFace<AccountSectionInjected>
 /** @param props - localized actions, account subscription, and the shared Platform page channel. @returns account settings UI. */
-export function AccountSection({
-  t, useAccount, useTheme, start, cancel, openPlatformPage,
-  formatWalletBalance, formatPlanDate, formatPlanResetIn,
-  avatarFailed,
-}: AccountSectionProps) {
+export function AccountSection({ t, useAccount, useTheme, start, cancel, openPlatformPage, avatarFailed }: AccountSectionProps) {
   const { view: state, details, avatar, failed: streamFailed } = useAccount(value => value)
   const colorScheme = useTheme(snapshot => snapshot.active.colorScheme)
   // The shared host owns the native view; this page holds only its own request,
@@ -110,7 +94,6 @@ export function AccountSection({
   const wallets = details?.balance?.status === 'ready' ? details.balance.value : undefined
   const bonusWallets = details?.balance?.status === 'ready'
     ? details.balance.bonusWallets.filter(wallet => new Big(wallet.balance).gt(0)) : []
-  const plan = details?.balance?.status === 'ready' ? details.balance.plan : undefined
   const showBonusRow = details?.balance?.status !== 'ready' || bonusWallets.length > 0
   const attempt = state?.attempt
   const active = attempt !== null && attempt !== undefined
@@ -198,7 +181,7 @@ export function AccountSection({
           <span>{t('balance')}</span>
           {signedIn && wallets !== undefined && wallets.length > 0
             ? <span className={css.amount}>{wallets.map(wallet => <span key={wallet.currency}>
-              {formatWalletBalance(wallet.balance, wallet.currency)}
+              {formatBalance(wallet.balance, wallet.currency === 'CNY' ? '¥' : '$')}
             </span>)}</span>
             : !signedIn || details?.balance === undefined
               ? <span className={css.unavailable}>{t(!signedIn ? 'balanceSignedOut' : 'loading')}</span>
@@ -211,7 +194,7 @@ export function AccountSection({
             <span className={css.bonusValue}>
               {bonusWallets.length > 0
                 ? <span className={css.amount}>{bonusWallets.map(wallet => <span key={wallet.currency}>
-                  {formatWalletBalance(wallet.balance, wallet.currency)}
+                  {formatBalance(wallet.balance, wallet.currency === 'CNY' ? '¥' : '$')}
                 </span>)}</span>
                 : details?.balance === undefined
                   ? <span className={css.unavailable}>{t('loading')}</span>
@@ -219,21 +202,11 @@ export function AccountSection({
             </span>
           </div>
         </>}
-        {signedIn && plan != null && <>
-          <div className={css.divider} />
-          <div className={css.row}>
-            <span>{t('plan')}</span>
-            <span className={css.bonusValue}>
-              <span className={css.amount}><span>{plan.expiresAt === null
-                ? plan.name
-                : t('planValueUntil', { name: plan.name, date: formatPlanDate(plan.expiresAt) })}</span></span>
-            </span>
-          </div>
-          <QuotaBlock plan={plan} t={t} formatPlanResetIn={formatPlanResetIn} />
-        </>}
         <div className={css.divider} />
         <div className={css.row}>
+          <span className={css.secondary}>{t('more')}</span>
           <div className={css.links}>
+            {platformLink(t('usage'), css.linkButton)}
             <a className={`${css.linkButton} ${css.primary}`} href={state?.links.topUpUrl} aria-disabled={state === undefined}
               target="_blank" rel="noreferrer"
               onClick={(event) => { if (openPlatformPage !== undefined && signedIn) { event.preventDefault(); showPage(openPlatformPage, 'top-up') } }}>{t('topUp')}</a>
@@ -242,35 +215,4 @@ export function AccountSection({
       </div>
     </section>
   )
-}
-
-/**
- * The plan's quota readout: the quota label above a meter whose fill is the
- * remaining share, flanked by the remaining and used percentages, with the
- * reset countdown below.
- */
-function QuotaBlock({ plan, t, formatPlanResetIn }: {
-  readonly plan: AccountPlan
-  readonly t: AccountSectionProps['t']
-  readonly formatPlanResetIn: (iso: string) => string
-}) {
-  const used = quotaUsedPercent(plan)
-  const remaining = 100 - used
-  return <>
-    <span>{t('dailyQuota')}</span>
-    <div className={css.quotaMeter} role="meter" aria-label={t('dailyQuota')}
-      aria-valuemin={0} aria-valuemax={100} aria-valuenow={remaining}>
-      <span className={css.quotaPercent} aria-hidden="true">{remaining}%</span>
-      <div className={css.quotaTrack}><div className={css.quotaFill} style={{ width: `${remaining}%` }} /></div>
-      <span className={css.quotaPercent} aria-hidden="true">{used}%</span>
-    </div>
-    <span className={css.quotaReset}>{t('quotaResetIn', { time: formatPlanResetIn(plan.resetsAt) })}</span>
-  </>
-}
-
-/** The daily quota's consumed share in whole percent, clamped inside 0–100. */
-function quotaUsedPercent(plan: Pick<AccountPlan, 'dailyQuota' | 'quotaUsed'>): number {
-  const daily = new Big(plan.dailyQuota)
-  if (daily.lte(0)) return 0
-  return Math.min(100, Math.max(0, Math.round(new Big(plan.quotaUsed).div(daily).times(100).toNumber())))
 }

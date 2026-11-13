@@ -9,8 +9,7 @@
 
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import type {
-  AuthorizationAccountView, AuthorizationEntryView, CredentialInfo, LlmConfigurableProvider,
-  LlmNativeAuth, LlmProviderInfo, SettingsNamespaceView,
+  CredentialInfo, LlmConfigurableProvider, LlmNativeAuth, LlmProviderInfo, SettingsNamespaceView,
 } from '@deepseek-ai/dsh-api-remotes/client'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
@@ -78,10 +77,7 @@ export function joinProviderDirectory(
 
 /** One provider row the page renders. */
 export interface ProviderRow {
-  /**
-   * Account route has usable credentials for the configured inference origin;
-   * a diagnostic-bearing row stays visible so its error reaches the page.
-   */
+  /** Account route has usable credentials for the configured inference origin. */
   accountAvailable?: boolean
   /** The directory entry (route id, display name, settings address, live state). */
   entry: ProviderDirectoryEntry
@@ -102,19 +98,6 @@ export interface ProviderRow {
   derivedCredential?: CredentialInfo
   /** Redacted checks for named or native references; absent when their read failed. */
   credentialChecks?: Readonly<Record<string, CredentialInfo>>
-  /**
-   * The sign-in flow registered for this route's credential record, when one
-   * exists. Flows key their records `<owner>/<id>` where the owner is the
-   * adapter's own settings namespace, so the join is by address rather than
-   * by the route's catalog membership.
-   */
-  authorization?: AuthorizationEntryView
-  /**
-   * The accounts stored under this route's authorization flow, joined only
-   * for flows that offer OAuth sign-in. The view marks the slot requests
-   * resolve to, so a row renders its current account without a second read.
-   */
-  accounts?: readonly AuthorizationAccountView[]
 }
 
 /** Page snapshot. */
@@ -246,11 +229,10 @@ export class ModelsSettingsStore {
   /** Publish one joined answer; stale answers leave the current refresh in charge. */
   private async read(generation: number): Promise<void> {
     this.store.update((s) => { s.status = 'loading'; s.error = null })
-    const [registered, declared, , authorization] = await Promise.all([
+    const [registered, declared] = await Promise.all([
       this.ctx.remote.llm.listProviders(),
       this.ctx.remote.llm.listConfigurableProviders(),
       this.describeFace.ensure(),
-      this.ctx.remote.authorization.list(),
     ])
     if (generation !== this.generation) return
     if (!registered.ok) { this.failLoad(registered.error.message); return }
@@ -286,9 +268,7 @@ export class ModelsSettingsStore {
       const catalog = await this.ctx.remote.session.modelCatalog()
       for (const row of rows) {
         if (row.entry.provider === 'deepseek-account') row.accountAvailable = catalog.ok
-          && (catalog.value.groups.some(group => group.id === 'deepseek-account' && group.models.length > 0)
-            // A diagnostic (for example a listing outage) keeps the row so its error reaches the page.
-            || row.entry.error !== undefined)
+          && catalog.value.groups.some(group => group.id === 'deepseek-account' && group.models.length > 0)
       }
     }
     const refs = [...new Set(rows.filter(row => row.entry.provider !== 'deepseek-account').flatMap(row =>
@@ -304,27 +284,7 @@ export class ModelsSettingsStore {
       if (response.ok) Object.assign(credentials, response.value)
       else { credentialError = response.error.message; break }
     }
-    // Sign-in state joins by the same address the flow writes its record
-    // under — `<owning namespace>/<route>` — and degrades with the rest of
-    // the credential enrichment when the namespace cannot answer.
-    const authorizationByKey = new Map<string, AuthorizationEntryView>()
-    if (authorization.ok) {
-      for (const entry of authorization.value) authorizationByKey.set(entry.key, entry)
-    }
-    if (!authorization.ok && credentialError === null) credentialError = authorization.error.message
-    // Account lists ride the same enrichment: one read per OAuth-capable
-    // flow, degraded to absent when the namespace cannot answer.
-    const accountsByKey = new Map<string, readonly AuthorizationAccountView[]>()
-    if (authorization.ok) {
-      const oauthFlows = authorization.value.filter(entry =>
-        entry.methods.some(method => method.id === 'oauth'))
-      const lists = await Promise.all(oauthFlows.map(async entry =>
-        [entry.key, await this.ctx.remote.authorization.listAccounts(entry.key)] as const))
-      if (generation !== this.generation) return
-      for (const [key, list] of lists) {
-        if (list.ok) accountsByKey.set(key, list.value)
-      }
-    }
+    if (generation !== this.generation) return
     this.store.update((s) => {
       s.status = 'ready'
       s.error = null
@@ -334,8 +294,6 @@ export class ModelsSettingsStore {
         if (row.entry.provider === 'deepseek-account') return row
         const named = row.apiKeyEnv === undefined ? undefined : credentials[row.apiKeyEnv]
         const derived = row.apiKeyEnv !== undefined ? undefined : credentials[deriveKeyRef(row.entry.provider)]
-        const flow = authorizationByKey.get(`${row.entry.settingsNs}/${row.entry.provider}`)
-        const accounts = flow === undefined ? undefined : accountsByKey.get(flow.key)
         return {
           ...row,
           ...named === undefined ? {} : { credential: named },
@@ -347,8 +305,6 @@ export class ModelsSettingsStore {
                 return info === undefined ? [] : [[ref, info] as const]
               }),
           ) } : {},
-          ...flow === undefined ? {} : { authorization: flow },
-          ...accounts === undefined ? {} : { accounts },
         }
       })
       s.namespaces = namespaces
@@ -385,15 +341,7 @@ export class ModelsSettingsStore {
 export function providerUsable(row: ProviderRow): boolean {
   if (!row.entry.active) return false
   if (row.entry.provider === 'deepseek-account') return row.accountAvailable === true
-  if (row.apiKeyEnv === undefined) {
-    // A route whose native auth names no environment reference has one
-    // credential path left: the record its sign-in flow writes. Without the
-    // flow the route is on its own, so nothing is owed here.
-    if (row.entry.nativeAuth?.env.length === 0 && row.authorization !== undefined) {
-      return row.authorization.configured
-    }
-    return true
-  }
+  if (row.apiKeyEnv === undefined) return true
   return row.credential?.configured === true
 }
 

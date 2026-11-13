@@ -18,7 +18,6 @@ export const vi = {
   'tokens.total': '{value} tok',
   'loading.label': 'Đang tải subagent…',
   'load.error': 'Không thể tải subagent',
-  'catalog.migrationRequired': 'Cần di chuyển dữ liệu',
   'retry': 'Thử lại',
   'mode.external': 'Task ngoài',
   'mode.oneShot': 'một lần',

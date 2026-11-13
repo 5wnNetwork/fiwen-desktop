@@ -218,11 +218,7 @@
 .dangerButton:disabled,
 .addButton:disabled,
 .linkButton:disabled,
-.addModelButton:disabled,
-.accountHeader:disabled,
-.accountSelect:disabled,
-.accountMenuButton:disabled,
-.accountAdd:disabled {
+.addModelButton:disabled {
   opacity: 0.4;
   cursor: default;
 }
@@ -234,11 +230,7 @@
 .linkButton:focus-visible,
 .addModelButton:focus-visible,
 .iconButton:focus-visible,
-.customizedSummary:focus-visible,
-.accountHeader:focus-visible,
-.accountSelect:focus-visible,
-.accountMenuButton:focus-visible,
-.accountAdd:focus-visible {
+.customizedSummary:focus-visible {
   outline: none;
   box-shadow: 0 0 0 2px var(--dsw-focus-ring-color, var(--dsw-alias-state-business-primary));
 }
@@ -454,8 +446,15 @@
   transition: transform 120ms ease;
 }
 
-.customized[open] > .customizedSummary::before {
+.customized[open] > .customizedSummary::before,
+.retryFold[open] > .customizedSummary::before {
   transform: rotate(45deg) translate(-1px, -1px);
+}
+
+/* The nested fold labels a part of the retry policy, so it reads at field-label weight. */
+.retryFold > .customizedSummary {
+  font-weight: 400;
+  color: var(--dsw-alias-label-tertiary);
 }
 
 @media (hover: hover) {
@@ -667,6 +666,42 @@
   padding: 2px 4px;
 }
 
+/* Retry-policy fields under the mode select: codes and count, then the folded backoff values. */
+.retryBody {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+/* Code checkboxes in as many even columns as fit. */
+.retryCodeChoices {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 6px 16px;
+}
+
+/* Custom error-code input beside its Add action. */
+.retryCodeAdd {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* One backoff column wide, so the count lines up with the delay fields below. */
+.retryCount {
+  width: max(112px, calc((100% - 16px) / 3));
+  max-width: 100%;
+}
+
+.retryBackoff {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  align-items: end;
+  gap: 12px 8px;
+  padding-top: 8px;
+}
+
 .modelField {
   display: flex;
   flex-direction: column;
@@ -807,6 +842,11 @@ select.input {
 
 .keyInput {
   position: relative;
+}
+
+.savedKeyInput .input::placeholder {
+  color: var(--dsw-alias-label-primary);
+  opacity: 1;
 }
 
 .keyInputFilled {
@@ -960,259 +1000,4 @@ select.input {
   font-size: 13px;
   line-height: 20px;
   text-align: center;
-}
-
-.signInRow {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.signInAttempt {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.signInLog {
-  margin: 0;
-  font-size: 12px;
-  line-height: 18px;
-  color: var(--dsw-alias-label-tertiary);
-}
-
-.signInCode {
-  display: inline-flex;
-  align-self: flex-start;
-  padding: 4px 10px;
-  border-radius: var(--dsw-radius-md);
-  background: var(--dsw-alias-bg-layer-1);
-  font-family: var(--ds-font-family-code);
-  font-size: 14px;
-  letter-spacing: 0.08em;
-  color: var(--dsw-alias-label-primary);
-  user-select: all;
-}
-
-.signInPrompt {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.signInPrompt .input {
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.signInOptions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-/* Stored OAuth accounts of one provider: a disclosure header names the
-   account requests resolve to, and the expanded radiogroup lists every stored
-   account — the whole row selects, a leading check marks the active one, and
-   each row's overflow menu carries the quota refresh and sign-out. */
-.accountBlock {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-}
-
-.accountHeader {
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  min-height: 28px;
-  padding: 2px 6px;
-  border: none;
-  border-radius: var(--dsw-radius-md);
-  background: transparent;
-  color: var(--dsw-alias-label-primary);
-  font: inherit;
-  cursor: pointer;
-  text-align: left;
-}
-
-.accountHeader:hover:not(:disabled) {
-  background: var(--dsw-alias-interactive-bg-hover);
-}
-
-.accountHeaderLabel {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  font-size: 13px;
-  line-height: 20px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.accountChevron {
-  flex: none;
-  width: 12px;
-  height: 12px;
-  margin-left: auto;
-  color: var(--dsw-alias-label-tertiary);
-}
-
-.accountHeader[aria-expanded='true'] .accountChevron {
-  transform: rotate(180deg);
-}
-
-.accountList {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
-.accountRow {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  min-height: 28px;
-}
-
-.accountSelect {
-  box-sizing: border-box;
-  display: flex;
-  flex: 1 1 auto;
-  align-items: center;
-  gap: 8px;
-  min-width: 0;
-  min-height: 28px;
-  padding: 2px 6px;
-  border: none;
-  border-radius: var(--dsw-radius-md);
-  background: transparent;
-  color: var(--dsw-alias-label-primary);
-  font: inherit;
-  cursor: pointer;
-  text-align: left;
-}
-
-.accountSelect:hover:not(:disabled) {
-  background: var(--dsw-alias-interactive-bg-hover);
-}
-
-.accountCheck {
-  display: grid;
-  flex: 0 0 14px;
-  place-items: center;
-  color: var(--dsw-alias-label-primary);
-}
-
-.accountCheck svg {
-  width: 14px;
-  height: 14px;
-}
-
-.accountMenuButton {
-  box-sizing: border-box;
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 24px;
-  height: 24px;
-  padding: 0;
-  border: none;
-  border-radius: var(--dsw-radius-md);
-  background: transparent;
-  color: var(--dsw-alias-label-tertiary);
-  cursor: pointer;
-}
-
-.accountMenuButton:hover:not(:disabled),
-.accountMenuButton[aria-expanded='true'] {
-  background: var(--dsw-alias-interactive-bg-hover);
-  color: var(--dsw-alias-label-primary);
-}
-
-.accountAdd {
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  min-height: 28px;
-  padding: 2px 6px;
-  border: 0.5px dashed var(--dsw-alias-border-l3);
-  border-radius: var(--dsw-radius-md);
-  background: transparent;
-  color: var(--dsw-alias-label-tertiary);
-  font: inherit;
-  font-size: 13px;
-  line-height: 20px;
-  cursor: pointer;
-  text-align: left;
-}
-
-.accountAdd:hover:not(:disabled) {
-  border-color: var(--dsw-alias-border-l4);
-  background: var(--dsw-alias-interactive-bg-hover);
-  color: var(--dsw-alias-label-primary);
-}
-
-.quotaPending {
-  flex: none;
-  margin-left: auto;
-  font-size: 11px;
-  line-height: 16px;
-  color: var(--dsw-alias-label-tertiary);
-}
-
-.accountLabel {
-  overflow: hidden;
-  font-size: 13px;
-  line-height: 20px;
-  color: var(--dsw-alias-label-primary);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.quotaChips {
-  display: inline-flex;
-  flex: none;
-  align-items: center;
-  gap: 4px;
-  margin-left: auto;
-}
-
-.quotaPlan,
-.quotaChip {
-  padding: 1px 6px;
-  border: 0.5px solid var(--dsw-alias-border-l3);
-  border-radius: var(--dsw-radius-xs);
-  font-size: 11px;
-  line-height: 16px;
-  color: var(--dsw-alias-label-tertiary);
-}
-
-.quotaPlan {
-  border: none;
-  background: var(--dsw-alias-bg-layer-1);
-  color: var(--dsw-alias-label-secondary);
-}
-
-.quotaFailed {
-  flex: none;
-  margin-left: auto;
-  font-size: 11px;
-  line-height: 16px;
-  color: var(--dsw-alias-state-error-primary);
-}
-
-.accountExpired {
-  flex: none;
-  font-size: 11px;
-  line-height: 16px;
-  color: var(--dsw-alias-state-warn-primary);
 }

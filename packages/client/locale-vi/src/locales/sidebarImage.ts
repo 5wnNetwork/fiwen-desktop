@@ -7,10 +7,4 @@ export const vi = {
   'loading': 'Đang kết xuất tài liệu...',
   'failed': 'Không thể hiển thị hình ảnh này.',
   'unsupported': 'Xem trước hình ảnh cần toàn bộ nội dung tệp.',
-  'zoomControls': 'Điều khiển thu phóng',
-  'zoomMenu': 'Chọn mức thu phóng',
-  'zoomOut': 'Thu nhỏ',
-  'zoomIn': 'Phóng to',
-  'zoomFitWidth': 'Vừa chiều rộng',
-  'zoomValue': '{percent}%',
 } satisfies Partial<Record<keyof typeof en, string>>

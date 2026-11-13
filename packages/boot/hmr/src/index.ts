@@ -971,7 +971,7 @@ class Hmr extends Service {
           return job !== undefined && namespaceOf(job) === undefined
         }))
       }, undefined)
-      const result = await recomposeProfile(this.ownerContext.root, patches, 'fwnd', { requiredIds, running })
+      const result = await recomposeProfile(this.ownerContext[Context.root], patches, 'fwnd', { requiredIds, running })
       const restartReason = compared === undefined || unavailable ? 'module-comparison' : result.restartReason
       return { warnings: result.warnings, pending, ...restartReason === undefined ? {} : { restartReason } }
     } finally {

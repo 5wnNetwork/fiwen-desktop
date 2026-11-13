@@ -1,4 +1,4 @@
-/** Shared profile package operations used by fwnd plugin and the running manager. */
+/** Shared profile package operations used by dsh plugin and the running manager. */
 import { once } from 'node:events'
 import { existsSync, readFileSync } from 'node:fs'
 import { mkdir, mkdtemp, open, rm } from 'node:fs/promises'
@@ -31,7 +31,7 @@ export interface PackageOperationContext {
 
 /** Output and cancellation policy for one pnpm operation. */
 export interface PackageOperationOptions {
-  /** The pnpm executable name or path; resolved through `PATH` like the `fwnd plugin` command. Defaults to `pnpm`. */
+  /** The pnpm executable name or path; resolved through `PATH` like the `dsh plugin` command. Defaults to `pnpm`. */
   command?: string
   /** Prefix arguments for an application-owned executable. */
   args?: readonly string[]
@@ -53,6 +53,12 @@ export interface PackageOperationOptions {
   idleTimeoutMs?: number
   /** Bound on the pre-install registry lookup, in milliseconds; without one a fixed bound applies. */
   lookupTimeoutMs?: number
+  /**
+   * The bundle package and manifest version the run must install. A run that leaves this package missing, at another
+   * version, or without a bundle declaration or bundle patches that load, or that adds or changes another direct
+   * dependency, is undone like a compatibility rejection after it.
+   */
+  expected?: { readonly name: string; readonly version: string }
 }
 
 /** Resolve relative package specs against the caller's directory.
@@ -73,8 +79,8 @@ export function anchorPathSpec(argument: string, cwd: string): string {
  * @returns Resolved metadata, or undefined for packages without bundle metadata.
  */
 export function bundleManifest(name: string, dir: string, anchor: string): ProfileManifest | undefined {
-  const packageDir = resolveBundleDir('fwnd', name, anchor, dir)
-  const manifest = readProfileManifest('fwnd', packageDir)
+  const packageDir = resolveBundleDir('dsh', name, anchor, dir)
+  const manifest = readProfileManifest('dsh', packageDir)
   return manifest.dsh?.bundle?.patch === undefined ? undefined : manifest
 }
 
@@ -88,7 +94,7 @@ export async function saveManifest(dir: string, manifest: ProfileManifest): Prom
 
 /** Reconcile bundle selection, returning platform denials without saving any selection changes. */
 async function reconcile(before: ProfileManifest, dir: string, anchor: string, options: PackageOperationOptions): Promise<string[]> {
-  const after = readProfileManifest('fwnd', dir)
+  const after = readProfileManifest('dsh', dir)
   const dependencies = Object.keys(after.dependencies ?? {})
   const beforeDeps = new Set(Object.keys(before.dependencies ?? {}))
   const previous = after.dsh?.profile?.bundles ?? []
@@ -101,7 +107,7 @@ async function reconcile(before: ProfileManifest, dir: string, anchor: string, o
     if (beforeDeps.has(name)) continue
     const metadata = bundleManifest(name, dir, anchor)
     if (metadata?.dsh?.bundle === undefined) {
-      options.onOutput?.(`fwnd: warning: ${name} declares no dsh.bundle — installed as a plain dependency, not a profile layer\n`, 'stderr')
+      options.onOutput?.(`dsh: warning: ${name} declares no dsh.bundle — installed as a plain dependency, not a profile layer\n`, 'stderr')
       continue
     }
     try { assertBundlePlatform(metadata.dsh.bundle.platforms, process.platform) } catch (error) {
@@ -109,7 +115,7 @@ async function reconcile(before: ProfileManifest, dir: string, anchor: string, o
       unsupported.push(`${name}: ${error.message}`)
       continue
     }
-    for (const file of bundlePatchPaths(resolveBundleDir('fwnd', name, anchor, dir), metadata.dsh.bundle)) loadOverlayPatches('fwnd', file)
+    for (const file of bundlePatchPaths(resolveBundleDir('dsh', name, anchor, dir), metadata.dsh.bundle)) loadOverlayPatches('dsh', file)
     if (!bundles.includes(name)) {
       bundles.push(name)
     }
@@ -237,11 +243,11 @@ async function activeRecordedRun(dir: string): Promise<string | undefined> {
     void error
   }
   if (tree === undefined) {
-    return `fwnd: ${path} does not name a package run; delete it once no earlier package operation is still running in this profile\n`
+    return `dsh: ${path} does not name a package run; delete it once no earlier package operation is still running in this profile\n`
   }
   await awaitTreeGone(tree)
   if (treeAlive(tree)) {
-    return `fwnd: process ${String(tree.pid)}, started by an earlier package operation whose own process ended, is still running in this profile; `
+    return `dsh: process ${String(tree.pid)}, started by an earlier package operation whose own process ended, is still running in this profile; `
       + `wait for it or stop it, then retry. If process ${String(tree.pid)} is not that package run, delete ${path}.\n`
   }
   await rm(path, { force: true })
@@ -258,7 +264,7 @@ function directDependencies(manifest: ProfileManifest): Record<string, string> {
 function bundleComponentManifests(manifest: ProfileManifest, dir: string, anchor: string): ProfileManifest[] {
   const bundle = manifest.dsh?.bundle
   if (bundle === undefined) return []
-  const patches = bundlePatchPaths(dir, bundle).flatMap(file => loadOverlayPatches('fwnd', file))
+  const patches = bundlePatchPaths(dir, bundle).flatMap(file => loadOverlayPatches('dsh', file))
   const names = new Set<string>()
   const visit = (rows: EntryOptions[]) => {
     for (const row of rows) {
@@ -271,26 +277,29 @@ function bundleComponentManifests(manifest: ProfileManifest, dir: string, anchor
   visit(composeEntries([patches.filter(patch => patch.insert !== undefined)]))
   return [...names].flatMap((name) => {
     let packageDir: string
-    try { packageDir = resolveBundleDir('fwnd', name, anchor, dir) } catch (error) {
+    try { packageDir = resolveBundleDir('dsh', name, anchor, dir) } catch (error) {
       // Resolution errors for uninstalled or dynamic rows remain subject to the startup loader's checks.
       void error
       return []
     }
-    return [readProfileManifest('fwnd', packageDir)]
+    return [readProfileManifest('dsh', packageDir)]
   })
 }
 
 /** Execute pnpm inside a profile whose caller already holds the profile write lock.
- * Newly installed or updated direct dependencies are checked even when activation is disabled;
- * an untouched dependency never blocks an unrelated operation and stays denied at startup.
- * Compatibility denial restores the profile manifest and lockfile, but leaves downloaded modules on disk.
+ * Newly installed or updated direct dependencies are checked even when activation is disabled. With `expected`, each
+ * of them must be the expected package, which must be installed at its version with a bundle declaration. Any other
+ * untouched dependency never blocks an unrelated operation and stays denied at startup.
+ * A denial before pnpm runs changes nothing; one after it restores the profile manifest and lockfile and reinstalls
+ * the restored lockfile, while downloaded files stay in the pnpm store.
  * @param context Launcher-owned profile and resolution locations.
  * @param args Pnpm arguments, before relative path anchoring.
  * @param options Output, activation and cancellation policy.
  * @returns Exit status, whether the silence bound stopped the run, and the diagnostic path.
- * A compatibility denial returns exit code 1. Service output is bounded; CLI output uses inherited descriptors.
+ * A compatibility or `expected` denial returns exit code 1 and names what it refused.
  * Unsupported Host activation returns exit code 1 with named diagnostics; installed dependencies remain,
  * and no bundle selection changes are saved. Other reconciliation or filesystem errors reject.
+ * Service output is bounded; CLI output uses inherited descriptors.
  * The diagnostic file is closed on return or rejection, including preparation and spawn failures.
  */
 export async function runProfilePnpm(
@@ -311,7 +320,7 @@ export async function runProfilePnpm(
     const bytes = Buffer.from(active)
     return { exitCode: 1, output: bytes.subarray(Math.max(0, bytes.length - options.outputBytes)).toString('utf8'), truncated: bytes.length > options.outputBytes, logPath }
   }
-  const before = readProfileManifest('fwnd', dir)
+  const before = readProfileManifest('dsh', dir)
   const savedFiles = ['package.json', 'pnpm-lock.yaml'].map(name => ({ path: join(dir, name), text: optionalFile(join(dir, name)) }))
   const beforeDependencies = directDependencies(before)
   const installedBefore = new Map(Object.keys(beforeDependencies).map(name => [name, optionalFile(join(dir, 'node_modules', name, 'package.json'))]))
@@ -333,8 +342,16 @@ export async function runProfilePnpm(
   }
   /** Packages a compatibility check refused; callers render them for their own surface. */
   const incompatible: IncompatiblePlugin[] = []
+  /** Why the post-install check undoes a successful run. */
+  const warnings: string[] = []
+  /** What `options.expected` found wrong with the run, `unexpected-package` taking precedence. */
+  let unmet: PackageResult['unmet']
+  const fail = (code: NonNullable<PackageResult['unmet']>, warning: string): void => {
+    if (unmet !== 'unexpected-package') unmet = code
+    warnings.push(warning)
+  }
   const rejected = async (warnings: readonly string[], restoration: string): Promise<PackageResult> => {
-    const diagnostic = `\nfwnd: installation rejected: ${warnings.join('\n')}\nfwnd: ${restoration}.\n`
+    const diagnostic = `\ndsh: installation rejected: ${warnings.join('\n')}\ndsh: ${restoration}.\n`
     await log.write(diagnostic)
     options.onOutput?.(diagnostic, 'stderr')
     append(Buffer.from(diagnostic))
@@ -449,7 +466,7 @@ export async function runProfilePnpm(
       cut = true
       child.stdout?.destroy()
       child.stderr?.destroy()
-      const notice = 'fwnd: pnpm output was cut short after its process exited\n'
+      const notice = 'dsh: pnpm output was cut short after its process exited\n'
       await log.write(notice)
       // A failure from before the cut is the run's own and replaces the notice a
       // caller would otherwise read; a rejection the cut itself causes is its end.
@@ -462,7 +479,7 @@ export async function runProfilePnpm(
     const result = completion.value
     exitCode = result.exitCode ?? (result.code === 'ENOENT' ? 127 : 1)
     if (control.stalled) {
-      const notice = `fwnd: pnpm printed nothing for ${String(options.idleTimeoutMs)}ms and was terminated\n`
+      const notice = `dsh: pnpm printed nothing for ${String(options.idleTimeoutMs)}ms and was terminated\n`
       await log.write(notice)
       options.onOutput?.(notice, 'stderr')
       append(Buffer.from(notice))
@@ -477,8 +494,9 @@ export async function runProfilePnpm(
     }
     // A terminated run's exit status says nothing about what it wrote, so it never reconciles the selection.
     if (exitCode === 0 && !control.stalled) {
-      const after = readProfileManifest('fwnd', dir)
-      const warnings: string[] = []
+      const after = readProfileManifest('dsh', dir)
+      const { expected } = options
+      let seen = false
       for (const [name, spec] of Object.entries(directDependencies(after))) {
         const packageDir = join(dir, 'node_modules', name)
         const installed = optionalFile(join(packageDir, 'package.json'))
@@ -488,7 +506,19 @@ export async function runProfilePnpm(
         const found: string[] = []
         const issues: IncompatiblePlugin[] = []
         try {
-          const manifest = readProfileManifest('fwnd', packageDir)
+          const manifest = readProfileManifest('dsh', packageDir)
+          const installedAs = `${name}@${String(manifest.version)}`
+          const wanted = expected === undefined ? undefined : `${expected.name}@${expected.version}`
+          // The expected package is checked even when the run left it as it was, as adding its saved spec again does.
+          if (name === expected?.name) {
+            seen = true
+            if (installedAs !== wanted) fail('unexpected-package', `${installedAs} is installed where ${String(wanted)} was expected`)
+            else if (manifest.dsh?.bundle === undefined) fail('not-bundle', `${installedAs} declares no bundle`)
+            // The caller loads these patches next; one that cannot load is refused here, while its modules can go back.
+            else for (const file of bundlePatchPaths(packageDir, manifest.dsh.bundle)) loadOverlayPatches('dsh', file)
+          } else if (wanted !== undefined && !untouched) {
+            fail('unexpected-package', `${installedAs} is installed where ${wanted} was expected`)
+          }
           for (const candidate of [manifest, ...bundleComponentManifests(manifest, packageDir, context.installAnchor)]) {
             const issue = evaluatePluginCompatibility(candidate, readProfileVersionExemptions(dir))
             if (issue !== undefined && !issue.exempted) {
@@ -505,11 +535,12 @@ export async function runProfilePnpm(
           incompatible.push(...issues)
         }
         else {
-          const notice = `\nfwnd: warning: ${found.join('\n')}\nfwnd: it stays installed but profile startup denies it until you grant an exemption for those exact versions.\n`
+          const notice = `\ndsh: warning: ${found.join('\n')}\ndsh: it stays installed but profile startup denies it until you grant an exemption for those exact versions.\n`
           await log.write(notice)
           options.onOutput?.(notice, 'stderr')
         }
       }
+      if (expected !== undefined && !seen) fail('unexpected-package', `${expected.name}@${expected.version} is not installed`)
       if (warnings.length > 0) {
         // A bundle component's requirements need installed contents, so this rejection lands after pnpm
         // replaced the tree: restore the files, then reinstall the restored lockfile so the version
@@ -527,8 +558,8 @@ export async function runProfilePnpm(
         exitCode = 1
         const restoration = repaired.exitCode === 0
           ? 'restored package.json, pnpm-lock.yaml, and node_modules'
-          : "restored package.json and pnpm-lock.yaml, but node_modules could not be reinstalled; run 'fwnd plugin install'"
-        const diagnostic = `\nfwnd: installation rejected: ${warnings.join('\n')}\nfwnd: ${restoration}.\n`
+          : "restored package.json and pnpm-lock.yaml, but node_modules could not be reinstalled; run 'dsh plugin install'"
+        const diagnostic = `\ndsh: installation rejected: ${warnings.join('\n')}\ndsh: ${restoration}.\n`
         await log.write(diagnostic)
         options.onOutput?.(diagnostic, 'stderr')
         append(Buffer.from(diagnostic))
@@ -536,7 +567,7 @@ export async function runProfilePnpm(
         const unsupported = await reconcile(before, dir, context.installAnchor, options)
         if (unsupported.length > 0) {
           exitCode = 1
-          const diagnostic = `\nfwnd: bundle activation rejected: ${unsupported.join('\n')}\nfwnd: installed dependencies remain; bundle selection is unchanged. Use a supported Host or remove the unwanted dependencies with 'fwnd plugin remove <package>'.\n`
+          const diagnostic = `\ndsh: bundle activation rejected: ${unsupported.join('\n')}\ndsh: installed dependencies remain; bundle selection is unchanged. Use a supported Host or remove the unwanted dependencies with 'dsh plugin remove <package>'.\n`
           await log.write(diagnostic)
           options.onOutput?.(diagnostic, 'stderr')
           append(Buffer.from(diagnostic))
@@ -553,10 +584,11 @@ export async function runProfilePnpm(
   return {
     exitCode, output: output.toString('utf8'), truncated, logPath,
     ...control.stalled ? { timedOut: true } : {}, ...incompatible.length > 0 ? { incompatible } : {},
+    ...unmet === undefined ? {} : { unmet },
   }
 }
 
-/** Initialize and run the fwnd plugin command with the same write lock as the service.
+/** Initialize and run the dsh plugin command with the same write lock as the service.
  * @param context Launcher-owned locations.
  * @param args Pnpm arguments.
  * @param options Output and cancellation policy.
@@ -571,7 +603,7 @@ export async function runPluginCommand(
     if (!existsSync(join(dir, 'package.json'))) {
       const template = PROFILE_TEMPLATES[context.profile]
       initProfile(dir, template?.bundles ?? DEFAULT_PROFILE_BUNDLES)
-      options.onOutput?.(`fwnd: initialized profile ${context.profile} at ${dir}\n`, 'stderr')
+      options.onOutput?.(`dsh: initialized profile ${context.profile} at ${dir}\n`, 'stderr')
     }
     return runProfilePnpm(context, args, options)
   }, options.lockWaitMs === undefined ? undefined : { waitMs: options.lockWaitMs })

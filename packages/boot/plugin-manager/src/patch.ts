@@ -1,7 +1,8 @@
 /** Comment-preserving profile plugin enablement edits and the entry flattening they compare against. */
-import { isMap, isNode, isScalar } from 'yaml'
+import { readFile } from 'node:fs/promises'
+import { isMap, isNode, isScalar, isSeq, parseDocument } from 'yaml'
 import type { EntryOptions } from '@deepseek-ai/cordis-plugin-loader'
-import { composeEntries, loadOptionalPatches, readBundlePatches, readProfilePatchDocument, type ProfileContext } from '@deepseek-ai/dsh-app-boot'
+import { composeEntries, loadOptionalPatches, readBundlePatches, type ProfileContext } from '@deepseek-ai/dsh-app-boot'
 import { writeFileAtomic } from '@deepseek-ai/dsh-atomic-write'
 
 /** Flatten only the groups addressable by the profile's patch composer.
@@ -23,10 +24,22 @@ export function flatten(rows: EntryOptions[]): EntryOptions[] {
  */
 export async function writePluginEnabled(profile: ProfileContext, id: string, name: string, enabled: boolean): Promise<boolean> {
   const filename = profile.patchPath
-  const { document, rows } = await readProfilePatchDocument(profile)
-  const patches = loadOptionalPatches('fwnd', filename) ?? []
-  const bundlePatches = readBundlePatches('fwnd', profile)
-  const items = rows.items
+  let text: string
+  try {
+    text = await readFile(filename, 'utf8')
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+    text = '[]\n'
+  }
+  const document = parseDocument(text, {
+    customTags: [{ tag: 'tag:yaml.org,2002:js', resolve: (value: string) => value }],
+  })
+  const error = document.errors[0]
+  if (error !== undefined) throw error
+  if (!isSeq(document.contents)) throw new Error('Profile patch must be a YAML sequence')
+  const patches = loadOptionalPatches('dsh', filename) ?? []
+  const bundlePatches = readBundlePatches('dsh', profile)
+  const items = document.contents.items
   const target = items.findLast((item, index) => {
     if (!isMap(item) || document.getIn([index, 'id']) !== id || item.has('insert')) return false
     const expectedName = document.getIn([index, 'name'])
@@ -49,7 +62,7 @@ export async function writePluginEnabled(profile: ProfileContext, id: string, na
       const comment = target.commentBefore
       const next = items[index]
       if (comment && isNode(next)) next.commentBefore = next.commentBefore ? `${comment}\n${next.commentBefore}` : comment
-      else if (comment && items.length === 0) rows.commentBefore = comment
+      else if (comment && items.length === 0) document.contents.commentBefore = comment
       else if (comment) document.comment = document.comment ? `${comment}\n${document.comment}` : comment
     } else if (document.getIn([index, 'disabled']) === !enabled) {
       return false

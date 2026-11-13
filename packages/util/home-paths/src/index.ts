@@ -1,5 +1,5 @@
 /**
- * Shared filesystem path helpers for Fiwen user data.
+ * Shared filesystem path helpers for DeepSeek Harness user data.
  *
  * @module @deepseek-ai/dsh-home-paths
  */
@@ -8,13 +8,13 @@ import { opendir, realpath } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 
-/** Directory name for the default Fiwen home under the OS home. */
+/** Directory name for the default DeepSeek Harness home under the OS home. */
 export const DSH_HOME_DIR_NAME = '.fiwen'
 
-/** Stable user-facing display form for the default Fiwen home. */
+/** Stable user-facing display form for the default DeepSeek Harness home. */
 export const DEFAULT_DSH_HOME_DISPLAY = `~/${DSH_HOME_DIR_NAME}`
 
-/** Environment variable that overrides the default Fiwen home. */
+/** Environment variable that overrides the default DeepSeek Harness home. */
 export const DSH_HOME_ENV = 'DSH_HOME'
 
 /** Directory name for the default shared agent configuration root under the OS home. */
@@ -64,7 +64,7 @@ export async function canonicalizeWatchPath(path: string): Promise<string> {
 }
 
 /**
- * Resolve the default Fiwen home using Node's platform path rules.
+ * Resolve the default DeepSeek Harness home using Node's platform path rules.
  * @returns the absolute default harness home path.
  */
 export function defaultDshHome(): string {
@@ -122,7 +122,7 @@ function rootDisplay(resolvedRoot: string, defaultRoot: string, defaultLabel: st
 }
 
 /**
- * Resolve the single-root Fiwen home.
+ * Resolve the single-root DeepSeek Harness home.
  *
  * Precedence, highest first: an explicit configured path, `$DSH_HOME`, then
  * `~/.fiwen`. The harness keeps all user data under one root. An empty or
@@ -141,7 +141,7 @@ export function resolveDshHome(configured?: string, env: Record<string, string |
  *
  * Precedence, highest first: an explicit configured path, `$DSH_AGENTS_HOME`,
  * then `~/.agents`. The root holds configuration shared with other agent tools,
- * so it stays independent of the Fiwen home. An empty or
+ * so it stays independent of the DeepSeek Harness home. An empty or
  * whitespace-only `$DSH_AGENTS_HOME` is treated as unset, so a blank override
  * never resolves the root to the current working directory.
  * @param configured - explicit shared-root override, which has highest precedence.
@@ -153,7 +153,8 @@ export function resolveAgentsHome(configured?: string, env: Record<string, strin
 }
 
 /**
- * Join path segments onto the resolved Fiwen home.
+ * Join path segments onto the resolved DeepSeek Harness home. It addresses the
+ * existing top-level entries; a new path uses {@link dshPath} with its category.
  * @param segments - path segments appended to the Harness home; an empty list returns the home itself.
  * @returns the normalized absolute joined path.
  */
@@ -168,8 +169,48 @@ export function dshHomePath(...segments: string[]): string {
  * @returns the normalized absolute cache path.
  */
 export function dshCachePath(optionsOrSegment: { dshHome?: string } | string = {}, ...segments: string[]): string {
-  if (typeof optionsOrSegment === 'string') return dshHomePath('cache', optionsOrSegment, ...segments)
-  return join(resolveDshHome(optionsOrSegment.dshHome), 'cache', ...segments)
+  if (typeof optionsOrSegment === 'string') return dshPath('cache', optionsOrSegment, ...segments)
+  return dshPath({ category: 'cache', dshHome: optionsOrSegment.dshHome }, ...segments)
+}
+
+/**
+ * Category directory under the Harness home, named after the XDG Base Directory
+ * kinds. A new file kept under `$DSH_HOME` belongs to exactly one category, and
+ * the category directory name equals the category. Existing top-level entries,
+ * such as `sessions/`, `profiles/`, and `.credentials.yaml`, keep their current
+ * locations; the [home path categories proposal](../../../../.agents/notes/proposed/architecture/2026-11-04-dsh-home-path-categories.md)
+ * lists every path and its category:
+ *
+ * - `config`: files a person writes or edits to configure the harness.
+ * - `data`: durable records whose loss loses user work, sign-ins, or installed
+ *   software, such as Sessions, profiles, attachments, credentials, and runtimes.
+ * - `state`: records that persist across runs but whose loss only resets
+ *   history or derived indexes, such as logs, upload indexes, and ids.
+ * - `cache`: content that can be rebuilt or downloaded again.
+ * - `backup`: backup archives the harness writes; deleting them never affects
+ *   a running harness or the records they copy.
+ */
+export type DshHomeCategory = 'config' | 'data' | 'state' | 'cache' | 'backup'
+
+/** A category directory under an explicitly configured Harness home. */
+export interface DshPathLocation {
+  /** Category directory to join under. */
+  category: DshHomeCategory
+  /** Explicit harness-home override, resolved by {@link resolveDshHome}; omission uses `$DSH_HOME`, then `~/.fiwen`. */
+  dshHome?: string | undefined
+}
+
+/**
+ * Join path segments onto one category directory of the Harness home without
+ * creating it. An owner passes its own directory name, normally its package
+ * name without the `@deepseek-ai/dsh-` prefix, as the first segment.
+ * @param location - category under the resolved home, or a category with an explicit home override.
+ * @param segments - path segments appended to the category directory; an empty list returns the directory itself.
+ * @returns the normalized absolute path.
+ */
+export function dshPath(location: DshHomeCategory | DshPathLocation, ...segments: string[]): string {
+  const { category, dshHome } = typeof location === 'string' ? { category: location, dshHome: undefined } : location
+  return join(resolveDshHome(dshHome), category, ...segments)
 }
 
 /**

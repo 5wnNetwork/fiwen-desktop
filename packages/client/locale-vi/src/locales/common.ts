@@ -43,6 +43,4 @@ export const vi = {
   'markdown.truncatedCharacters': '… đã cắt ở {total} ký tự',
   'number.thousand': '{value}K',
   'number.million': '{value}M',
-  'subtitle.expand': 'Mở rộng mô tả cho {name}',
-  'subtitle.collapse': 'Thu gọn mô tả cho {name}',
 } satisfies Partial<Record<keyof typeof en, string>>

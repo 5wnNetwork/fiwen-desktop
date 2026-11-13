@@ -39,10 +39,14 @@
     "lib/index.js",
     "lib/types/**/*.js",
     "lib/types/**/*.d.ts",
+    "lib/types/**/*.d.ts.map",
+    "lib/**/*.js.map",
     "lib/typert.host.js",
     "lib/typert.host.d.ts",
     "lib/typert.remote-client.js",
-    "lib/typert.remote-client.d.ts"
+    "lib/typert.remote-client.d.ts",
+    "lib/typert.remote-client.d.ts.map",
+    "src"
   ],
   "license": "MIT",
   "peerDependencies": {
@@ -56,6 +60,7 @@
   },
   "devDependencies": {
     "@deepseek-ai/dsh-agent": "workspace:*",
+    "@deepseek-ai/dsh-error": "workspace:*",
     "@deepseek-ai/dsh-llm": "workspace:*",
     "@deepseek-ai/dsh-scope": "workspace:*",
     "@deepseek-ai/cordis": "workspace:~",
@@ -66,6 +71,7 @@
     "@deepseek-ai/dsh-session-persistence-jsonl": "workspace:*"
   },
   "dependencies": {
+    "@deepseek-ai/dsh-brand": "workspace:*",
     "zod": "4.6.7",
     "@deepseek-ai/schemastery": "workspace:~"
   }

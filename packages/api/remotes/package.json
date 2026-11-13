@@ -49,7 +49,10 @@
     "lib/index.js",
     "lib/client.js",
     "lib/types/**/*.js",
-    "lib/types/**/*.d.ts"
+    "lib/types/**/*.d.ts",
+    "lib/types/**/*.d.ts.map",
+    "lib/**/*.js.map",
+    "src"
   ],
   "dependencies": {
     "@deepseek-ai/dsh-deque": "workspace:*",
@@ -68,7 +71,6 @@
     "@deepseek-ai/dsh-api-settings-controller": "workspace:*",
     "@deepseek-ai/dsh-api-workspace-controller": "workspace:*",
     "@deepseek-ai/dsh-api-workspace-files": "workspace:*",
-    "@deepseek-ai/dsh-authorization": "workspace:*",
     "@deepseek-ai/dsh-client-connection": "workspace:*",
     "@deepseek-ai/dsh-client-file-upload": "workspace:*",
     "@deepseek-ai/dsh-commands": "workspace:*",
@@ -96,14 +98,15 @@
     "@deepseek-ai/dsh-plugin-manager": "workspace:*",
     "@deepseek-ai/dsh-mcp-manager": "workspace:*",
     "@deepseek-ai/dsh-plugin-market": "workspace:*",
-    "@deepseek-ai/dsh-market": "workspace:*",
     "@deepseek-ai/dsh-client-ui-plugin-manager": "workspace:*",
-    "@deepseek-ai/dsh-office-to-pdf": "workspace:*",
-    "@deepseek-ai/dsh-api-account-controller": "workspace:*",
+    "@deepseek-ai/dsh-office-kit": "workspace:*",
     "@deepseek-ai/dsh-deepseek-account": "workspace:*",
     "@deepseek-ai/dsh-client-product-analytics": "workspace:*",
+    "@deepseek-ai/dsh-client-ui-session-status": "workspace:*",
     "@deepseek-ai/dsh-agent-team": "workspace:*",
     "@deepseek-ai/dsh-client-ui-trajectory": "workspace:*",
-    "@deepseek-ai/dsh-web": "workspace:*"
+    "@deepseek-ai/dsh-web": "workspace:*",
+    "@deepseek-ai/dsh-authorization": "workspace:*",
+    "@deepseek-ai/dsh-market": "workspace:*"
   }
 }

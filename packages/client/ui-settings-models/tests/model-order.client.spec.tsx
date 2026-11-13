@@ -27,12 +27,7 @@ function Editor(props: {
     ? <DeepSeekModelsEditor {...shared} defaultContextWindow={undefined} defaultMaxTokens={undefined} />
     : <ModelListEditor
       {...shared} probe={{ settingsNs: 'llm-pi-ai' }} onBusyChange={() => {}}
-      operations={{
-        discoverModels: vi.fn(), storeCredential: vi.fn(), removeCredential: vi.fn(), writeSettings: vi.fn(),
-        beginAuthorization: vi.fn(), selectAuthorizationAccount: vi.fn(), authorizationQuota: vi.fn(),
-        answerAuthorizationPrompt: vi.fn(), declineAuthorizationPrompt: vi.fn(), cancelAuthorization: vi.fn(),
-        signOutAuthorization: vi.fn(),
-      }}
+      operations={{ discoverModels: vi.fn(), storeCredential: vi.fn(), removeCredential: vi.fn(), writeSettings: vi.fn() }}
     />
 }
 

@@ -7,20 +7,8 @@ import { runInNewContext } from 'node:vm'
 import { load } from 'js-yaml'
 import { describe, expect, it, onTestFinished } from 'vitest'
 
-/**
- * Matcher for a pinned action reference. The ref is a commit SHA, so expectations
- * match on the action name. Vitest types the asymmetric matcher as `any`; the
- * parsed step shape wants a string, so this narrows it once here.
- * @param action - action name, e.g. `actions/checkout`.
- * @returns the matcher, typed as the string the parsed step carries.
- */
-function actionRef(action: string): string {
-  return expect.stringContaining(`${action}@`) as string
-}
-
-
 const root = resolve(import.meta.dirname, '../..')
-const repository = '5wnNetwork/fiwen-desktop'
+const repository = 'deepseek-harness/deepseek-harness'
 const selfhosted = ['self-hosted', 'linux', 'x64', 'vm-backup']
 const hosted = 'ubuntu-24.04'
 
@@ -131,7 +119,7 @@ for (const [file, jobIds] of [['release.yml', ['dependencies', 'pack']], ['relea
           expect(evaluate(job['runs-on'], context)).toBe(hosted)
         })
         it('cleans stale checkout output and isolates setup before any pnpm invocation', () => {
-          expect(job.steps[0]).toMatchObject({ uses: actionRef('actions/checkout'), with: { clean: true, 'persist-credentials': false } })
+          expect(job.steps[0]).toMatchObject({ uses: 'actions/checkout@v7.0.1', with: { clean: true, 'persist-credentials': false } })
           const cacheIndex = job.steps.findIndex(step => step.run?.includes('NODE_COMPILE_CACHE='))
           const pnpmIndex = job.steps.findIndex(step => step.uses?.startsWith('pnpm/') || /\bpnpm\b/.test(step.run ?? ''))
           expect(cacheIndex).toBeGreaterThan(0)
@@ -139,7 +127,7 @@ for (const [file, jobIds] of [['release.yml', ['dependencies', 'pack']], ['relea
           expect(job.steps[cacheIndex]?.run).toContain('echo "NODE_COMPILE_CACHE=${{ runner.temp }}/node-compile-cache" >> "$GITHUB_ENV"')
           expect(job.steps[cacheIndex]?.run).toContain('echo "npm_config_devdir=${{ runner.temp }}/node-gyp" >> "$GITHUB_ENV"')
           expect(job.steps[cacheIndex]?.run).toContain('echo "TMPDIR=${{ runner.temp }}" >> "$GITHUB_ENV"')
-          expect(job.steps.find(step => step.uses?.startsWith('pnpm/action-setup@'))?.with?.dest)
+          expect(job.steps.find(step => step.uses === 'pnpm/action-setup@v5.0.0')?.with?.dest)
             .toBe('${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}')
           expect(job.steps.find(step => step.name === 'Install (immutable)')?.run).toBe('pnpm install --frozen-lockfile')
         })
@@ -161,7 +149,7 @@ for (const [file, jobIds] of [['release.yml', ['dependencies', 'pack']], ['relea
             expect(evaluate(step.if!, { 'runner.environment': 'self-hosted' })).toBe(false)
             expect(evaluate(step.if!, { 'runner.environment': 'github-hosted' })).toBe(true)
           }
-          const nodeSetup = job.steps.find(step => step.uses?.startsWith('actions/setup-node@'))
+          const nodeSetup = job.steps.find(step => step.uses === 'actions/setup-node@v7.0.0')
           expect(nodeSetup?.with?.cache).toBeUndefined()
           expect(nodeSetup?.with?.['package-manager-cache']).toBe(false)
         })
@@ -183,7 +171,7 @@ for (const [file, jobIds] of [['release.yml', ['dependencies', 'pack']], ['relea
             expect(commands).toContain('pnpm run release:pack --family ' + family + ' --out ' + output + ' --concurrency 8')
             expect(commands).toContain('pnpm run release:verify-packed-install --family ' + family + ' --from ' + output
               + (family === 'dsh' ? ' --from dist/npm-vendor --from dist/npm-landlock' : ''))
-            expect(job.steps.at(-1)).toMatchObject({ uses: actionRef('actions/upload-artifact'), with: { path: output + '/*', 'retention-days': 7 } })
+            expect(job.steps.at(-1)).toMatchObject({ uses: 'actions/upload-artifact@v7.0.1', with: { path: output + '/*', 'retention-days': 7 } })
           }
           expect(JSON.stringify(job)).not.toMatch(/secrets\.|release:publish|npm-publish/)
         })
@@ -200,20 +188,20 @@ it('keeps vendor publication manual and entirely hosted', () => {
 it('keeps DSH publication manual and delegates all helper selections to the Mac workflow', () => {
   const publish = workflow('release-publish.yml')
   expect(Object.keys(publish.on)).toEqual(['workflow_dispatch'])
-  const helper = publish.jobs['cua-helper']!
+  const helper = publish.jobs['cua-helper-macos']!
   expect(helper).toEqual({
     if: "startsWith(github.ref, 'refs/tags/dsh-v') || inputs.skip-tag-check",
-    uses: './.github/workflows/cua-helper-package.yml',
-    with: { reuse: true, preset: 'production', cua_run_id: '${{ inputs.cua_run_id }}' },
+    uses: './.github/workflows/cua-helper-package-macos.yml',
+    with: { reuse: true, preset: 'production', cua_macos_run_id: '${{ inputs.cua_macos_run_id }}' },
   })
   for (const [name, job] of Object.entries(publish.jobs)) {
-    if (name !== 'cua-helper') expect(job['runs-on']).toBe(hosted)
+    if (name !== 'cua-helper-macos') expect(job['runs-on']).toBe(hosted)
   }
   expect(JSON.stringify(publish)).not.toContain('cua_run_attempt')
   expect(publish.on['workflow_dispatch']).toMatchObject({ inputs: { 'skip-tag-check': {
     description: 'Skip release tag validation for the selected ref; other publication checks still apply.',
   } } })
-  expect(publish.jobs['pack']!.needs).toBe('cua-helper')
+  expect(publish.jobs['pack']!.needs).toBe('cua-helper-macos')
   expect(publish.jobs['pack']!.if).toBeUndefined()
 })
 
@@ -222,12 +210,12 @@ it.each([
   ['refs/heads/master', false, false],
   ['refs/heads/master', true, true],
 ] as const)('gates helper selection for ref %s, skip=%s', (ref, skip, expected) => {
-  const expression = workflow('release-publish.yml').jobs['cua-helper']!.if!
+  const expression = workflow('release-publish.yml').jobs['cua-helper-macos']!.if!
   expect(evaluate(expression, { 'github.ref': ref, 'inputs.skip-tag-check': skip })).toBe(expected)
 })
 
 it('skips installation and signing on a helper match and exports the original producer identifiers', () => {
-  const helper = workflow('cua-helper-package.yml')
+  const helper = workflow('cua-helper-package-macos.yml')
   expect(helper.permissions).toEqual({ contents: 'read', actions: 'read' })
   const job = helper.jobs['package']!
   const select = job.steps.find(step => step.name === 'Find reusable CUA helper')!
@@ -239,9 +227,9 @@ it('skips installation and signing on a helper match and exports the original pr
   expect(inputs.run).toBe('node scripts/cua-helper/build-inputs.ts')
   expect(inputs.if).toBeUndefined()
   expect(job.steps.indexOf(inputs)).toBeLessThan(job.steps.indexOf(select))
-  const expensive = job.steps.filter(step => step.uses?.startsWith('pnpm/action-setup@')
+  const expensive = job.steps.filter(step => step.uses === 'pnpm/action-setup@v5.0.0'
     || step.name === 'Install locked dependencies' || step.name === 'Build and verify notarized applications'
-    || step.uses?.startsWith('actions/upload-artifact@'))
+    || step.uses === 'actions/upload-artifact@v7.0.1')
   expect(expensive).toHaveLength(4)
   expect(job.steps.find(step => step.name === 'Install locked dependencies')?.run)
     .toBe('pnpm install --frozen-lockfile --ignore-scripts --ignore-pnpmfile')
@@ -260,39 +248,46 @@ it('skips installation and signing on a helper match and exports the original pr
   })
 })
 
+it.each(['macos', 'windows'])('uploads an artifact named for the %s helper and its exact build', (platform) => {
+  const steps = workflow(`cua-helper-package-${platform}.yml`).jobs['package']!.steps
+  const upload = steps.find(step => step.uses?.startsWith('actions/upload-artifact@'))
+  const build = platform === 'macos' ? '${{ steps.build-inputs.outputs.build-key }}' : '${{ steps.metadata.outputs.build-key }}'
+  expect(upload?.with?.name).toBe([`cua-helper-${platform}`, '${{ github.run_id }}', '${{ github.run_attempt }}', build].join('-'))
+})
+
 it('downloads the selected producer artifact and verifies its build key before packing', () => {
   const publish = workflow('release-publish.yml')
   expect(publish.permissions).toEqual({ contents: 'read', actions: 'read' })
   const pack = publish.jobs['pack']!
   expect(pack.permissions).toEqual({ contents: 'read', actions: 'read' })
-  const download = pack.steps.find(step => step.name === 'Download selected CUA helper')!
-  expect(download).toMatchObject({ uses: actionRef('actions/download-artifact'), with: {
-    'artifact-ids': '${{ needs.cua-helper.outputs.artifact-id }}', 'run-id': '${{ needs.cua-helper.outputs.run-id }}',
+  const download = pack.steps.find(step => step.name === 'Download selected macOS CUA helper')!
+  expect(download).toMatchObject({ uses: 'actions/download-artifact@v8.0.1', with: {
+    'artifact-ids': '${{ needs.cua-helper-macos.outputs.artifact-id }}', 'run-id': '${{ needs.cua-helper-macos.outputs.run-id }}',
     'github-token': '${{ github.token }}', path: 'dist/cua-helper',
   } })
   expect(download.if).toBeUndefined()
   expect(download.with?.name).toBeUndefined()
-  const stage = pack.steps.find(step => step.name === 'Stage verified native helper applications')!
+  const stage = pack.steps.find(step => step.name === 'Stage verified macOS helper applications')!
   expect(stage.if).toBeUndefined()
-  expect(stage.env).toEqual({ CUA_EXPECTED_BUILD_KEY: '${{ needs.cua-helper.outputs.build-key }}' })
+  expect(stage.env).toEqual({ CUA_EXPECTED_BUILD_KEY: '${{ needs.cua-helper-macos.outputs.build-key }}' })
   expect(stage.run).toContain('scripts/cua-helper/stage.ts --from dist/cua-helper/extracted')
   expect(pack.steps.indexOf(stage)).toBeGreaterThan(pack.steps.indexOf(download))
   expect(pack.steps.indexOf(stage)).toBeLessThan(pack.steps.findIndex(step => step.name === 'Pack release tarballs'))
 })
 
 it('checks out the Actions run commit and exposes only the preset on the manual helper form', () => {
-  const helper = workflow('cua-helper-package.yml')
+  const helper = workflow('cua-helper-package-macos.yml')
   const dispatch = helper.on['workflow_dispatch'] as { inputs: Record<string, unknown> }
   const called = helper.on['workflow_call'] as { inputs: Record<string, unknown> }
   expect(Object.keys(dispatch.inputs)).toEqual(['preset'])
   expect(called.inputs).toEqual({ reuse: { type: 'boolean', default: false },
-    cua_run_id: { type: 'string', default: '' }, preset: { type: 'string', default: 'production' } })
+    cua_macos_run_id: { type: 'string', default: '' }, preset: { type: 'string', default: 'production' } })
   const job = helper.jobs['package']!
-  const checkout = job.steps.find(step => step.uses?.startsWith('actions/checkout@'))!
+  const checkout = job.steps.find(step => step.uses === 'actions/checkout@v7.0.1')!
   expect(checkout.with).toEqual({ 'persist-credentials': false, clean: true })
   expect(job.env).not.toHaveProperty('PACKAGE_SOURCE_REF')
   expect(JSON.stringify(helper)).not.toContain('source_ref')
-  expect(workflow('release-publish.yml').jobs['cua-helper']!.with).not.toHaveProperty('source_ref')
+  expect(workflow('release-publish.yml').jobs['cua-helper-macos']!.with).not.toHaveProperty('source_ref')
 })
 
 it.each([
@@ -306,7 +301,7 @@ it.each([
   const directory = mkdtempSync(join(tmpdir(), 'cua-workflow-ref-'))
   onTestFinished(() => { rmSync(directory, { recursive: true, force: true }) })
   writeFileSync(join(directory, 'package.json'), JSON.stringify({ version: '1.2.3' }))
-  const job = workflow('cua-helper-package.yml').jobs['package']!
+  const job = workflow('cua-helper-package-macos.yml').jobs['package']!
   const validation = job.steps.find(step => step.name === 'Validate run ref and preset')!
   const source = /^node -e '([\s\S]+)'$/u.exec(validation.run!.trim())?.[1]
   expect(source).toBeDefined()
@@ -326,12 +321,12 @@ it.each([
   [true, '', true],
   [true, '456', false],
 ] as const)('builds for reuse=%s and selected artifact=%s only when required', (reuse, artifactId, build) => {
-  const steps = workflow('cua-helper-package.yml').jobs['package']!.steps
+  const steps = workflow('cua-helper-package-macos.yml').jobs['package']!.steps
   const selection = steps.find(step => step.name === 'Find reusable CUA helper')!
   expect(Boolean(evaluate(selection.if!, reuse ? { 'inputs.reuse': true } : {}))).toBe(reuse)
-  for (const step of steps.filter(step => step.uses?.startsWith('pnpm/action-setup@')
+  for (const step of steps.filter(step => step.uses === 'pnpm/action-setup@v5.0.0'
     || step.name === 'Install locked dependencies' || step.name === 'Build and verify notarized applications'
-    || step.uses?.startsWith('actions/upload-artifact@'))) {
+    || step.uses === 'actions/upload-artifact@v7.0.1')) {
     expect(evaluate(step.if!, { 'steps.retained.outputs.artifact-id': artifactId })).toBe(build)
   }
 })

@@ -6,7 +6,7 @@ import { basename, join } from 'node:path'
 import { zipSync } from 'fflate'
 import { create } from 'tar'
 import { expect, it } from 'vitest'
-import { downloadPrimaryRuntimeAsset, downloadUvRuntime, prepareOfficeSkillAssets, primaryRuntimePayloadDigest, prunePnpmForeignNativePackages, smokePrimaryRuntime, unpackPrimaryRuntimeWheel, unpackUvRuntime } from './prepare.ts'
+import { downloadPrimaryRuntimeAsset, downloadUvRuntime, primaryRuntimePayloadDigest, prunePnpmForeignNativePackages, smokePrimaryRuntime, unpackPrimaryRuntimeWheel, unpackUvRuntime } from './prepare.ts'
 import lock from './lock.json' with { type: 'json' }
 
 it('pins uv per target with a distinct archive and digest', () => {
@@ -182,26 +182,6 @@ it('rejects library files requiring an unsupported installation scheme', async (
   } finally {
     await rm(root, { recursive: true, force: true })
   }
-})
-
-it('copies complete Office resources outside the application archive and removes obsolete assets', async () => {
-  const root = await mkdtemp(join(tmpdir(), 'desktop-office-assets-'))
-  try {
-    const source = join(root, 'package', 'assets')
-    const destination = join(root, 'Contents', 'Resources', 'runtime', 'office-skills')
-    await mkdir(source, { recursive: true })
-    for (const name of ['office-docx', 'office-pptx', 'office-xlsx']) {
-      await mkdir(join(source, name))
-      await writeFile(join(source, name, 'SKILL.md'), `# ${name}\n`)
-    }
-    await prepareOfficeSkillAssets(source, destination)
-    await writeFile(join(destination, 'obsolete.py'), 'old helper')
-    await prepareOfficeSkillAssets(source, destination)
-    for (const name of ['office-docx', 'office-pptx', 'office-xlsx']) {
-      expect(await readFile(join(destination, name, 'SKILL.md'), 'utf8')).toBe(`# ${name}\n`)
-    }
-    await expect(readFile(join(destination, 'obsolete.py'))).rejects.toMatchObject({ code: 'ENOENT' })
-  } finally { await rm(root, { recursive: true, force: true }) }
 })
 
 it('gives Python-only payloads a distinct identity', () => {

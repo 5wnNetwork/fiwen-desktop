@@ -110,7 +110,6 @@ export const vi = {
   'status.compact.approval': 'Phê duyệt',
   'status.compact.planReview': 'Xem lại kế hoạch',
   'status.compact.answer': 'Trả lời',
-  'status.completed': 'Đã hoàn thành',
   'hover.created': 'Đã tạo {time}',
   'hover.copied': 'Đã sao chép',
   'date.ymd': '{d}/{m}/{y}',

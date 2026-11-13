@@ -6,8 +6,7 @@
  * @module dsh-llm/call-config
  */
 
-import type { GenerateOptions, LlmResolvedModelInfo } from './types.ts'
-import type { ReasoningEffortId } from './brand.ts'
+import type { GenerateOptions, LlmResolvedModelInfo, ReasoningEffortId } from './types.ts'
 import type { LlmTokenSaverMode } from './token-saver.ts'
 
 /** Process-local identities of request objects assembled by dsh-agent-loop. */
@@ -16,6 +15,7 @@ const AGENT_LOOP_REQUESTS = new WeakSet<GenerateOptions>()
 /** Concrete generation settings; omitted controls use the selected route's defaults. */
 export interface LlmCallControls {
   reasoningEffort?: ReasoningEffortId
+  /** Server-side saver mode; omission follows the backend's administered default. */
   tokenSaver?: LlmTokenSaverMode
   temperature?: number
   maxTokens?: number

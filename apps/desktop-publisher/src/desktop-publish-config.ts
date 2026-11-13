@@ -1,0 +1,61 @@
+/** Read public deployment settings independently from upload and GitHub App secrets. */
+import { readFile } from 'node:fs/promises'
+import { isAbsolute, join } from 'node:path'
+import { z } from 'zod'
+import type { DesktopS3Credentials } from './desktop-s3.ts'
+
+const singleLine = z.string().min(1).regex(/^[^\r\n\0]+$/u, 'expected a single-line value')
+const absolutePath = singleLine.refine(isAbsolute, 'expected an absolute path')
+const schema = z.strictObject({
+  bucket: z.string().min(3).regex(/^[a-z0-9][a-z0-9.-]*$/u),
+  endpoint: z.url().refine((value) => { const url = new URL(value); return url.protocol === 'https:' && !url.username && !url.password && url.pathname === '/' && !url.search && !url.hash }, 'expected an HTTPS origin'),
+  region: singleLine,
+  origin: z.url().refine((value) => { const url = new URL(value); return url.protocol === 'https:' && !url.username && !url.password && url.pathname === '/' && !url.search && !url.hash }, 'expected an HTTPS origin'),
+  credentialsFile: absolutePath,
+  edgeOneZoneId: z.string().regex(/^zone-[a-z0-9]+$/u).optional(),
+  macOS: z.strictObject({ signingIdentity: z.string().min(1), teamId: z.string().regex(/^[A-Z0-9]{10}$/u) }).optional(),
+  windows: z.strictObject({ certificateThumbprint: z.string().regex(/^[A-Fa-f0-9]{40}$/u) }).optional(),
+  githubApp: z.strictObject({ clientId: singleLine, privateKeyFile: absolutePath }).optional(),
+})
+/** Public machine configuration; all secret fields are file references. */
+export type DesktopPublishConfig = z.infer<typeof schema>
+
+/**
+ * Read one named deployment without opening referenced credential files.
+ * @param configRoot Absolute machine packaging configuration directory.
+ * @param preset Selected deployment from the retained package.
+ * @returns Validated public configuration; production requires App configuration.
+ */
+export async function readDesktopPublishConfig(configRoot: string, preset: 'test' | 'production'): Promise<DesktopPublishConfig> {
+  if (!isAbsolute(configRoot)) throw new Error('desktop publish: configuration root must be absolute')
+  const config = schema.parse(JSON.parse(await readFile(join(configRoot, 'publishing', `${preset}.json`), 'utf8')))
+  if (preset === 'production' && !config.githubApp) {
+    throw new Error('desktop publish: production requires GitHub App configuration')
+  }
+  return config
+}
+
+/**
+ * Read upload credentials only after authorization and local validation have passed.
+ * @param config Previously validated public deployment configuration.
+ * @returns Explicit S3 credentials with the deployment endpoint and region; contents never enter audit records.
+ */
+export async function readDesktopUploadCredentials(config: DesktopPublishConfig): Promise<DesktopS3Credentials> {
+  try {
+    const pair = z.strictObject({ accessKeyId: z.string().min(1), secretAccessKey: z.string().min(1) })
+      .parse(JSON.parse(await readFile(config.credentialsFile, 'utf8')))
+    return { ...pair, endpoint: config.endpoint, region: config.region }
+  } catch {
+    throw new Error('desktop publish: cannot read valid upload credentials from the configured file')
+  }
+}
+
+/**
+ * Require the configured EdgeOne destination before website upload or cache recovery.
+ * @param config Validated machine publication settings.
+ * @returns Configured EdgeOne zone identifier.
+ */
+export function requireDesktopEdgeOneZoneId(config: DesktopPublishConfig): string {
+  if (!config.edgeOneZoneId) throw new Error('website publication: configure edgeOneZoneId in publishing/production.json before uploading')
+  return config.edgeOneZoneId
+}

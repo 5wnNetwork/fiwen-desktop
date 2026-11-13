@@ -26,12 +26,6 @@
       "path": "../../client/file-upload/tsconfig.client.json"
     },
     {
-      "path": "../../boot/market"
-    },
-    {
-      "path": "../../credentials/authorization"
-    },
-    {
       "path": "../../credentials/credentials"
     },
     {
@@ -116,13 +110,7 @@
       "path": "../../boot/plugin-market"
     },
     {
-      "path": "../../boot/market"
-    },
-    {
-      "path": "../../document/office-to-pdf"
-    },
-    {
-      "path": "../account-controller"
+      "path": "../../document/office-kit"
     },
     {
       "path": "../../credentials/deepseek-account"

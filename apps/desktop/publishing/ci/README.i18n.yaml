@@ -9,29 +9,32 @@
   en: a610b66106849734
   zh: bc1760791f56fa28
 /desktop-ci-publication/summary:
-  en: 16974a8d6308b5b4
-  zh: ec3244a379013df9
+  en: 470bdf1487a739f9
+  zh: cd80330eaa8f730c
 /desktop-ci-publication/table-of-contents:
-  en: 34283bf8397f6836
-  zh: 1798bd921c3adf6c
+  en: 37d76f8473b967b7
+  zh: d211cc54af96672d
 /desktop-ci-publication/setup-sequence:
-  en: f31ed41a25f6aebd
-  zh: e45522bb123efa18
+  en: 2be541ef35a092a4
+  zh: 77d87c00deb45758
 /desktop-ci-publication/runner-labels-and-queue-diagnosis:
-  en: 0478d8e35f9a3d55
-  zh: 0aa3fd828bc02691
+  en: d2195ee7581b74ec
+  zh: 0b9847afe9a2a373
 /desktop-ci-publication/machine-setup:
-  en: c7a4e430bf75638e
-  zh: a051593511d789f7
+  en: 0f43f2e193e95043
+  zh: 1c1efb062c06f7b8
 /desktop-ci-publication/package-and-publish:
-  en: 56b922f024e9d560
-  zh: f1d7f3bca005fef4
+  en: 149563c61fab650f
+  zh: edaa8a4502ed80a1
+/desktop-ci-publication/rollout-and-website-publication:
+  en: b6c39cec0946d5f4
+  zh: 3a6014ffbbec81f1
 /desktop-ci-publication/recovery-and-records:
-  en: 51132b1a0e14b429
-  zh: 89d820b6c44c4bf2
+  en: ee57863af9784f02
+  zh: 4680f5c181685e32
 /desktop-ci-publication/restore-a-channel:
-  en: a457027bee8fd5fd
-  zh: 769b06bdd72509ce
+  en: d82e2ccf70cce397
+  zh: d93dcb77cc4b463e
 /desktop-ci-publication/dev-note:
   en: b75c8458928b72b9
   zh: 003ba4e17b4b5269

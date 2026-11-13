@@ -57,6 +57,7 @@
 }
 
 .status,
+.secondary,
 .unavailable {
   color: var(--dsw-alias-label-tertiary);
 }
@@ -84,12 +85,6 @@
   align-items: center;
   gap: 10px;
   flex-wrap: wrap;
-}
-
-/* The links row owns its line end to end, keeping the trailing action right
-   even when nothing leads it. */
-.links {
-  flex: 1;
 }
 
 .linkButton {
@@ -226,46 +221,4 @@
   align-items: center;
   justify-content: flex-end;
   gap: 8px;
-}
-
-.quotaMeter {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.quotaPercent {
-  flex: none;
-  min-width: 32px;
-  font-size: 12px;
-  line-height: 18px;
-  color: var(--dsw-alias-label-tertiary);
-}
-
-.quotaPercent:first-child {
-  text-align: right;
-}
-
-.quotaTrack {
-  flex: 1;
-  min-width: 0;
-  height: 4px;
-  border-radius: 999px;
-  corner-shape: round;
-  background: var(--dsw-alias-interactive-bg-hover);
-  overflow: hidden;
-}
-
-.quotaFill {
-  height: 100%;
-  border-radius: inherit;
-  corner-shape: round;
-  background: var(--dsw-alias-button-primary-fill);
-}
-
-.quotaReset {
-  padding-bottom: 4px;
-  font-size: 12px;
-  line-height: 18px;
-  color: var(--dsw-alias-label-tertiary);
 }

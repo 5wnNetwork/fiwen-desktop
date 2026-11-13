@@ -7,7 +7,6 @@ import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ThemeSnapshot } from '@deepseek-ai/dsh-client-ui-theme/client'
 import { AccountOnboarding } from '../src/client/AccountOnboarding.tsx'
 import type { AccountSnapshot } from '../src/client/AccountSection.tsx'
-import { formatBalance, type BalanceCurrency } from '../src/client/formatBalance.ts'
 import { allowAllAccess, makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
 import { en } from '../src/client/locales.ts'
 
@@ -18,7 +17,7 @@ const theme: ThemeSnapshot = {
   active: { id: 'light', colorScheme: 'light', tokens: {} }, themes: [], revision: 0,
 }
 
-it('claims onboarding while loading and completes after login or dismissal', () => {
+it('claims onboarding while loading, offers API key fallback, and completes after login', () => {
   let account: AccountSnapshot = { view: undefined, details: undefined, avatar: undefined, failed: false }
   const unused = (): never => { throw new Error('AccountOnboarding does not consume global hooks') }
   const globals: GlobalStandardProps = {
@@ -30,14 +29,12 @@ it('claims onboarding while loading and completes after login or dismissal', () 
   const props = {
     ...globals,
     hasRunningAccountTasks: vi.fn(async () => false),
-    complete: vi.fn(), setOnboarding: vi.fn(), showLogin: vi.fn(), useApiKey: vi.fn(),
+    complete: vi.fn(), useApiKey: vi.fn(), setOnboarding: vi.fn(), showLogin: vi.fn(),
     useAccount: <T,>(select: (snapshot: AccountSnapshot) => T) => select(account),
     useTheme: <T,>(select: (snapshot: ThemeSnapshot) => T) => select(theme),
     start: vi.fn(async () => {}), cancel: vi.fn(async () => {}), signOut: vi.fn(async () => {}),
-    t: makeTranslate(en),
-    refreshAccount: vi.fn(async () => {}), bonusNoticeShown: vi.fn(), bonusNoticeDismissed: vi.fn(),
-    formatWalletBalance: (balance: string, currency: BalanceCurrency) => formatBalance(balance, currency),
-    formatPlanDate: (iso: string) => `d:${iso}`, formatPlanResetIn: (iso: string) => `r:${iso}`,
+    contactUs: vi.fn(), t: makeTranslate(en),
+    refreshAccount: vi.fn(async () => {}),
     avatarFailed: vi.fn(),
   }
   const view = render(<AccountOnboarding {...props} />)
@@ -45,9 +42,10 @@ it('claims onboarding while loading and completes after login or dismissal', () 
   expect(screen.queryByRole('dialog')).toBeNull()
   account = { ...account, view: { status: 'signed-out', attempt: null, links: { usageUrl: '', topUpUrl: '' } } }
   view.rerender(<AccountOnboarding {...props} />)
-  expect(screen.queryByRole('button', { name: en.addApiKey })).toBeNull()
-  fireEvent.click(screen.getByRole('button', { name: en.close }))
+  fireEvent.click(screen.getByRole('button', { name: en.addApiKey }))
   expect(props.showLogin).toHaveBeenLastCalledWith(false)
+  expect(props.useApiKey).toHaveBeenCalledOnce()
+  fireEvent.click(screen.getByRole('button', { name: en.close }))
   expect(props.complete).toHaveBeenCalledOnce()
   account = { ...account, view: { ...account.view!, status: 'credential-stored' } }
   view.rerender(<AccountOnboarding {...props} />)

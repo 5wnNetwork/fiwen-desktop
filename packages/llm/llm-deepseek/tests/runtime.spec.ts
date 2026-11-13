@@ -4,23 +4,24 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
-import { AttachmentId, ImageVariantId } from '@deepseek-ai/dsh-attachment'
+import { brandString } from '@deepseek-ai/dsh-brand'
+import type { AttachmentId, ImageVariantId } from '@deepseek-ai/dsh-attachment/types'
 import type { AttachmentStore, ImageAttachmentRef, RequestImageAttachment } from '@deepseek-ai/dsh-attachment'
 import { createLaunchEnvironmentSnapshot } from '@deepseek-ai/dsh-launch-environment'
-import LlmRuntime, { ToolCallId, createUserMessage,
+import LlmRuntime, { type ToolCallId, createUserMessage,
   CONTEXT_WINDOW_EXCEEDED_CODE,
   PLAN_REQUIRED_CODE,
   createToolResultMessage,
   createAssistantMessage,
   LlmError,
-  ProviderRequestId,
+  type ProviderRequestId,
   QUOTA_EXCEEDED_CODE,
-  ReasoningEffortId,
+  type ReasoningEffortId,
   userAgent,
 } from '@deepseek-ai/dsh-llm'
 import { MAX_TIMER_DELAY_MS } from '@deepseek-ai/dsh-timeout'
 import { getOrCreateAnonymousUserId, type AnonymousUserId } from '@deepseek-ai/dsh-anonymous-user-id'
-import { SessionId } from '@deepseek-ai/dsh-session'
+import type { SessionId } from '@deepseek-ai/dsh-session'
 import DeepSeekLlmApiExtensionRegistry from '@deepseek-ai/dsh-deepseek-llm-api-extensions'
 import type { PreparedDeepSeekLlmApiExtensions } from '@deepseek-ai/dsh-deepseek-llm-api-extensions'
 import * as LlmDeepSeek from '@deepseek-ai/dsh-llm-deepseek-api-key'
@@ -92,7 +93,7 @@ async function drain(stream: AsyncIterable<unknown>): Promise<void> {
 }
 
 const imageRef: ImageAttachmentRef = {
-  attachmentId: AttachmentId(`sha256:${'a'.repeat(64)}`),
+  attachmentId: brandString<AttachmentId>(`sha256:${'a'.repeat(64)}`),
   mediaType: 'image/png',
   bytes: 3,
   width: 1,
@@ -101,7 +102,7 @@ const imageRef: ImageAttachmentRef = {
 
 function requestImage(ref = imageRef): RequestImageAttachment {
   return {
-    variantId: ImageVariantId(`sha256:${'b'.repeat(64)}`),
+    variantId: brandString<ImageVariantId>(`sha256:${'b'.repeat(64)}`),
     attachment: ref,
     data: Uint8Array.of(1, 2, 3),
     mediaType: 'image/png',
@@ -141,7 +142,7 @@ function fileStoreOf(
 
 function fileReference(fileId: string): Awaited<ReturnType<Protocol.DeepSeekFileStore['ensureUploaded']>> {
   return {
-    record: { fileId: Protocol.DeepSeekFileId(fileId) },
+    record: { fileId: brandString<Protocol.DeepSeekFileId>(fileId) },
     uploaded: true,
   } as Awaited<ReturnType<Protocol.DeepSeekFileStore['ensureUploaded']>>
 }
@@ -221,7 +222,7 @@ describe('DeepSeekAdapter against a mock server', () => {
       prepareExtensions: prepareExtensions as never,
     })
 
-    await drain(adapter.stream({ provider: 'deepseek-official', model: 'm', messages: [], sessionId: SessionId('s') }))
+    await drain(adapter.stream({ provider: 'deepseek-official', model: 'm', messages: [], sessionId: brandString<SessionId>('s') }))
     expect(server.requests[0]).toMatchObject({ dsh_test: { version: 1 } })
     expect(prepareExtensions).toHaveBeenCalledWith(expect.objectContaining({ sessionId: 's' }))
     expect(accept).toHaveBeenCalledOnce()
@@ -453,10 +454,10 @@ describe('DeepSeekAdapter against a mock server', () => {
 
   it('falls back to one all-base64 request when Files API resolution fails', async () => {
     const server = await mockServer([{ kind: 'sse', events: textEvents }])
-    const secondRef = { ...imageRef, attachmentId: AttachmentId(`sha256:${'c'.repeat(64)}`) }
+    const secondRef = { ...imageRef, attachmentId: brandString<AttachmentId>(`sha256:${'c'.repeat(64)}`) }
     const attachments = attachmentStoreOf(ref => Promise.resolve({
       ...requestImage(ref),
-      variantId: ImageVariantId(`sha256:${(ref.attachmentId === imageRef.attachmentId ? 'b' : 'd').repeat(64)}`),
+      variantId: brandString<ImageVariantId>(`sha256:${(ref.attachmentId === imageRef.attachmentId ? 'b' : 'd').repeat(64)}`),
     })).store
     const files = fileStoreOf(() => Promise.reject(new LlmError('Files unavailable', 'SERVER')))
     const adapter = adapterOf({
@@ -505,10 +506,10 @@ describe('DeepSeekAdapter against a mock server', () => {
   })
   it('discards partially resolved file ids and falls back with every retained image inline', async () => {
     const server = await mockServer([{ kind: 'sse', events: textEvents }])
-    const secondRef = { ...imageRef, attachmentId: AttachmentId(`sha256:${'c'.repeat(64)}`) }
+    const secondRef = { ...imageRef, attachmentId: brandString<AttachmentId>(`sha256:${'c'.repeat(64)}`) }
     const attachments = attachmentStoreOf(ref => Promise.resolve({
       ...requestImage(ref),
-      variantId: ImageVariantId(`sha256:${(ref.attachmentId === imageRef.attachmentId ? 'b' : 'd').repeat(64)}`),
+      variantId: brandString<ImageVariantId>(`sha256:${(ref.attachmentId === imageRef.attachmentId ? 'b' : 'd').repeat(64)}`),
     })).store
     const files = fileStoreOf(() => Promise.reject(new Error('unused')))
     files.ensureUploaded
@@ -536,39 +537,46 @@ describe('DeepSeekAdapter against a mock server', () => {
     expect(JSON.stringify(body)).not.toContain('file-api-partial')
   })
 
-  it('falls back after the configured Files API deadline without aborting the model request', async () => {
+  it('sends successive image requests inline after one 20-second upload timeout', async () => {
     vi.useFakeTimers()
     const started = Promise.withResolvers<undefined>()
-    const files = fileStoreOf((_version, _connection, _policy, signal) => new Promise((_resolve, reject) => {
+    const upload = vi.fn<typeof fetch>(async () => new Response(JSON.stringify({
+      id: 'file-probe', type: 'file', size_bytes: 3, created_at: new Date().toISOString(), filename: 'probe.png', mime_type: 'image/png',
+    }))).mockImplementationOnce((_url, init) => new Promise((_resolve, reject) => {
       started.resolve(undefined)
-      signal?.addEventListener('abort', () => {
-        const reason: unknown = signal.reason
-        reject(reason instanceof Error ? reason : new Error('files operation aborted'))
-      }, { once: true })
+      init!.signal!.addEventListener('abort', () => { reject(new Error('upload aborted')) }, { once: true })
     }))
+    const files = new Protocol.DeepSeekFileStore({ fetch: upload })
     const attachments = attachmentStoreOf(ref => Promise.resolve(requestImage(ref))).store
-    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(successfulSseResponse())
-    const adapter = adapterOf({
-      baseURL: 'https://deepseek.invalid',
-      filesApiTimeoutMs: 50,
-      models: [{ id: 'deepseek-v4-flash-vision-exp', inputModalities: ['text', 'image'] }],
-    }, attachments, files.store)
-
-    const pending = drain(adapter.stream({
-      provider: 'deepseek-official',
-      model: 'deepseek-v4-flash-vision-exp',
-      messages: [createUserMessage({
-        content: [{ type: 'image', attachment: imageRef }],
-        source: { kind: 'model', provider: 'deepseek-official', model: 'deepseek-v4-flash' },
-      })],
+    const messages = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => successfulSseResponse())
+    const adapter = adapterOf({ baseURL: 'https://deepseek.invalid' }, attachments, files)
+    const second = { ...imageRef, attachmentId: brandString<AttachmentId>(`sha256:${'c'.repeat(64)}`) }
+    const request = (images = [imageRef]) => drain(adapter.stream({
+      provider: 'deepseek-official', model: 'deepseek-flash',
+      messages: [createUserMessage({ content: images.map(attachment => ({ type: 'image', attachment })), source: { kind: 'user' } })],
     }))
-    await started.promise
-    await vi.advanceTimersByTimeAsync(50)
-    await pending
 
-    expect(fetchSpy).toHaveBeenCalledTimes(1)
-    expect(fetchSpy.mock.calls[0]?.[1]?.body).toEqual(expect.stringContaining('base64'))
-    fetchSpy.mockRestore()
+    try {
+      const first = request()
+      await started.promise
+      await vi.advanceTimersByTimeAsync(19_999)
+      expect(messages).not.toHaveBeenCalled()
+      await vi.advanceTimersByTimeAsync(1)
+      await first
+      await vi.advanceTimersByTimeAsync(3_600_000)
+      await drain(adapter.stream({ provider: 'deepseek-official', model: 'deepseek-flash', messages: [] }))
+      await request([imageRef, second])
+      expect(upload).toHaveBeenCalledTimes(1)
+      expect(messages).toHaveBeenCalledTimes(3)
+      expect(messages.mock.calls[0]?.[1]?.body).toEqual(expect.stringContaining('base64'))
+      const inline = messages.mock.calls[2]?.[1]?.body
+      expect(typeof inline === 'string' && inline.match(/"type":"base64"/gu)).toHaveLength(2)
+      await request()
+      expect(upload).toHaveBeenCalledTimes(2)
+      expect(messages.mock.calls[3]?.[1]?.body).toEqual(expect.stringContaining('file-probe'))
+    } finally {
+      messages.mockRestore()
+    }
   })
 
   it('does not turn caller cancellation during file resolution into base64 fallback', async () => {
@@ -631,8 +639,8 @@ describe('DeepSeekAdapter against a mock server', () => {
 
   it('does not prepare a surface-offloaded image and sends its placeholder instead', async () => {
     const server = await mockServer([{ kind: 'sse', events: textEvents }])
-    const old = { ...imageRef, attachmentId: AttachmentId(`sha256:${'c'.repeat(64)}`), bytes: 3 }
-    const recent = { ...imageRef, attachmentId: AttachmentId(`sha256:${'d'.repeat(64)}`), bytes: 3 }
+    const old = { ...imageRef, attachmentId: brandString<AttachmentId>(`sha256:${'c'.repeat(64)}`), bytes: 3 }
+    const recent = { ...imageRef, attachmentId: brandString<AttachmentId>(`sha256:${'d'.repeat(64)}`), bytes: 3 }
     const attachmentMocks = attachmentStoreOf((ref) => {
       if (ref.attachmentId === old.attachmentId) throw new Error('old image must not be read')
       return Promise.resolve(requestImage(ref))
@@ -693,7 +701,7 @@ describe('DeepSeekAdapter against a mock server', () => {
       ],
     }, attachmentMocks.store)
     const nested = createToolResultMessage({
-      callId: ToolCallId('image-result'),
+      callId: brandString<ToolCallId>('image-result'),
       content: [{ type: 'image', attachment: imageRef }],
       isError: false,
     })
@@ -808,7 +816,7 @@ describe('DeepSeekAdapter against a mock server', () => {
   it('lists every candidate when a normalized multi-image rejection names no file id', async () => {
     const secondRef: ImageAttachmentRef = {
       ...imageRef,
-      attachmentId: AttachmentId(`sha256:${'c'.repeat(64)}`),
+      attachmentId: brandString<AttachmentId>(`sha256:${'c'.repeat(64)}`),
     }
     const raw = JSON.stringify({ error: { message: 'unsupported image payload' } })
     const server = await mockServer([{ kind: 'http-error', status: 400, body: raw }])
@@ -816,7 +824,7 @@ describe('DeepSeekAdapter against a mock server', () => {
       const first = ref.attachmentId === imageRef.attachmentId
       return Promise.resolve({
         ...requestImage(ref),
-        variantId: ImageVariantId(`sha256:${(first ? 'b' : 'd').repeat(64)}`),
+        variantId: brandString<ImageVariantId>(`sha256:${(first ? 'b' : 'd').repeat(64)}`),
         attachment: first ? { ...ref, name: 'diagram.png' } : ref,
         hasAlpha: false,
       })
@@ -920,7 +928,7 @@ describe('DeepSeekAdapter against a mock server', () => {
   it('invalidates only the identified mapping when a multi-image request names one stale file id', async () => {
     const secondRef: ImageAttachmentRef = {
       ...imageRef,
-      attachmentId: AttachmentId(`sha256:${'c'.repeat(64)}`),
+      attachmentId: brandString<AttachmentId>(`sha256:${'c'.repeat(64)}`),
     }
     const server = await mockServer([
       {
@@ -932,7 +940,7 @@ describe('DeepSeekAdapter against a mock server', () => {
     ])
     const attachments = attachmentStoreOf(ref => Promise.resolve({
       ...requestImage(ref),
-      variantId: ImageVariantId(`sha256:${(ref.attachmentId === imageRef.attachmentId ? 'b' : 'd').repeat(64)}`),
+      variantId: brandString<ImageVariantId>(`sha256:${(ref.attachmentId === imageRef.attachmentId ? 'b' : 'd').repeat(64)}`),
     })).store
     const adapter = adapterOf({
       baseURL: server.url,
@@ -962,11 +970,11 @@ describe('DeepSeekAdapter against a mock server', () => {
   it('invalidates every listed missing file id and preserves unlisted mappings', async () => {
     const secondRef: ImageAttachmentRef = {
       ...imageRef,
-      attachmentId: AttachmentId(`sha256:${'c'.repeat(64)}`),
+      attachmentId: brandString<AttachmentId>(`sha256:${'c'.repeat(64)}`),
     }
     const thirdRef: ImageAttachmentRef = {
       ...imageRef,
-      attachmentId: AttachmentId(`sha256:${'e'.repeat(64)}`),
+      attachmentId: brandString<AttachmentId>(`sha256:${'e'.repeat(64)}`),
     }
     const server = await mockServer([
       {
@@ -987,7 +995,7 @@ describe('DeepSeekAdapter against a mock server', () => {
       else if (ref.attachmentId === secondRef.attachmentId) digest = 'd'
       return Promise.resolve({
         ...requestImage(ref),
-        variantId: ImageVariantId(`sha256:${digest.repeat(64)}`),
+        variantId: brandString<ImageVariantId>(`sha256:${digest.repeat(64)}`),
       })
     }).store
     const adapter = adapterOf({
@@ -1027,7 +1035,7 @@ describe('DeepSeekAdapter against a mock server', () => {
   it('recovers in one replacement request when the provider lists dozens of missing file ids', async () => {
     const refs = Array.from({ length: 40 }, (_, index): ImageAttachmentRef => ({
       ...imageRef,
-      attachmentId: AttachmentId(`sha256:${(index + 1).toString(16).padStart(64, '0')}`),
+      attachmentId: brandString<AttachmentId>(`sha256:${(index + 1).toString(16).padStart(64, '0')}`),
     }))
     const missing = Array.from({ length: 30 }, (_, index) => `file-api-${index + 1}`)
     const server = await mockServer([
@@ -1046,7 +1054,7 @@ describe('DeepSeekAdapter against a mock server', () => {
     ])
     const attachments = attachmentStoreOf(ref => Promise.resolve({
       ...requestImage(ref),
-      variantId: ImageVariantId(String(ref.attachmentId)),
+      variantId: brandString<ImageVariantId>(String(ref.attachmentId)),
     })).store
     const adapter = adapterOf({
       baseURL: server.url,
@@ -1078,7 +1086,7 @@ describe('DeepSeekAdapter against a mock server', () => {
   it('invalidates every used mapping when a stale-file response does not identify one file id', async () => {
     const secondRef: ImageAttachmentRef = {
       ...imageRef,
-      attachmentId: AttachmentId(`sha256:${'c'.repeat(64)}`),
+      attachmentId: brandString<AttachmentId>(`sha256:${'c'.repeat(64)}`),
     }
     const server = await mockServer([
       {
@@ -1090,7 +1098,7 @@ describe('DeepSeekAdapter against a mock server', () => {
     ])
     const attachments = attachmentStoreOf(ref => Promise.resolve({
       ...requestImage(ref),
-      variantId: ImageVariantId(`sha256:${(ref.attachmentId === imageRef.attachmentId ? 'b' : 'd').repeat(64)}`),
+      variantId: brandString<ImageVariantId>(`sha256:${(ref.attachmentId === imageRef.attachmentId ? 'b' : 'd').repeat(64)}`),
     })).store
     const adapter = adapterOf({
       baseURL: server.url,
@@ -1221,7 +1229,7 @@ describe('DeepSeekAdapter against a mock server', () => {
         content: [{ type: 'text', text: 'hi' }],
         source: { kind: 'model', provider: 'deepseek-official', model: 'deepseek-v4-flash' },
       })],
-      sessionId: SessionId('child-session'),
+      sessionId: brandString<SessionId>('child-session'),
     })
 
     expect(server.headers[0]?.['x-deepseek-harness-session-id']).toBe('child-session')
@@ -1261,7 +1269,7 @@ describe('DeepSeekAdapter against a mock server', () => {
     })
     await assemble(ctx,{
       model: 'deepseek-v4-flash',
-      reasoningEffort: ReasoningEffortId('off'),
+      reasoningEffort: brandString<ReasoningEffortId>('off'),
       messages: [createUserMessage({
         content: [{ type: 'text', text: 'hi again' }],
         source: { kind: 'model', provider: 'deepseek-official', model: 'deepseek-v4-flash' },
@@ -1269,7 +1277,7 @@ describe('DeepSeekAdapter against a mock server', () => {
     })
     await assemble(ctx,{
       model: 'deepseek-v4-flash',
-      reasoningEffort: ReasoningEffortId('max'),
+      reasoningEffort: brandString<ReasoningEffortId>('max'),
       messages: [createUserMessage({
         content: [{ type: 'text', text: 'one more time' }],
         source: { kind: 'model', provider: 'deepseek-official', model: 'deepseek-v4-flash' },
@@ -1322,11 +1330,11 @@ describe('DeepSeekAdapter against a mock server', () => {
       .resolves.toMatchObject({
         reasoning: {
           efforts: [{
-            id: ReasoningEffortId('off'),
+            id: brandString<ReasoningEffortId>('off'),
             name: 'Off',
             description: 'Use for simple tasks that do not need reasoning.',
           }],
-          defaultEffort: ReasoningEffortId('off'),
+          defaultEffort: brandString<ReasoningEffortId>('off'),
         },
       })
   })
@@ -1337,7 +1345,7 @@ describe('DeepSeekAdapter against a mock server', () => {
 
     const result = await assemble(ctx, {
       model: 'deepseek-v4-flash',
-      reasoningEffort: ReasoningEffortId('high'),
+      reasoningEffort: brandString<ReasoningEffortId>('high'),
       messages: [createUserMessage({
         content: [{ type: 'text', text: 'hi' }],
         source: { kind: 'model', provider: 'deepseek-official', model: 'deepseek-v4-flash' },
@@ -1359,7 +1367,7 @@ describe('DeepSeekAdapter against a mock server', () => {
       const stream = adapter.stream({
         provider: 'deepseek-official',
         model: 'deepseek-v4-flash',
-        reasoningEffort: ReasoningEffortId(effort),
+        reasoningEffort: brandString<ReasoningEffortId>(effort),
         messages: [createUserMessage({
           content: [{ type: 'text', text: 'hi' }],
           source: { kind: 'model', provider: 'deepseek-official', model: 'deepseek-v4-flash' },
@@ -1444,7 +1452,7 @@ describe('DeepSeekAdapter against a mock server', () => {
         code: 'RATE_LIMIT',
         status: 429,
         providerRetryAfterMs: 2_000,
-        requestId: ProviderRequestId('req-429'),
+        requestId: brandString<ProviderRequestId>('req-429'),
       },
     })
   })
@@ -1471,7 +1479,7 @@ describe('DeepSeekAdapter against a mock server', () => {
           code: 'SERVER',
           status: 503,
           providerRetryAfterMs: 3_000,
-          requestId: ProviderRequestId('deepseek-503'),
+          requestId: brandString<ProviderRequestId>('deepseek-503'),
         },
       })
     } finally {
@@ -1826,12 +1834,12 @@ describe('plugin registration and config', () => {
         defaultMaxTokens: 256_000,
         reasoning: {
           efforts: [
-            { id: ReasoningEffortId('off'), name: 'Off', description: 'Use for simple tasks that do not need reasoning.' },
-            { id: ReasoningEffortId('low'), name: 'Low', description: 'Prefer for routine or latency-sensitive tasks.' },
-            { id: ReasoningEffortId('high'), name: 'High', description: 'The default balance for most tasks.' },
-            { id: ReasoningEffortId('max'), name: 'Max', description: 'Reserve for the hardest quality-first tasks.' },
+            { id: brandString<ReasoningEffortId>('off'), name: 'Off', description: 'Use for simple tasks that do not need reasoning.' },
+            { id: brandString<ReasoningEffortId>('low'), name: 'Low', description: 'Prefer for routine or latency-sensitive tasks.' },
+            { id: brandString<ReasoningEffortId>('high'), name: 'High', description: 'The default balance for most tasks.' },
+            { id: brandString<ReasoningEffortId>('max'), name: 'Max', description: 'Reserve for the hardest quality-first tasks.' },
           ],
-          defaultEffort: ReasoningEffortId('high'),
+          defaultEffort: brandString<ReasoningEffortId>('high'),
         },
       })
   })
@@ -1861,12 +1869,12 @@ describe('plugin registration and config', () => {
       .resolves.toMatchObject({
         reasoning: {
           efforts: [
-            { id: ReasoningEffortId('off'), name: 'Off', description: 'Use for simple tasks that do not need reasoning.' },
-            { id: ReasoningEffortId('low'), name: 'Low', description: 'Prefer for routine or latency-sensitive tasks.' },
-            { id: ReasoningEffortId('high'), name: 'High', description: 'The default balance for most tasks.' },
-            { id: ReasoningEffortId('max'), name: 'Max', description: 'Reserve for the hardest quality-first tasks.' },
+            { id: brandString<ReasoningEffortId>('off'), name: 'Off', description: 'Use for simple tasks that do not need reasoning.' },
+            { id: brandString<ReasoningEffortId>('low'), name: 'Low', description: 'Prefer for routine or latency-sensitive tasks.' },
+            { id: brandString<ReasoningEffortId>('high'), name: 'High', description: 'The default balance for most tasks.' },
+            { id: brandString<ReasoningEffortId>('max'), name: 'Max', description: 'Reserve for the hardest quality-first tasks.' },
           ],
-          defaultEffort: ReasoningEffortId(effort),
+          defaultEffort: brandString<ReasoningEffortId>(effort),
         },
       })
   })
@@ -1883,11 +1891,11 @@ describe('plugin registration and config', () => {
       .resolves.toMatchObject({
         reasoning: {
           efforts: [{
-            id: ReasoningEffortId('off'),
+            id: brandString<ReasoningEffortId>('off'),
             name: 'Off',
             description: 'Use for simple tasks that do not need reasoning.',
           }],
-          defaultEffort: ReasoningEffortId('off'),
+          defaultEffort: brandString<ReasoningEffortId>('off'),
         },
       })
   })
@@ -1919,11 +1927,11 @@ describe('plugin registration and config', () => {
     await expect(adapter.resolveModel('deepseek-official', 'pass-through')).resolves.toMatchObject({
       reasoning: {
         efforts: [{
-          id: ReasoningEffortId('off'),
+          id: brandString<ReasoningEffortId>('off'),
           name: 'Off',
           description: 'Use for simple tasks that do not need reasoning.',
         }],
-        defaultEffort: ReasoningEffortId('off'),
+        defaultEffort: brandString<ReasoningEffortId>('off'),
       },
     })
   })

@@ -21,7 +21,6 @@ import { apply as applyChat, inject as injectChat } from '@deepseek-ai/dsh-clien
 import { AccountPlatformHost, type AccountPlatformHostInjected } from '../src/client/AccountPlatformHost.tsx'
 import { AccountQuotaNotice, type AccountQuotaNoticeInjected } from '../src/client/AccountQuotaNotice.tsx'
 import { AccountSection, type AccountSectionInjected, type AccountSnapshot } from '../src/client/AccountSection.tsx'
-import { formatBalance } from '../src/client/formatBalance.ts'
 import { DesktopOnboardingEntry, type DesktopOnboardingInjected } from '../src/client/DesktopOnboardingEntry.tsx'
 import type { DesktopOnboardingState } from '../src/client/onboarding-contract.ts'
 import { createPlatformPages, type PlatformPages } from '../src/client/platform-pages.ts'
@@ -66,12 +65,10 @@ function sectionOperations(account: AccountSnapshot, pages: PlatformPages): Acco
     },
     openPlatformPage: pages.open,
     refreshAccount: async () => {},
-    formatWalletBalance: (balance, currency) => formatBalance(balance, currency),
-    formatPlanDate: (iso: string) => `d:${iso}`, formatPlanResetIn: (iso: string) => `r:${iso}`,
     avatarFailed: () => {},
-    bonusNoticeShown: () => {}, bonusNoticeDismissed: () => {},
+
     hasRunningAccountTasks: async () => false,
-    showLogin: () => {}, setOnboarding: () => {},
+    contactUs: () => {}, showLogin: () => {}, setOnboarding: () => {},
     start: async () => {}, cancel: async () => {}, signOut: async () => {},
   }
 }
@@ -128,9 +125,7 @@ async function bench() {
   runtime.ctx.uiSession.provide = (next) => { descriptor ??= next; return provide(next) }
   await runtime.mount({ inject: [...injectChat], apply: applyChat })
   if (descriptor === undefined) throw new Error('ui-chat did not provide its standard source')
-  const accountSnapshot = createSnapshotStore<AccountSnapshot>({
-    view: storedView, details: { balance: { status: 'failed' } }, avatar: undefined, failed: false,
-  })
+  const accountSnapshot = createSnapshotStore<AccountSnapshot>({ view: storedView, details: undefined, avatar: undefined, failed: false })
   const account = {
     getSnapshot: () => accountSnapshot.getSnapshot(),
     subscribe: (listener: () => void) => accountSnapshot.subscribe(listener),
@@ -203,9 +198,9 @@ async function fail(runtime: SlotTestRuntime, seq: number, code: string): Promis
 function settingsTopUp() {
   return screen.getAllByRole('link', { name: en.topUp }).at(-1)!
 }
-/** The settings card's failed-balance link, which requests the shared usage page. */
+/** The account settings card's usage link, which requests the shared page. */
 function settingsUsage() {
-  return screen.getAllByRole('link', { name: en.balanceUnavailable }).at(-1)!
+  return screen.getAllByRole('link', { name: en.usage }).at(-1)!
 }
 
 describe('shared Platform page ownership', () => {

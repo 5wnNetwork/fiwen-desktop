@@ -30,7 +30,10 @@
     "docs",
     "lib/index.js",
     "cordis.patch.yml",
-    "lib/types/**/*.d.ts"
+    "lib/types/**/*.d.ts",
+    "lib/types/**/*.d.ts.map",
+    "lib/**/*.js.map",
+    "src"
   ],
   "license": "MIT",
   "dsh": {
@@ -41,6 +44,7 @@
   "dependencies": {
     "@deepseek-ai/dsh-tool-terminal": "workspace:*",
     "@deepseek-ai/dsh-terminal": "workspace:*",
+    "@deepseek-ai/dsh-terminal-panel": "workspace:*",
     "@deepseek-ai/dsh-terminal-bash": "workspace:*"
   },
   "peerDependencies": {

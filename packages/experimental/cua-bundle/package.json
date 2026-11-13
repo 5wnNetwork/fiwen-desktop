@@ -30,14 +30,18 @@
     "docs",
     "lib/index.js",
     "cordis.patch.yml",
-    "lib/types/**/*.d.ts"
+    "lib/types/**/*.d.ts",
+    "lib/types/**/*.d.ts.map",
+    "lib/**/*.js.map",
+    "src"
   ],
   "license": "MIT",
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml",
       "platforms": [
-        "darwin"
+        "darwin",
+        "win32"
       ]
     }
   },
@@ -51,10 +55,11 @@
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:~",
     "@deepseek-ai/cordis-plugin-include": "workspace:~",
-    "js-yaml": "^4.2.0",
-    "@deepseek-ai/cordis-plugin-loader": "workspace:~"
+    "@deepseek-ai/cordis-plugin-loader": "workspace:~",
+    "js-yaml": "^4.2.0"
   },
   "optionalDependencies": {
-    "@deepseek-ai/dsh-experimental-cua-macos": "workspace:*"
+    "@deepseek-ai/dsh-cua-macos": "workspace:*",
+    "@deepseek-ai/dsh-cua-windows": "workspace:*"
   }
 }

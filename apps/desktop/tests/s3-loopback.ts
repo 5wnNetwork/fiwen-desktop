@@ -3,7 +3,7 @@
 import { createServer, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import type { S3Client } from '@aws-sdk/client-s3'
-import { createDesktopS3, type DesktopS3Credentials } from '../scripts/desktop-s3.ts'
+import { createDesktopS3, type DesktopS3Credentials } from '../../desktop-publisher/src/desktop-s3.ts'
 
 /** One request the client actually sent, with bytes read from the wire. */
 export interface S3LoopbackRequest {

@@ -31,7 +31,8 @@
     "INSTALLER_EXTRACT_COLLAPSE": "Ẩn chi tiết",
     "INSTALLER_EXTRACT_SAVED": "Đã lưu báo cáo đầy đủ vào %s",
     "INSTALLER_EXTRACT_UNSAVED": "Không lưu được báo cáo đầy đủ. Hãy dùng Sao chép chi tiết lỗi để giữ lại.",
-    "INSTALLER_EXTRACT_COPIED": "Đã sao chép chi tiết lỗi vào clipboard."
+    "INSTALLER_EXTRACT_COPIED": "Đã sao chép chi tiết lỗi vào clipboard.",
+    "INSTALLER_UPDATE_WAIT": "Đang cài bản cập nhật. Ứng dụng sẽ tự khởi động lại khi hoàn tất."
   },
   "uninstaller": {
     "welcome": "Chào mừng",

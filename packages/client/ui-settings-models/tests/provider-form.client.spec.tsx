@@ -5,9 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import Schema from '@deepseek-ai/schemastery'
 import { Context } from '@deepseek-ai/cordis'
 import { bindSnapshotSelector, RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
-import type {
-  AuthorizationAccountView, AuthorizationEntryView, RemoteResult, SettingsNamespaceView,
-} from '@deepseek-ai/dsh-api-remotes/client'
+import type { SettingsNamespaceView } from '@deepseek-ai/dsh-api-remotes/client'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import { ModelsSection, providerCopy } from '../src/client/ModelsSection.tsx'
 import type { ModelsSectionInjected, ModelsSectionProps } from '../src/client/ModelsSection.tsx'
@@ -24,7 +22,7 @@ afterEach(cleanup)
 
 const t: ModelsSectionInjected['t'] = key => en[key]
 
-const PROTOCOLS = ['openai-completions', 'openai-responses', 'anthropic-messages']
+const PROTOCOLS = ['openai-completions', 'openai-responses', 'anthropic-messages', 'google-generative-ai']
 const LEVELS = ['off', 'minimal', 'low', 'medium', 'high', 'xhigh', 'max']
 
 /** The pi-ai profile shape as the host serializes it, including the layer-1 fields. */
@@ -108,8 +106,6 @@ function scriptedFace(options: {
   baseProviders?: Record<string, JsonValue>
   /** Routes the adapter reports as hand-declared; the rest come back as shipped. */
   declaredRoutes?: readonly string[]
-  /** The authorization flows the Host reports, keyed under `llm-pi-ai/<route>`. */
-  authorization?: AuthorizationEntryView[]
   discover?: ReturnType<typeof vi.fn>
   mutate?: ReturnType<typeof vi.fn>
   set?: ReturnType<typeof vi.fn>
@@ -122,21 +118,6 @@ function scriptedFace(options: {
   const mutate = options.mutate ?? vi.fn(() => Promise.resolve(remoteOk(namespace)))
   const set = options.set ?? vi.fn(() => Promise.resolve(remoteOk(undefined)))
   const face = {
-    // The operations the page binds once per face; the sign-in surface's
-    // subscriptions stay inert in this suite.
-    $on: vi.fn(() => () => {}),
-    authorization: {
-      list: vi.fn((): Promise<RemoteResult<AuthorizationEntryView[]>> =>
-        Promise.resolve(remoteOk(options.authorization ?? []))),
-      begin: vi.fn(() => Promise.resolve(remoteOk({ status: 'authorized' }))),
-      answer: vi.fn(() => Promise.resolve(remoteOk(true))),
-      decline: vi.fn(() => Promise.resolve(remoteOk(true))),
-      cancel: vi.fn(() => Promise.resolve(remoteOk(undefined))),
-      signOut: vi.fn(() => Promise.resolve(remoteOk(undefined))),
-      listAccounts: vi.fn((): Promise<RemoteResult<AuthorizationAccountView[]>> => Promise.resolve(remoteOk([]))),
-      selectAccount: vi.fn(() => Promise.resolve(remoteOk(undefined))),
-      quota: vi.fn(() => Promise.resolve(remoteOk(undefined))),
-    },
     llm: {
       listProviders: vi.fn(() => Promise.resolve(ok(
         Object.keys(providers).map(provider => ({ id: provider, name: provider })),
@@ -1075,41 +1056,48 @@ describe('hand-declared providers', () => {
     expect(fields()).toEqual([en.keyInput, en.customDisplayName, en.baseUrl, en.customApi])
   })
 
-  it('omits the endpoint field on a route that signs in with an account', async () => {
-    const fields = () => [...document.querySelectorAll('input,select')]
-      .map(el => el.getAttribute('aria-label')).filter(Boolean)
-
-    // A subscription route's endpoint is fixed by the provider's own
-    // implementation: a repointing setting would only send the signed-in
-    // account's requests somewhere that cannot honor them.
-    await mountSection({
-      providers: { anthropic: {} },
-      authorization: [{
-        key: 'llm-pi-ai/anthropic' as AuthorizationEntryView['key'],
-        label: 'Claude',
-        methods: [{ id: 'oauth', label: 'Sign in with Claude' }],
-        inFlight: false,
-        configured: false,
-      }],
+  it('requires a key before a keyless declared route switches to the Gemini protocol', async () => {
+    const { mutate, set } = await mountSection({
+      providers: { 'acme-gateway': { api: 'openai-completions', baseURL: 'https://acme.test/v1beta' } },
+      declaredRoutes: ['acme-gateway'],
     })
-    openEditor('anthropic')
-    expect(fields()).toEqual([en.keyInput])
-    cleanup()
+    openEditor('acme-gateway')
+    fireEvent.change(screen.getByLabelText(en.customApi), { target: { value: 'google-generative-ai' } })
 
-    // The same route keeps the field when the flow offers keys only: an
-    // unserved OAuth method is the same as none.
+    expect(screen.getByText(en.keyRequired)).toBeTruthy()
+    expect(screen.getByLabelText<HTMLInputElement>(en.keyInput).required).toBe(true)
+    expect(buttonNamed(en.apply).disabled).toBe(true)
+    fireEvent.change(screen.getByLabelText(en.keyInput), { target: { value: 'gemini-key' } })
+    expect(screen.queryByText(en.keyRequired)).toBeNull()
+    fireEvent.click(screen.getByText(en.apply))
+    await waitFor(() => { expect(set).toHaveBeenCalledOnce() })
+    expect(firstMutate(mutate).ops).toContainEqual(
+      { op: 'set', path: ['providers', 'acme-gateway', 'apiKeyEnv'], value: 'ACME_GATEWAY_API_KEY' })
+  })
+
+  it('needs no typed key on a Gemini route that names its key reference', async () => {
     await mountSection({
-      providers: { anthropic: {} },
-      authorization: [{
-        key: 'llm-pi-ai/anthropic' as AuthorizationEntryView['key'],
-        label: 'Claude',
-        methods: [{ id: 'api-key', label: 'API key' }],
-        inFlight: false,
-        configured: false,
-      }],
+      providers: { 'acme-gateway': { apiKeyEnv: 'ACME_KEY', api: 'google-generative-ai', baseURL: 'https://acme.test/v1beta' } },
+      declaredRoutes: ['acme-gateway'],
     })
-    openEditor('anthropic')
-    expect(fields()).toEqual([en.keyInput, en.baseUrl])
+    openEditor('acme-gateway')
+    expect(screen.queryByText(en.keyRequired)).toBeNull()
+    expect(screen.getByLabelText<HTMLInputElement>(en.keyInput).required).toBe(false)
+  })
+
+  it('blocks a protocol switch that the route\'s inherited reasoning levels would break', async () => {
+    await mountSection({
+      providers: { 'acme-gateway': {
+        apiKeyEnv: 'ACME_KEY', api: 'openai-completions', baseURL: 'https://acme.test/v1',
+        models: [{ id: 'm', reasoningEfforts: { off: null, high: 'high' } }],
+      } },
+      userProviders: { 'acme-gateway': { apiKeyEnv: 'ACME_KEY', api: 'openai-completions', baseURL: 'https://acme.test/v1' } },
+      baseProviders: { 'acme-gateway': { models: [{ id: 'm', reasoningEfforts: { off: null, high: 'high' } }] } },
+      declaredRoutes: ['acme-gateway'],
+    })
+    openEditor('acme-gateway')
+    fireEvent.change(screen.getByLabelText(en.customApi), { target: { value: 'google-generative-ai' } })
+    expect(buttonNamed(en.apply).disabled).toBe(true)
   })
 
   it('renames a declared route and falls back to its id when the name is cleared', async () => {
@@ -1601,6 +1589,8 @@ describe('hand-declared providers', () => {
     expect(baseUrl.placeholder).toBe('https://gateway.example/v1')
     fireEvent.change(protocol, { target: { value: 'openai-responses' } })
     expect(baseUrl.placeholder).toBe('https://gateway.example/v1')
+    fireEvent.change(protocol, { target: { value: 'google-generative-ai' } })
+    expect(baseUrl.placeholder).toBe('https://gateway.example/v1beta')
 
     fireEvent.change(screen.getByLabelText(en.customRoute), { target: { value: 'acme' } })
     fireEvent.change(baseUrl, { target: { value: 'https://acme.test/anthropic' } })
@@ -1665,15 +1655,55 @@ describe('hand-declared providers', () => {
   })
 
   it('names each protocol by its product name and falls back to the identifier of an unknown one', () => {
-    mountCard({ protocols: [...PROTOCOLS, 'google-generative-ai'] })
+    mountCard({ protocols: [...PROTOCOLS, 'future-protocol'] })
     const protocol = screen.getByLabelText<HTMLSelectElement>(en.customApi)
     const labels = [...protocol.options].map(option => [option.value, option.textContent])
     expect(labels).toEqual([
       ['openai-completions', en.protocolOpenAiCompletions],
       ['openai-responses', en.protocolOpenAiResponses],
       ['anthropic-messages', en.protocolAnthropicMessages],
-      ['google-generative-ai', 'google-generative-ai'],
+      ['google-generative-ai', en.protocolGemini],
+      ['future-protocol', 'future-protocol'],
     ])
+  })
+
+  it('requires a key for the Gemini protocol, which cannot authenticate without one', async () => {
+    const { mutate, set, onClose } = mountCard()
+    fireEvent.change(screen.getByLabelText(en.customRoute), { target: { value: 'gemini-gateway' } })
+    fireEvent.change(screen.getByLabelText(en.baseUrl), { target: { value: 'https://gateway.example/v1beta' } })
+    fireEvent.change(screen.getByLabelText(en.customApi), { target: { value: 'google-generative-ai' } })
+    fireEvent.click(screen.getByRole('button', { name: en.addModel }))
+    fireEvent.change(screen.getByLabelText(`${en.modelId} 1`), { target: { value: 'gemini-pro' } })
+
+    expect(screen.getByText(en.keyRequired)).toBeTruthy()
+    expect(buttonNamed(en.create).disabled).toBe(true)
+    fireEvent.change(screen.getByLabelText(en.keyInput), { target: { value: 'gemini-key' } })
+    fireEvent.click(screen.getByText(en.create))
+
+    await waitFor(() => { expect(onClose).toHaveBeenCalledWith(true) })
+    expect(firstMutate(mutate).ops[0]?.value).toMatchObject({ api: 'google-generative-ai', apiKeyEnv: 'GEMINI_GATEWAY_API_KEY' })
+    expect(set).toHaveBeenCalledOnce()
+  })
+
+  it('treats a whitespace key as missing on the Gemini protocol', () => {
+    mountCard()
+    fireEvent.change(screen.getByLabelText(en.customApi), { target: { value: 'google-generative-ai' } })
+    fireEvent.change(screen.getByLabelText(en.keyInput), { target: { value: '   ' } })
+    expect(screen.getByText(en.keyRequired)).toBeTruthy()
+    expect(screen.queryByText(en.keyBlankNew)).toBeNull()
+  })
+
+  it('offers a Gemini model only the levels the protocol accepts', () => {
+    mountCard()
+    fireEvent.change(screen.getByLabelText(en.customApi), { target: { value: 'google-generative-ai' } })
+    fireEvent.click(screen.getByRole('button', { name: en.addModel }))
+    fireEvent.click(screen.getByRole('button', { name: `${en.modelAdvanced} 1` }))
+    fireEvent.click(screen.getByRole('switch', { name: `${en.modelReasoning} 1` }))
+
+    const level = screen.getByRole<HTMLSelectElement>('combobox', { name: `${en.modelReasoningLevel} 1` })
+    expect(level.value).toBe('low')
+    expect([...level.options].map(option => option.value)).toEqual(['minimal', 'low'])
+    expect(screen.getByRole<HTMLInputElement>('textbox', { name: `low ${en.modelReasoningValue}` }).disabled).toBe(true)
   })
 
   it('refuses an unusable key on the field and blocks creation', () => {

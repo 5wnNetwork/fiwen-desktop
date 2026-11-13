@@ -13,6 +13,7 @@
 - button "Completed in {{duration}}" [expanded]
 - button "Searched the web" [expanded]
 - button "Context injection runtime-context"
+- button "Context injection skill-catalog"
 - button "Context injection time-context"
 - button "Search Fiwen snapshot search, Fiwen multi-query search"
 - paragraph: SEARCH_DONE
