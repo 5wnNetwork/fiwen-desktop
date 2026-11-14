@@ -423,7 +423,7 @@ describe('package payload constraints', () => {
   })
 
   it('rejects a bundle whose locale detail document is missing from its publication files', () => {
-    const dir = 'packages/experimental/badge-skill-bundle'
+    const dir = 'packages/experimental/terminal-bundle'
     const manifest = JSON.parse(readFileSync(join(import.meta.dirname, '..', dir, 'package.json'), 'utf8')) as WorkspaceManifest['manifest']
     expect(checkWorkspaceManifest({ dir, manifest })).toEqual([])
     const files = (manifest.files ?? []).filter(file => file !== 'docs')

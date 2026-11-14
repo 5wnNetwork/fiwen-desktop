@@ -1,5 +1,4 @@
 /** Optional bundles through the shipped Web Loader, live package manager, and real Agent loop. */
-import { executeToolFixture } from '@deepseek-ai/dsh-tool-testkit'
 import { randomUUID } from 'node:crypto'
 import { existsSync } from 'node:fs'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
@@ -11,7 +10,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { Agent, AgentHandle } from '@deepseek-ai/dsh-agent'
 import type { ProfileContext } from '@deepseek-ai/dsh-app-boot'
 import { brandString } from '@deepseek-ai/dsh-brand'
-import { LlmAdapter, type ToolCallId, createUserMessage } from '@deepseek-ai/dsh-llm'
+import { LlmAdapter, createUserMessage } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, LlmResolvedModelInfo, StreamChunk } from '@deepseek-ai/dsh-llm'
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import type {} from '@deepseek-ai/dsh-agent-preset-registry'
@@ -30,7 +29,6 @@ const bundles = {
   search: '@deepseek-ai/dsh-experimental-session-search',
   ralph: '@deepseek-ai/dsh-experimental-ralph-bundle',
   terminal: '@deepseek-ai/dsh-experimental-terminal-bundle',
-  badge: '@deepseek-ai/dsh-experimental-badge-skill-bundle',
   titles: '@deepseek-ai/dsh-experimental-session-titles-bundle',
 } as const
 type Response = StreamChunk[] | ((request: GenerateOptions) => StreamChunk[])
@@ -175,7 +173,6 @@ describe.skipIf(!existsSync(join(root, 'apps/cli/lib/bin.js')))('Official option
     expect(names()).toEqual(['team_task_create', 'team_task_get', 'team_task_list', 'team_task_update', 'working_directory'])
     expect(names(minimal.agent)).toEqual([process.platform === 'win32' ? 'pwsh' : 'bash', 'read_image', 'team_task_create', 'team_task_get', 'team_task_list', 'team_task_update', 'working_directory'])
     for (const name of ['str_replace_editor', 'session_search', 'terminal_open', 'user_terminal_list', 'ralph']) expect(names(standard.agent)).not.toContain(name)
-    expect((await ctx.skills.list({ cwd: workspace, scope: standard.agent })).some(skill => skill.name === 'dsh-badge')).toBe(false)
   })
 
   it('generates and executes the PTC SDK for the selected search bundle', async () => {
@@ -230,26 +227,6 @@ describe.skipIf(!existsSync(join(root, 'apps/cli/lib/bin.js')))('Official option
     const reopened = await ctx.agents.resume({ resumeSessionId: sessionId, setup: scoped => ctx.agentPresets.mount(scoped, 'standard').then(() => undefined) })
     handles.add(reopened)
     expect(names(reopened.agent)).not.toContain('session_search')
-  })
-
-  it('loads the actual badge asset only while its bundle is selected', async () => {
-    const owner = await agent()
-    const load = (callId: string) => executeToolFixture(ctx, {
-      callId: brandString<ToolCallId>(callId), name: 'skill', arguments: { name: 'dsh-badge' },
-      agent: owner.agent, signal: new AbortController().signal,
-    })
-    expect((await load('badge-before')).isError).toBe(true)
-    await select(bundles.badge, true)
-    await turn(owner.agent, 'Load the dsh badge skill.', [
-      toolCallResponse('badge-on', 'skill', { name: 'dsh-badge' }), textResponse('BADGE_DONE'),
-    ])
-    expect(toolResult(owner.agent, 'badge-on')).toContain('powered by dsh')
-    expect(toolResult(owner.agent, 'badge-on')).toContain('dsh-badge.png')
-    const minimal = await agent('minimal')
-    expect((await ctx.skills.list({ cwd: workspace, scope: minimal.agent })).map(skill => skill.name)).toContain('dsh-badge')
-    expect(names(minimal.agent)).toEqual([process.platform === 'win32' ? 'pwsh' : 'bash', 'read_image', 'team_task_create', 'team_task_get', 'team_task_list', 'team_task_update', 'working_directory'])
-    await select(bundles.badge, false)
-    expect((await load('badge-after')).isError).toBe(true)
   })
 
   it('runs and closes a real persistent terminal delivered by its bundle', async () => {
@@ -339,14 +316,13 @@ describe.skipIf(!existsSync(join(root, 'apps/cli/lib/bin.js')))('Official option
       if (preset === 'ptc') coded = owner.agent
     }
     if (coded === undefined) throw new Error('the PTC Agent was not created')
-    await turn(coded, 'Read this session lineage and load the badge through one program.', [
+    await turn(coded, 'Read this session lineage through one program.', [
       toolCallResponse('combined-program', 'run_code', {
-        code: 'inspect(await tools.session_trace({})); inspect(await tools.skill({ name: "dsh-badge" }));',
-        description: 'Use optional session search and badge together',
+        code: 'inspect(await tools.session_trace({}));',
+        description: 'Use optional session search together with the terminal and ralph bundles',
       }), textResponse('COMBINED_DONE'),
     ])
     expect(toolResult(coded, 'combined-program')).toContain(coded.session.id)
-    expect(toolResult(coded, 'combined-program')).toContain('dsh-badge')
     expect(names()).toEqual(expect.arrayContaining(['session_search', 'terminal_open', 'ralph', 'working_directory']))
     for (const name of [...Object.values(bundles)].reverse()) await select(name, false)
     expect(names((await agent()).agent)).not.toContain('session_search')

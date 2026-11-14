@@ -370,9 +370,6 @@ importers:
       '@deepseek-ai/dsh-experimental-auto-review':
         specifier: workspace:*
         version: link:../../packages/experimental/auto-review
-      '@deepseek-ai/dsh-experimental-badge-skill-bundle':
-        specifier: workspace:*
-        version: link:../../packages/experimental/badge-skill-bundle
       '@deepseek-ai/dsh-experimental-cot-translation-bundle':
         specifier: workspace:*
         version: link:../../packages/experimental/cot-translation-bundle
@@ -9397,16 +9394,6 @@ importers:
       '@deepseek-ai/dsh-working-directory':
         specifier: workspace:*
         version: link:../../session/working-directory
-
-  packages/experimental/badge-skill-bundle:
-    dependencies:
-      '@deepseek-ai/dsh-skill-badge':
-        specifier: workspace:*
-        version: link:../skill-badge
-    devDependencies:
-      '@deepseek-ai/cordis':
-        specifier: workspace:~
-        version: link:../../../vendor/cordis
 
   packages/experimental/browser-use-chrome-devtools-mcp:
     dependencies:

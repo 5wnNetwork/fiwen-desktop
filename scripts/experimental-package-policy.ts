@@ -40,7 +40,6 @@ export const EXPERIMENTAL_PACKAGE_NAME_PREFIX = '@deepseek-ai/dsh-experimental-'
 export const LEGACY_PREFIXED_EXPERIMENTAL_PACKAGE_DIRECTORIES: readonly string[] = [
   'packages/experimental/api-speech-to-text',
   'packages/experimental/auto-review',
-  'packages/experimental/badge-skill-bundle',
   'packages/experimental/browser-use-chrome-devtools-mcp',
   'packages/experimental/browser-use-playwright-mcp',
   'packages/experimental/browser-use-runtime',

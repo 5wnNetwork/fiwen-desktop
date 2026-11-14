@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for guide.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/upgrade-guide/v0.2.2-rc.4/badge-skill-bundle-removal/guide.md
+/:
+  en: 44b94e69cf61f6fd
+  zh: ebe3815bcb512902
+/dsh-badge-skill-bundle-removed:
+  en: 8de82b1484f265b3
+  zh: 91b223a990041adb
+/dsh-badge-skill-bundle-removed/change:
+  en: bf39b822b13171e9
+  zh: 3ba3c5cc1f8c4bd4
+/dsh-badge-skill-bundle-removed/migration:
+  en: f6ac0594429fad7d
+  zh: 3ca288c65f2ba233

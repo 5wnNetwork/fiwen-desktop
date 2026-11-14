@@ -1,21 +1,21 @@
 - button "返回 实验性插件": 实验性插件
 - status
-- switch "启用 DSH 徽章技能"
-- heading "DSH 徽章技能" [level=3]
+- switch "启用 随对话更新的标题"
+- heading "随对话更新的标题" [level=3]
 - text: v{{version}} 实验性
 - paragraph:
-  - code: "@deepseek-ai/dsh-experimental-badge-skill-bundle"
-- paragraph: 让 Agent 为文档、PR 等产出添加「powered by dsh」徽章。
+  - code: "@deepseek-ai/dsh-experimental-session-titles-bundle"
+- paragraph: 根据你的所有消息生成会话标题，并在主要任务变化时更新，而不是只根据第一条消息生成。
 - region "详细介绍":
   - paragraph:
-    - img "DSH 徽章技能功能预览"
+    - img "发送“你好”后标题为“问候”的会话，在后续消息后改为“修复登录重定向循环”"
 - heading "包含的组件" [level=4]
 - text: 共 1 个 · 1 已停用
 - list:
   - listitem:
-    - text: DSH 提供官方 powered-by-DSH 徽章技能。
-    - code: skill-badge
-    - code: "@deepseek-ai/dsh-skill-badge"
+    - text: 全部消息生成标题 使用会话中的全部用户消息生成标题。
+    - code: optional-session-title-all-prompts
+    - code: "@deepseek-ai/dsh-session-title-all-prompts-llm"
     - text: 已关闭
 - heading "来源信息" [level=4]
 - term: 代码来源

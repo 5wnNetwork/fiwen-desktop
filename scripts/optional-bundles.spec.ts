@@ -39,7 +39,6 @@ const lightweight = [
   '@deepseek-ai/dsh-experimental-session-search',
   '@deepseek-ai/dsh-experimental-ralph-bundle',
   '@deepseek-ai/dsh-experimental-terminal-bundle',
-  '@deepseek-ai/dsh-experimental-badge-skill-bundle',
   '@deepseek-ai/dsh-experimental-session-titles-bundle',
 ]
 
@@ -64,18 +63,19 @@ function profileLayers(surface: 'web' | 'desktop'): ReturnType<typeof loadOverla
 }
 
 describe.each(['web', 'desktop'] as const)('%s optional bundle overrides', (surface) => {
-  const selectedNames = ['@deepseek-ai/dsh-experimental-badge-skill-bundle', '@deepseek-ai/dsh-experimental-ralph-bundle']
+  const selectedNames = ['@deepseek-ai/dsh-experimental-session-titles-bundle', '@deepseek-ai/dsh-experimental-ralph-bundle']
 
   it('keeps established selectors for later configuration and disabled overrides', () => {
     const shipped = profileLayers(surface)
     const config = { subagentProvider: 'spawn', maxRounds: 3 }
     const warnings: string[] = []
     const entries = composeEntries([...shipped, ...selectedNames.map(name => bundle(name).patches), [
-      { id: 'skill-badge', disabled: true },
+      { id: 'optional-session-title-all-prompts', disabled: true },
       { id: 'tool-ralph', config, disabled: true },
     ]], warning => warnings.push(warning))
     expect(warnings).toEqual([])
-    expect(entries.find(row => row.id === 'skill-badge')).toMatchObject({ name: '@deepseek-ai/dsh-skill-badge', disabled: true })
+    expect(entries.find(row => row.id === 'optional-session-title-all-prompts'))
+      .toMatchObject({ name: '@deepseek-ai/dsh-session-title-all-prompts-llm', disabled: true })
     expect(flattenRows(entries).find(row => row.id === 'tool-ralph'))
       .toMatchObject({ name: '@deepseek-ai/dsh-tool-ralph', config, disabled: true })
     expect(entries.find(row => row.id === 'optional-ralph')?.isolate).toEqual({ workflowEngine: true })
@@ -84,13 +84,13 @@ describe.each(['web', 'desktop'] as const)('%s optional bundle overrides', (surf
   it('does not select absent bundles through enable-only row overrides', () => {
     const warnings: string[] = []
     const entries = composeEntries([...profileLayers(surface), [
-      { id: 'skill-badge', disabled: false },
+      { id: 'optional-session-title-all-prompts', disabled: false },
       { id: 'tool-ralph', disabled: false },
     ]], warning => warnings.push(warning))
     expect(warnings).toHaveLength(2)
-    expect(warnings.some(warning => warning.includes('skill-badge'))).toBe(true)
+    expect(warnings.some(warning => warning.includes('optional-session-title-all-prompts'))).toBe(true)
     expect(warnings.some(warning => warning.includes('tool-ralph'))).toBe(true)
-    expect(entries.some(row => row.id === 'skill-badge')).toBe(false)
+    expect(entries.some(row => row.id === 'optional-session-title-all-prompts')).toBe(false)
     expect(flattenRows(entries).some(row => row.id === 'tool-ralph')).toBe(false)
   })
 })
@@ -205,7 +205,7 @@ describe('optional bundles', () => {
     expect(composed.find(row => row.id === 'forge-panel')?.disabled).toBe(true)
   })
 
-  it('ships all five lightweight bundles without selecting them in a default template', () => {
+  it('ships all four lightweight bundles without selecting them in a default template', () => {
     const defaults = Object.values(PROFILE_TEMPLATES).flatMap(template => template.bundles)
     for (const name of lightweight) {
       expect(OPTIONAL_BUNDLES).toContain(name)

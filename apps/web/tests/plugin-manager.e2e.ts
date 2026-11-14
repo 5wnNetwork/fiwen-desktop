@@ -27,8 +27,8 @@ const LIVE_EXPECTED = join(SNAPSHOT_DIR, 'live-enabled.expected.md')
 const EXPORTS_EXPECTED = join(SNAPSHOT_DIR, 'exports.expected.md')
 const EXPORTS_EN_EXPECTED = join(SNAPSHOT_DIR, 'exports-en.expected.md')
 const FIXTURE_PLUGINS = fileURLToPath(new URL('./fixtures/plugins', import.meta.url))
-const { version: badgeVersion } = JSON.parse(await readFile(
-  new URL('../../../packages/experimental/badge-skill-bundle/package.json', import.meta.url), 'utf8',
+const { version: sessionTitlesVersion } = JSON.parse(await readFile(
+  new URL('../../../packages/experimental/session-titles-bundle/package.json', import.meta.url), 'utf8',
 )) as { version: string }
 const MODE = webSnapshotMode()
 /** The profile manifest's bundles as the scaffold initializes them. */
@@ -883,7 +883,6 @@ describe('web e2e: plugin manager', () => {
       ['@deepseek-ai/dsh-timeline', 1],
       ['@deepseek-ai/dsh-experimental-cot-translation-bundle', 1],
       ['@deepseek-ai/dsh-experimental-session-titles-bundle', 1],
-      ['@deepseek-ai/dsh-experimental-badge-skill-bundle', 1],
       ['@deepseek-ai/dsh-deepseek-chat-import', 1],
       ['@deepseek-ai/dsh-subagent-codex', 0],
       ['@deepseek-ai/dsh-subagent-claude-code', 0],
@@ -1150,9 +1149,10 @@ describe('web e2e: plugin manager', () => {
     onTestFailed(() => saveFailureShot(page, 'web-e2e-plugin-manager-preview'))
     const panel = await openPluginsPanel()
     await panel.getByRole('button', { name: '更多', exact: true }).click()
-    await panel.getByRole('button', { name: '查看 DSH 徽章技能', exact: true }).click()
+    await panel.getByRole('button', { name: '查看 随对话更新的标题', exact: true }).click()
     const detail = panel.locator('[data-plugin-detail]')
-    const preview = detail.locator('[data-detail-document]').getByRole('img', { name: 'DSH 徽章技能功能预览', exact: true })
+    const preview = detail.locator('[data-detail-document]')
+      .getByRole('img', { name: '发送“你好”后标题为“问候”的会话，在后续消息后改为“修复登录重定向循环”', exact: true })
     await preview.waitFor()
     await preview.evaluate(async (image: HTMLImageElement) => { await image.decode() })
     expect(await preview.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBe(640)
@@ -1163,17 +1163,17 @@ describe('web e2e: plugin manager', () => {
       return bounds.width > 0 && bounds.height > 0 && bounds.left >= parent.left && bounds.right <= parent.right + 1
     })
     expect(fits).toBe(true)
-    await detail.getByText(`v${badgeVersion}`, { exact: true }).waitFor()
-    await detail.getByText(badgeVersion, { exact: true }).waitFor()
+    await detail.getByText(`v${sessionTitlesVersion}`, { exact: true }).waitFor()
+    await detail.getByText(sessionTitlesVersion, { exact: true }).waitFor()
     await compareOrRefreshGolden(join(SNAPSHOT_DIR, 'preview.expected.md'),
       await captureStableAria(page, '[data-plugin-panel]', scaffold.workspaceCwd, {
-        replacements: [[badgeVersion, '{{version}}']],
+        replacements: [[sessionTitlesVersion, '{{version}}']],
       }), MODE)
     const chineseSource = await preview.getAttribute('src')
     try {
       await setLanguage('en')
       const englishPreview = detail.locator('[data-detail-document]')
-        .getByRole('img', { name: 'DSH badge skill feature preview', exact: true })
+        .getByRole('img', { name: 'A session titled "Greeting" after "hi" is retitled "Fix login redirect loop" after later messages', exact: true })
       await englishPreview.waitFor()
       await englishPreview.evaluate(async (image: HTMLImageElement) => { await image.decode() })
       expect(await englishPreview.evaluate((image: HTMLImageElement) => image.naturalWidth)).toBe(640)
@@ -1232,7 +1232,7 @@ describe('web e2e: plugin manager', () => {
     }
     await compareOrRefreshGolden(join(SNAPSHOT_DIR, 'forge-preview.expected.md'),
       await captureStableAria(page, '[data-plugin-panel]', scaffold.workspaceCwd, {
-        replacements: [[badgeVersion, '{{version}}']],
+        replacements: [[sessionTitlesVersion, '{{version}}']],
       }), MODE)
     expect(tripwire.pageErrors).toEqual([])
   })

@@ -301,7 +301,6 @@
     { "path": "./packages/experimental/session-search" },
     { "path": "./packages/experimental/ralph-bundle" },
     { "path": "./packages/experimental/terminal-bundle" },
-    { "path": "./packages/experimental/badge-skill-bundle" },
     { "path": "./packages/experimental/session-titles-bundle" },
     { "path": "./packages/experimental/translator" },
     { "path": "./packages/client/product-analytics/tsconfig.host.json" },

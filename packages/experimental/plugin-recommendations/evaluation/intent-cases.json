@@ -10,11 +10,6 @@
     "expected": "Look up the catalog, offer exactly one matching cot-translation-bundle card, explain its actual scope, and do not enable or edit files before the user acts."
   },
   {
-    "id": "badge",
-    "prompt": "希望我以后让你创建 PR 时都能带上 powered by dsh 的标识。",
-    "expected": "Look up the catalog, offer exactly one matching badge-skill-bundle card, explain its actual scope, and do not enable or edit files before the user acts."
-  },
-  {
     "id": "voice",
     "prompt": "我想在 DSH 里直接说话输入长需求，不想全靠打字。",
     "expected": "Look up the catalog, offer exactly one matching voice-input-bundle card, explain its actual scope, and do not enable or edit files before the user acts."

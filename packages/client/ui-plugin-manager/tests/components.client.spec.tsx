@@ -1254,7 +1254,7 @@ describe('PluginManagerPage', () => {
       const team = '@deepseek-ai/dsh-experimental-voice-input-bundle'
       renderTab(
         { packages: [
-          pkg({ name: '@deepseek-ai/dsh-experimental-badge-skill-bundle', official: true, enabled: false }),
+          pkg({ name: '@deepseek-ai/dsh-experimental-session-titles-bundle', official: true, enabled: false }),
           pkg({ name: '@deepseek-ai/dsh-experimental-voice-input-bundle', installed: false, optional: true, removable: false, enabled: false }),
           pkg({ name: '@deepseek-ai/dsh-subagent-claude-code', official: true, availability: 'missing', installed: false, enabled: false }),
           pkg({ name: '@deepseek-ai/dsh-subagent-codex', official: true, enabled: false }),
@@ -1290,7 +1290,7 @@ describe('PluginManagerPage', () => {
         .toEqual(['more'])
       const more = document.querySelector('[data-plugin-group="more"]') as HTMLElement
       expect(within(more).getAllByRole('listitem').map(card => card.getAttribute('data-plugin-package')))
-        .toEqual([team, '@acme/new-official', '@deepseek-ai/dsh-experimental-badge-skill-bundle', '@deepseek-ai/dsh-subagent-codex', '@deepseek-ai/dsh-subagent-claude-code'])
+        .toEqual([team, '@acme/new-official', '@deepseek-ai/dsh-experimental-session-titles-bundle', '@deepseek-ai/dsh-subagent-codex', '@deepseek-ai/dsh-subagent-claude-code'])
       expect(document.querySelector('[data-plugin-package="dsh-better-sidebar"]')).toBeNull()
       fireEvent.click(screen.getByRole('button', { name: en.openDetail.replace('{name}', team) }))
       fireEvent.click(screen.getByRole('button', { name: en.backToPackage.replace('{name}', en.moreTitle) }))

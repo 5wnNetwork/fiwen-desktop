@@ -11,8 +11,8 @@ import { afterAll, beforeAll, describe, expect, it, onTestFailed } from 'vitest'
 import { launchWebScaffold, watchConsole, type WebScaffold } from './scaffold.ts'
 import { connectFreshWorkspace, newEnglishPage, PLUGIN_TOGGLE_SETTLE_MS, saveFailureShot, writeComposerDraft } from './support.ts'
 
-const BUNDLE_DIR = fileURLToPath(new URL('../../../packages/experimental/badge-skill-bundle', import.meta.url))
-const BUNDLE = '@deepseek-ai/dsh-experimental-badge-skill-bundle'
+const BUNDLE_DIR = fileURLToPath(new URL('../../../packages/experimental/terminal-bundle', import.meta.url))
+const BUNDLE = '@deepseek-ai/dsh-experimental-terminal-bundle'
 const GLOBAL_SKILL = 'dsh-global-skill'
 
 describe('web e2e: the slash menu follows plugin switches', () => {
