@@ -1,6 +1,7 @@
 # Agent Note: 导入 DeepSeek 官网会话导出
 
 Status: implemented
+Archived: 2026-11-15
 
 [English](2026-11-11-deepseek-chat-export-import.md) | 中文
 

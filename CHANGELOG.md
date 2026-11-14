@@ -33,6 +33,7 @@ All notable changes to this fork are recorded here. The format follows [Keep a C
 ### Removed
 
 - `@deepseek-ai/dsh-experimental-badge-skill-bundle` is no longer shipped or published; it contributed one `skill-badge` row, so it could not be used apart from the capability. `@deepseek-ai/dsh-skill-badge` still ships, and a profile that wants the badge inserts its row directly, as the [upgrade guide](docs/upgrade-guide/v0.2.2-rc.4/badge-skill-bundle-removal/guide.md) describes.
+- `@deepseek-ai/dsh-deepseek-chat-import` is no longer shipped, published, or offered in the plugin manager; importing a DeepSeek website chat export as Sessions goes with it, including its owner-only upload route and the `deepseekChatImport` service. The [upgrade guide](docs/upgrade-guide/v0.2.2-rc.8/chat-import-removal/guide.md) covers a profile that still lists the row.
 
 ### Not changed
 

@@ -1,6 +1,7 @@
 # Agent Note: Import DeepSeek website chat exports
 
 Status: implemented
+Archived: 2026-11-15
 
 English | [中文](2026-11-11-deepseek-chat-export-import.zh.md)
 
