@@ -53,12 +53,16 @@ const SORT_KEYS = {
 {/* jscpd:ignore-start -- each surface owns its CSS module; a feature plugin cannot import another's. */}
 function ItemIcon({ src, size }: { readonly src: string | null; readonly size: number }): ReactNode {
   const [failed, setFailed] = useState<string | null>(null)
-  return src === null || src === failed
-    ? <PluginArtworkDefault size={size} />
-    : (
-      <img className={css.image} src={src} width={size} height={size} alt="" loading="lazy" referrerPolicy="no-referrer"
-        onError={() => { setFailed(src) }} />
-    )
+  if (src === null) return <PluginArtworkDefault size={size} />
+  // A glyph icon is text, not a location: draw it and skip the image request.
+  if (!src.startsWith('/') && !src.startsWith('https://')) {
+    return <span className={css.glyph} style={{ fontSize: size * 0.75 }} aria-hidden="true">{src}</span>
+  }
+  if (src === failed) return <PluginArtworkDefault size={size} />
+  return (
+    <img className={css.image} src={src} width={size} height={size} alt="" loading="lazy" referrerPolicy="no-referrer"
+      onError={() => { setFailed(src) }} />
+  )
 }
 /* jscpd:ignore-end */
 

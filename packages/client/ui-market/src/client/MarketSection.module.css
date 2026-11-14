@@ -119,6 +119,17 @@
   object-fit: contain;
 }
 
+/* A glyph icon is drawn as text, so it inherits no image sizing and needs its own line box. */
+.glyph {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  line-height: 1;
+  user-select: none;
+}
+
 .main {
   display: flex;
   flex: 1;

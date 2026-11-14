@@ -70,6 +70,32 @@ describe('parseList', () => {
   })
 
   it.each([
+    ['🎨', '🎨'],
+    ['🧠', '🧠'],
+    // A bare word is inert text, so it is a glyph like any other.
+    ['Fiwen', 'Fiwen'],
+  ])('keeps the glyph icon %j as %j', (value, expected) => {
+    const parsed = parseList({ items: [item({ icon: value })], total: 1 })
+    expect(parsed.items[0]!.icon).toBe(expected)
+  })
+
+  it.each([
+    // Anything a browser could read as a location must never survive as a glyph.
+    ['cdn.example.com/icon.png'],
+    ['icon.png?x=1'],
+    ['user@host'],
+    ['dir\\icon.png'],
+    ['#fragment'],
+    ['has space'],
+    ['\u0007bell'],
+    // Longer than any glyph; a stray sentence must not become icon text.
+    ['this is not an icon at all'],
+  ])('refuses the non-location non-glyph icon %j', (value) => {
+    const parsed = parseList({ items: [item({ icon: value })], total: 1 })
+    expect(parsed.items[0]!.icon).toBeNull()
+  })
+
+  it.each([
     [{}, '$.items'],
     [{ items: 'x', total: 0 }, '$.items'],
     [{ items: [item({ id: 1 })], total: 0 }, '$.items[0].id'],

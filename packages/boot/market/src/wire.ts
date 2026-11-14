@@ -78,14 +78,28 @@ function homepage(value: unknown): string | null {
 }
 
 /**
- * An icon may be a same-origin path or an https URL. Any other scheme would make
- * the Web client fetch an arbitrary host, leaking the reader's address.
+ * A glyph icon: short inert text, such as an emoji, that the Web client draws
+ * instead of fetching. Values a browser could read as a location — a scheme, a
+ * path, a query, userinfo — are refused, so a glyph can never become a request.
+ */
+function glyph(value: string): string | null {
+  if (value.length > 16) return null
+  if (/[/\\:?#@\s]/u.test(value)) return null
+  if (/[\u0000-\u001F\u007F]/u.test(value)) return null
+  return value
+}
+
+/**
+ * An icon is one of three things: a same-origin path, an https URL, or a glyph
+ * the client renders as text. The first two are fetched, so any other scheme
+ * would make the Web client reach an arbitrary host and leak the reader's
+ * address; a glyph is never fetched, so it carries no such risk.
  */
 function icon(value: unknown): string | null {
   if (typeof value !== 'string' || value === '') return null
   if (value.startsWith('//')) return null
   if (value.startsWith('/')) return value
-  return homepage(value)
+  return homepage(value) ?? glyph(value)
 }
 
 function nullable(object: Json, key: string, path: string): string | null {

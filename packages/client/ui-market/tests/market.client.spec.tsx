@@ -156,6 +156,27 @@ describe('MarketSection', () => {
     expect(document.querySelectorAll('img')).toHaveLength(0)
   })
 
+  it('draws a glyph icon as text without requesting an image', () => {
+    renderTab({ items: [item('alpha', { icon: '🎨' })], categories: [] })
+    expect(document.querySelectorAll('img')).toHaveLength(0)
+    expect(screen.getByText('🎨')).toBeTruthy()
+  })
+
+  it('still requests a same-origin path and an https icon as an image', () => {
+    renderTab({
+      items: [
+        item('alpha', { icon: '/v1/market/icons/web-tools.png' }),
+        item('beta', { icon: 'https://cdn.example/icon.png' }),
+      ],
+      categories: [],
+    })
+    const images = [...document.querySelectorAll('img')]
+    expect(images.map(image => image.getAttribute('src'))).toEqual([
+      '/v1/market/icons/web-tools.png',
+      'https://cdn.example/icon.png',
+    ])
+  })
+
   it('shows the uninstall busy label and hides show-more at the list end', () => {
     renderTab({ busy: { alpha: 'uninstall' } })
     expect(screen.getByText(en.uninstalling)).toBeTruthy()
