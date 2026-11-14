@@ -2708,7 +2708,7 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
       },
       {
         signature: '@Remote installBundle(spec: string, options?: InstallBundleOptions): Promise<ChangeResult>',
-        description: 'Install a package using the same pnpm implementation as fwnd plugin. GitHub repositories get a connection check bounded by githubConnectionTimeoutMs before pnpm starts; only network failures or timeouts stop installation, and a stop streams the check\'s diagnostic as the installation\'s install-log run under its request id, while pnpm owns authentication and transport fallback. An HTTP(S) Git URL on another host is installed over SSH instead when access probes bounded by gitTransportTimeoutMs find that only SSH can read it. A run that fails, is cancelled, or adds a package without a bundle patch restores `package.json` and `pnpm-lock.yaml` as they were; downloaded files can stay.',
+        description: 'Install a package using the same pnpm implementation as dsh plugin. GitHub repositories get a connection check bounded by githubConnectionTimeoutMs before pnpm starts; only network failures or timeouts stop installation, and a stop streams the check\'s diagnostic as the installation\'s install-log run under its request id, while pnpm owns authentication and transport fallback. An HTTP(S) Git URL on another host is installed over SSH instead when access probes bounded by gitTransportTimeoutMs find that only SSH can read it. A run that fails, is cancelled, or adds a package without a bundle patch restores `package.json` and `pnpm-lock.yaml` as they were; downloaded files can stay.',
         parameters: [{ name: 'spec', description: 'One package spec, including local paths relative to the invocation directory.' }, { name: 'options', description: 'Whether to activate the installed bundle (defaults to true), the request id a cancellation names, the pending build scripts to allow, whether to save an exact dependency, and the registry asked first.' }],
         returns: 'Package-manager diagnostics, the registries asked, and the observed activation outcome.',
       },
@@ -6034,7 +6034,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'AccountDetails',
-    declaration: 'export interface AccountDetails {\n    readonly profile: {\n        readonly status: \'ready\';\n        readonly value: AccountProfile;\n    } | {\n        readonly status: \'failed\';\n    };\n    readonly balance: {\n        readonly status: \'ready\';\n        readonly value: readonly AccountWallet[];\n        readonly bonusWallets: readonly AccountWallet[];\n        readonly plan?: AccountPlan | null;\n    } | {\n        readonly status: \'failed\';\n    };\n}',
+    declaration: 'export interface AccountDetails {\n    readonly profile: {\n        readonly status: \'ready\';\n        readonly value: AccountProfile;\n    } | {\n        readonly status: \'failed\';\n    };\n    readonly balance: {\n        readonly status: \'ready\';\n        readonly value: readonly AccountWallet[];\n        readonly bonusWallets: readonly AccountWallet[];\n    } | {\n        readonly status: \'failed\';\n    };\n}',
   },
   {
     name: 'AccountLinks',
@@ -6061,10 +6061,6 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type AccountNotificationId = Branded<\'AccountNotificationId\'>;',
   },
   {
-    name: 'AccountPlan',
-    declaration: 'export interface AccountPlan {\n    readonly id: string;\n    readonly name: string;\n    readonly expiresAt: string | null;\n    readonly dailyQuota: string;\n    readonly quotaUsed: string;\n    readonly quotaRemaining: string;\n    readonly resetsAt: string;\n    readonly maxContext: number;\n}',
-  },
-  {
     name: 'AccountProfile',
     declaration: 'export interface AccountProfile {\n    readonly id: AccountUserId | null;\n    readonly name: string | null;\n    readonly contact: string | null;\n    readonly avatarUrl?: string | null;\n}',
   },
@@ -6082,7 +6078,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'AccountWallet',
-    declaration: 'export interface AccountWallet {\n    readonly currency: \'CNY\' | \'USD\' | \'VND\';\n    readonly balance: string;\n}',
+    declaration: 'export interface AccountWallet {\n    readonly currency: \'CNY\' | \'USD\';\n    readonly balance: string;\n}',
   },
   {
     name: 'ActionCardDecision',
