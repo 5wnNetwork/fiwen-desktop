@@ -24,6 +24,13 @@ All notable changes to this fork are recorded here. The format follows [Keep a C
 - Every workspace `package.json` reports the root version (`0.2.1-rc.3`); 351 manifests were still on `0.2.1-rc.2`, which failed `pnpm run constraints` and the release version checks.
 - `@deepseek-ai/dsh-client-ui-market` declares its `files` payload (`lib/index.js`, `lib/client.js`, `lib/types/**/*.d.ts`), so a published tarball would actually contain the browser bundle.
 - The product-package policy records the three rows the Fiwen patch disables (`ui-brand-official`, `ui-message-feedback`, `ui-settings-session-log`), so `verify-product-use` accepts them instead of demanding a mount.
+- The Host starts when the installer moved an optional payload's package out of `app.asar.unpacked`. Electron answers a probe inside `app.asar` from the archive index, which still lists the package as unpacked, so `collectInstallationScopePackages` saw `@deepseek-ai/libreoffice-kit-win32-x64/package.json` as present and the read then failed with ENOENT during `composeProfile`. A dependency with no readable manifest now counts as not installed, the rule already applied to one with no resolvable directory; a manifest that exists but cannot be parsed still stops the boot.
+- Marketplace cards draw a stored emoji as text instead of the shared placeholder. `wire.ts` normalized the field through the homepage URL rule, so `new URL('🎨')` threw and every item arrived with a `null` icon while the admin hint promised "emoji or https URL".
+- The DeepSeek account provider names why its model listing failed, such as `model listing unavailable (… answered HTTP 503); retrying`, instead of reporting only that it is retrying.
+
+### Removed
+
+- `@deepseek-ai/dsh-experimental-badge-skill-bundle` is no longer shipped or published; it contributed one `skill-badge` row, so it could not be used apart from the capability. `@deepseek-ai/dsh-skill-badge` still ships, and a profile that wants the badge inserts its row directly, as the [upgrade guide](docs/upgrade-guide/v0.2.2-rc.4/badge-skill-bundle-removal/guide.md) describes.
 
 ### Not changed
 
