@@ -12,7 +12,7 @@ Status: implemented
 
 - 未持有列表时 `resolveAccountCatalog` 提供空目录。内置条目仍保留在请求解析中，因此已保存会话或 `agent-default-model` 设置引用的模型 id 依旧能解析并送达部署的后端。
 - 加载失败超过新增的 `modelsRetryAgeMs`（默认三十秒）后重试，而不是等满 `modelsMaxAgeMs`。尚未持有列表的访问一旦超过该时长会等待这次重试，与首次加载的约定一致，并在同一次访问中返回恢复后的列表。
-- 已登录且没有列表时，提供方目录项携带 `model listing unavailable; retrying`；模型页对任何携带错误的目录项都保持账号行可见，让故障可见而不是隐藏提供方。
+- 已登录且没有列表时，提供方目录项携带 `model listing unavailable; retrying`；缓存记录了失败原因时同时写出该原因，例如 `model listing unavailable (… answered HTTP 503); retrying`；模型页对任何携带错误的目录项都保持账号行可见，让故障可见而不是隐藏提供方。
 - 这里收窄了[账号远程模型目录决策](../architecture/2026-09-24-deepseek-account-remote-model-catalog.zh.md)中关于无列表状态的分支；列表获取、版本门控和按凭据隔离均不变。
 
 ## 考虑过的替代方案

@@ -81,7 +81,11 @@ export function apply(ctx: Context, config: Config): void {
   const discovered = (view: ListingView): AccountConnection => {
     const connection = connectionOf(view)
     const errors = connection.catalog.overrideErrors.slice()
-    if (view.authenticated && view.listing === undefined && connection.catalog.offered.length === 0) errors.unshift('model listing unavailable; retrying')
+    if (view.authenticated && view.listing === undefined && connection.catalog.offered.length === 0) {
+      errors.unshift(view.failure === undefined
+        ? 'model listing unavailable; retrying'
+        : `model listing unavailable (${view.failure}); retrying`)
+    }
     const error = errors.length === 0 ? undefined : errors.join('; ')
     if (error !== reportedError) {
       reportedError = error

@@ -143,9 +143,21 @@ it('offers no models and reports the outage while the listing has not loaded', a
   const ctx = await host(server.origin)
   await ctx.plugin(Account, { baseURL: server.baseURL })
   expect(await ctx.llm.listModels('deepseek-account')).toEqual([])
-  expect(ctx.llm.listConfigurableProviders()[0]?.error).toContain('model listing unavailable')
+  expect(ctx.llm.listConfigurableProviders()[0]?.error)
+    .toBe(`model listing unavailable (${server.origin}/models answered HTTP 503); retrying`)
   expect(warn).toHaveBeenCalledExactlyOnceWith('[llm-deepseek-account]', expect.stringContaining('offering no models until a listing loads') as string)
   await expect(ctx.llm.resolveModelInfo('deepseek-account', 'deepseek-flash')).resolves.toMatchObject({ context: { contextWindow: 1_048_576 } })
+})
+
+it('names an empty listing as the outage cause while offering no models', async () => {
+  const warn = vi.spyOn(console, 'warn').mockImplementation(() => {})
+  const server = await listing(json({ data: [] }))
+  const ctx = await host(server.origin)
+  await ctx.plugin(Account, { baseURL: server.baseURL })
+  expect(await ctx.llm.listModels('deepseek-account')).toEqual([])
+  expect(ctx.llm.listConfigurableProviders()[0]?.error)
+    .toBe('model listing unavailable (DeepSeek model listing contains no model entry); retrying')
+  expect(warn).toHaveBeenCalledExactlyOnceWith('[llm-deepseek-account]', expect.stringContaining('offering no models until a listing loads') as string)
 })
 
 it('falls back to the bundled catalog when configured and the listing fails', async () => {

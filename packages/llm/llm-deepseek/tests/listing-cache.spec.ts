@@ -75,9 +75,19 @@ it('shares one first load between concurrent callers', async () => {
 
 it('bounds the first wait by the request deadline and serves no listing after a failure', async () => {
   const { catalog, loads, warn } = harness(5)
-  await expect(catalog.view()).resolves.toEqual({ authenticated: true, listing: undefined })
+  await expect(catalog.view()).resolves.toEqual({
+    authenticated: true, listing: undefined, failure: 'MODEL_LISTING_TIMEOUT after 5ms',
+  })
   expect(timeoutOf(loads[0]!.signal, LISTING_TIMEOUT)?.timeoutMs).toBe(5)
   expect(warn).toHaveBeenCalledExactlyOnceWith(expect.stringContaining('using the bundled catalog'))
+})
+
+it('reports a load rejection that is not an Error', async () => {
+  const { catalog, loads, flush } = harness()
+  const first = catalog.view()
+  await flush()
+  loads[0]!.settle.reject('gateway down')
+  await expect(first).resolves.toEqual({ authenticated: true, listing: undefined, failure: 'gateway down' })
 })
 
 it('awaits a retry past the failure retry age and serves its listing in the same access', async () => {
@@ -87,7 +97,7 @@ it('awaits a retry past the failure retry age and serves its listing in the same
   const first = catalog.view()
   await flush()
   loads[0]!.settle.reject(new Error('down'))
-  await expect(first).resolves.toEqual({ authenticated: true, listing: undefined })
+  await expect(first).resolves.toEqual({ authenticated: true, listing: undefined, failure: 'down' })
   expect(warn).toHaveBeenCalledExactlyOnceWith(expect.stringContaining('offering no models until a listing loads'))
   advance(39)
   await catalog.view()
@@ -97,7 +107,7 @@ it('awaits a retry past the failure retry age and serves its listing in the same
   await flush()
   expect(loads).toHaveLength(2)
   loads[1]!.settle.resolve(listing('a'))
-  await expect(retry).resolves.toMatchObject({ listing: listing('a') })
+  await expect(retry).resolves.toEqual({ authenticated: true, listing: listing('a') })
 })
 
 it('retries a failed refresh after the retry age in the background while a listing is held', async () => {
@@ -153,6 +163,7 @@ it('refreshes a stale listing in the background and keeps it through a failing s
   loads[1]!.settle.reject(new Error('down'))
   await flush()
   expect(warn).toHaveBeenCalledExactlyOnceWith(expect.stringContaining('keeping the previous catalog'))
+  expect(catalog.current()).toMatchObject({ listing: listing('a'), failure: 'down' })
   advance(100)
   await catalog.view()
   loads[2]!.settle.reject(new Error('still down'))
@@ -163,6 +174,7 @@ it('refreshes a stale listing in the background and keeps it through a failing s
   loads[3]!.settle.resolve(listing('a', 'b'))
   await flush()
   expect(catalog.current().listing).toEqual(listing('a', 'b'))
+  expect(catalog.current()).not.toHaveProperty('failure')
   advance(100)
   await catalog.view()
   loads[4]!.settle.reject(new Error('down again'))

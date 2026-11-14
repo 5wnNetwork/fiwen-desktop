@@ -12,7 +12,7 @@ Until the account's `GET /models` listing loaded, `deepseek-account` offered the
 
 - `resolveAccountCatalog` offers an empty catalog while no listing is held. Bundled entries stay in request resolution, so a model id a saved conversation or the `agent-default-model` setting already names still resolves and reaches the deployment's backend.
 - A failed load retries once the failure is older than the new `modelsRetryAgeMs` (default thirty seconds) rather than the full `modelsMaxAgeMs`. An access past that age while no listing is held waits for the retry, matching the first-load contract, and returns the recovered listing in the same access.
-- While signed in with no listing, the provider directory entry carries `model listing unavailable; retrying`; the Models page keeps the account row visible whenever its directory entry carries an error, so the outage reaches the user instead of hiding the provider.
+- While signed in with no listing, the provider directory entry carries `model listing unavailable; retrying` and names the failed load's reason when the cache has one, such as `model listing unavailable (… answered HTTP 503); retrying`; the Models page keeps the account row visible whenever its directory entry carries an error, so the outage reaches the user instead of hiding the provider.
 - This narrows the no-listing branch of the [account remote model catalog decision](../architecture/2026-09-24-deepseek-account-remote-model-catalog.md); listing, version gating, and per-account scoping are unchanged.
 
 ## Alternatives considered

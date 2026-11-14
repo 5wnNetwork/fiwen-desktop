@@ -30,6 +30,8 @@ export interface ListingView {
   readonly authenticated: boolean
   /** Last successful listing for this scope; `undefined` until one succeeds. */
   readonly listing: ModelListing | undefined
+  /** Why the latest load failed; `undefined` after a successful load. */
+  readonly failure?: string
 }
 
 /** Wait for `task` unless `signal` aborts first; the task keeps running. */
@@ -49,6 +51,8 @@ async function abandonable(task: Promise<void>, signal: AbortSignal | undefined)
 export class ModelListingCache {
   private scope: string | undefined
   private listing: ModelListing | undefined
+  /** Reason of the latest failed load in this scope; cleared by a successful load or a rescope. */
+  private failure: string | undefined
   /** Settle time of the latest load in this scope; `undefined` before the first one settles. */
   private settledAt: number | undefined
   private inflight: Promise<void> | undefined
@@ -67,7 +71,11 @@ export class ModelListingCache {
    * @returns the credential state and listing of the current scope.
    */
   current(): ListingView {
-    return { authenticated: this.scope !== undefined, listing: this.listing }
+    return {
+      authenticated: this.scope !== undefined,
+      listing: this.listing,
+      ...this.failure === undefined ? {} : { failure: this.failure },
+    }
   }
 
   /**
@@ -119,6 +127,7 @@ export class ModelListingCache {
     this.request?.abort()
     this.scope = scope
     this.listing = undefined
+    this.failure = undefined
     this.settledAt = undefined
     this.inflight = undefined
     this.failing = false
@@ -138,6 +147,7 @@ export class ModelListingCache {
         if (generation !== this.generation) return
         const changed = !deepEqualJson(this.listing, listing)
         this.listing = listing
+        this.failure = undefined
         this.settledAt = this.dependencies.now()
         this.failing = false
         this.dependencies.info(`model listing from ${settings.url} loaded ${listing.entries.length} model(s), skipped ${listing.skipped} row(s)`)
@@ -150,6 +160,7 @@ export class ModelListingCache {
             : settings.withoutListing === 'none' ? 'offering no models until a listing loads' : 'using the bundled catalog'
           this.dependencies.warn(`model listing from ${settings.url} failed (${String(error)}); ${fallback}`)
         }
+        this.failure = error instanceof Error ? error.message : String(error)
         this.settledAt = this.dependencies.now()
         this.failing = true
       })
