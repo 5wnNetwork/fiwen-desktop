@@ -13,6 +13,9 @@
 # https://dash.5wn.net) overrides the dashboard origin. A loopback API origin
 # also enables the account plugin's loopback-HTTP opt-in; the dashboard origin
 # falls back to a loopback FIWEN_ORIGIN only when the API origin is loopback.
+# The notification intake also reads the API origin: a deployment without a
+# notification service answers 404 there, and the account service keeps the
+# session instead of treating a foreign origin's 401 as an expired grant.
 # The account adapter's Messages/listing and the tools API's endpoint take the
 # API origin through the launch environment (DEEPSEEK_BASE_URL,
 # DEEPSEEK_WEB_API_BASE_URL), which the desktop shell derives from FIWEN_ORIGIN.
@@ -21,6 +24,7 @@
   config:
     platformOrigin: !!js process.env.FIWEN_ORIGIN ?? 'https://api.5wn.net'
     dashboardOrigin: !!js "process.env.FIWEN_DASH_ORIGIN ?? (process.env.FIWEN_ORIGIN && ['localhost', '127.0.0.1', '[::1]'].includes(new URL(process.env.FIWEN_ORIGIN).hostname) ? process.env.FIWEN_ORIGIN : 'https://dash.5wn.net')"
+    harnessOrigin: !!js process.env.FIWEN_ORIGIN ?? 'https://api.5wn.net'
     desktopPlatform: !!js "ctx.get('profileContext')?.name === 'desktop' && ['darwin', 'win32'].includes(process.platform) ? process.platform : null"
     inferenceOrigin: !!js process.env.FIWEN_ORIGIN ?? 'https://api.5wn.net'
     allowLoopbackHttp: !!js "['localhost', '127.0.0.1', '[::1]'].includes(new URL(process.env.FIWEN_ORIGIN ?? 'https://api.5wn.net').hostname)"
