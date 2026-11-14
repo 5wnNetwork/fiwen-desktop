@@ -356,8 +356,11 @@ function collectInstallationScopePackages(
       try {
         manifest = skippedBundles.has(dep) ? readProfileManifest('fwnd', dir) : readPackageManifest(manifestPath)
       } catch (error) {
-        if (!skippedBundles.has(dep)) throw error
-        continue
+        // Electron answers a probe inside app.asar from the archive index, so a package the
+        // installer moved into an optional payload still probes as present and only the read
+        // fails. A dependency with no readable manifest cannot be a loader-visible plugin.
+        if (skippedBundles.has(dep) || (error as NodeJS.ErrnoException).code === 'ENOENT') continue
+        throw error
       }
       links.set(dep, dir)
       declarers.set(dep, next.anchor)
