@@ -1001,6 +1001,8 @@ export interface Config extends CuaConfig {
 export interface Config {
   /** Platform origin serving auth-api and browser pages. */
   platformOrigin?: string
+  /** Origin serving the browser sign-in pages when it differs from `platformOrigin`; empty reuses it. */
+  dashboardOrigin?: string
   /** Harness API origin for account notifications. */
   harnessOrigin?: string
   /** Native desktop identity for Host API and embedded Platform requests; null identifies the client as web. */

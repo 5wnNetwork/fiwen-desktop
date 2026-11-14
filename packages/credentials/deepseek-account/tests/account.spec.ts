@@ -36,6 +36,7 @@ async function fixture(
   embeddedPageDist = '',
   desktopPlatform: 'darwin' | 'win32' | null = null,
   balanceTimeoutMs = 30_000,
+  dashboardOriginHost?: string,
 ) {
   const home = await mkdtemp(join(tmpdir(), 'dsh-account-'))
   cleanups.push(() => rm(home, { recursive: true, force: true }))
@@ -130,7 +131,7 @@ async function fixture(
     } else if (req.url?.endsWith('auth_init')) {
       init = body
       onInit()
-      value = { authorize_url: `${rewriteBrowserOrigin ? 'https://platform.deepseek.com' : origin}/dsh/authorize?authorize_id=test`, expires_in: 600, authorize_id: 'test', ...initOverride }
+      value = { authorize_url: `${rewriteBrowserOrigin ? 'https://platform.deepseek.com' : dashboardOrigin ?? origin}/dsh/authorize?authorize_id=test`, expires_in: 600, authorize_id: 'test', ...initOverride }
     } else {
       count++
       exchanged.resolve(undefined)
@@ -145,6 +146,7 @@ async function fixture(
   const address = server.address()
   if (!address || typeof address === 'string') throw new Error('missing listener')
   origin = `http://127.0.0.1:${address.port}`
+  const dashboardOrigin = dashboardOriginHost === undefined ? undefined : origin.replace('127.0.0.1', dashboardOriginHost)
   cleanups.push(async () => {
     release.resolve(undefined)
     await new Promise<void>((resolve) => { server.close(() => { resolve() }); server.closeAllConnections() })
@@ -162,6 +164,7 @@ async function fixture(
     platformOrigin: origin, inferenceOrigin, embeddedPageDist, desktopPlatform,
     allowLoopbackHttp: true, requestHeaders, accountRequestHeaders,
     rewriteBrowserOrigin, logoutRetryDelayMs: 1, balanceTimeoutMs,
+    ...dashboardOrigin === undefined ? {} : { dashboardOrigin },
   })
   await provider
   cleanups.push(async () => { await provider.dispose(); await authorization.dispose(); await credentials.dispose(); await web.dispose() })
@@ -371,8 +374,15 @@ it('restricts platform destinations to the configured origin and route', () => {
   expect(() => platformOrigin('http://localhost:8081', false, 'platformOrigin')).toThrow()
   expect(platformOrigin('http://localhost:8081', true, 'platformOrigin')).toBe('http://localhost:8081')
   expect(() => platformOrigin('http://example.com', true, 'platformOrigin')).toThrow()
-  expect(() => browserUrl('https://evil.test/dsh/authorized', 'https://platform.deepseek.com', '/dsh/authorized')).toThrow()
-  expect(() => browserUrl('https://platform.deepseek.com/other', 'https://platform.deepseek.com', '/dsh/authorized')).toThrow()
+  expect(() => browserUrl('https://evil.test/dsh/authorized', ['https://platform.deepseek.com'], '/dsh/authorized')).toThrow()
+  expect(() => browserUrl('https://platform.deepseek.com/other', ['https://platform.deepseek.com'], '/dsh/authorized')).toThrow()
+})
+
+it('opens a sign-in page the dashboard origin serves when it differs from the platform origin', async () => {
+  const f = await fixture(undefined, {}, false, {}, undefined, undefined, '', null, undefined, 'localhost')
+  await f.account.startSignIn(clientMetadata(), f.callbackOrigin, 'desktop')
+  const waiting = await f.wait('waiting-browser')
+  expect(waiting.attempt?.authorizeUrl).toBe(`${f.origin.replace('127.0.0.1', 'localhost')}/dsh/authorize?authorize_id=test`)
 })
 
 it('maps both returned browser pages to the development origin across the login flow', async () => {

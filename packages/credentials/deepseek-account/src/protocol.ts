@@ -21,7 +21,7 @@ export class AccountUnauthorizedError extends PlatformAuthError {
  * @returns normalized origin.
  */
 export function platformOrigin(value: string, allowLoopbackHttp: boolean,
-  field: 'platformOrigin' | 'harnessOrigin'): string {
+  field: 'platformOrigin' | 'harnessOrigin' | 'dashboardOrigin'): string {
   const url = new URL(value)
   const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname)
   if (url.username || url.password || url.pathname !== '/' || url.search || url.hash
@@ -34,18 +34,18 @@ export function platformOrigin(value: string, allowLoopbackHttp: boolean,
 /**
  * Validate platform-owned browser destinations without forwarding arbitrary URLs.
  * @param value - returned browser URL.
- * @param origin - configured platform origin.
+ * @param origins - configured platform and dashboard origins, platform first.
  * @param path - fixed authorize or completion path.
- * @param rewriteOrigin - map validated browser pages to the configured development origin.
+ * @param rewriteOrigin - map validated browser pages to the first configured origin.
  * @returns normalized URL on the configured origin.
  */
-export function browserUrl(value: string, origin: string, path: string, rewriteOrigin = false): string {
+export function browserUrl(value: string, origins: readonly string[], path: string, rewriteOrigin = false): string {
   let url: URL
   try { url = new URL(value) } catch {
     console.error('[deepseek-account] browser URL rejected', { path, reason: 'invalid-url' })
     throw new PlatformAuthError('protocol')
   }
-  const allowedOrigin = url.origin === origin || (rewriteOrigin && url.protocol === 'https:')
+  const allowedOrigin = origins.includes(url.origin) || (rewriteOrigin && url.protocol === 'https:')
   if (!allowedOrigin || url.pathname !== path || url.username || url.password || url.hash) {
     console.error('[deepseek-account] browser URL rejected', {
       path, originMismatch: !allowedOrigin, pathMismatch: url.pathname !== path,
@@ -53,7 +53,7 @@ export function browserUrl(value: string, origin: string, path: string, rewriteO
     })
     throw new PlatformAuthError('protocol')
   }
-  return rewriteOrigin ? `${origin}${url.pathname}${url.search}` : url.href
+  return rewriteOrigin ? `${origins[0]}${url.pathname}${url.search}` : url.href
 }
 
 /**

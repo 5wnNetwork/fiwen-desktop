@@ -40,6 +40,8 @@ const device = z.object({ id: z.uuid() })
 export interface Config {
   /** Platform origin serving auth-api and browser pages. */
   platformOrigin?: string
+  /** Origin serving the browser sign-in pages when it differs from `platformOrigin`; empty reuses it. */
+  dashboardOrigin?: string
   /** Harness API origin for account notifications. */
   harnessOrigin?: string
   /** Native desktop identity for Host API and embedded Platform requests; null identifies the client as web. */
@@ -72,6 +74,7 @@ export interface Config {
 /** Validated deployment choices. */
 const Config = Schema.object({
   platformOrigin: Schema.string().default('https://platform.deepseek.com'),
+  dashboardOrigin: Schema.string().default(''),
   harnessOrigin: Schema.string().default('https://harness.deepseek.com'),
   desktopPlatform: Schema.union([Schema.const('darwin'), Schema.const('win32'), Schema.const(null)]).default(null),
   embeddedPageDist: Schema.string().default(''),
@@ -107,6 +110,7 @@ export class DeepSeekAccount extends TypertRemoteService {
   static inject = ['credentials', 'authorization']
   static Config = Config
   private readonly origin: string
+  private readonly browserOrigins: readonly string[]
   private readonly harnessOrigin: string
   private readonly embeddedPageDist: string
   private readonly inferenceOrigin: string
@@ -138,6 +142,10 @@ export class DeepSeekAccount extends TypertRemoteService {
     const resolved = Config(config)
     this.embeddedPageDist = resolved.embeddedPageDist
     this.origin = platformOrigin(resolved.platformOrigin, resolved.allowLoopbackHttp, 'platformOrigin')
+    const dashboardOrigin = resolved.dashboardOrigin === ''
+      ? this.origin
+      : platformOrigin(resolved.dashboardOrigin, resolved.allowLoopbackHttp, 'dashboardOrigin')
+    this.browserOrigins = [...new Set([this.origin, dashboardOrigin])]
     this.harnessOrigin = platformOrigin(resolved.harnessOrigin, resolved.allowLoopbackHttp, 'harnessOrigin')
     const inference = new URL(resolved.inferenceOrigin)
     if (!['http:', 'https:'].includes(inference.protocol) || inference.username || inference.password
@@ -728,7 +736,7 @@ export class DeepSeekAccount extends TypertRemoteService {
         login_source: attempt.loginSource,
       }, signal, attempt.clientHeaders), { reportInput: true })
       if (!init.success) this.rejectPayload('auth_init', init.error)
-      const authorizeUrl = browserUrl(init.data.authorize_url, this.origin, '/dsh/authorize', this.rewriteBrowserOrigin)
+      const authorizeUrl = browserUrl(init.data.authorize_url, this.browserOrigins, '/dsh/authorize', this.rewriteBrowserOrigin)
       authorizeId = init.data.authorize_id
       signal.throwIfAborted()
       const now = Date.now()
@@ -750,7 +758,7 @@ export class DeepSeekAccount extends TypertRemoteService {
         device_id: identity.id, device_model: `${platform()}-${arch()}`, os_version: deviceOsVersion(),
       }, signal, attempt.clientHeaders), { reportInput: true })
       if (!result.success) this.rejectPayload('auth_exchange', result.error)
-      const completionUrl = new URL(browserUrl(result.data.authorized_url, this.origin, '/dsh/authorized', this.rewriteBrowserOrigin))
+      const completionUrl = new URL(browserUrl(result.data.authorized_url, this.browserOrigins, '/dsh/authorized', this.rewriteBrowserOrigin))
       completionUrl.searchParams.set('login_source', attempt.loginSource)
       attempt.completionUrl = completionUrl.href
       if (Date.now() >= expiresAt) deadline.abort()

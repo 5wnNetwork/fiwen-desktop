@@ -48,9 +48,9 @@ getProfile / getBalance 将保存的授权 token 通过 x-dsh-auth-token 请求�
 
 getNotifications 读取 `GET /api/v0/users/notifications/list`；getNotificationContent 读取 `GET /api/v0/users/notifications/content?id=<id>`，支持已消费通知。列表还会校验必填的正数 `next_poll_after` 不超出浏览器计时范围，并投影为 `nextPollAfterSeconds`。二者都通过 x-client-locale 指定语言。列表外层要求有效的轮询间隔和通知数组。每条通知单独解码；字段格式错误或操作不受支持时，记录诊断并跳过该条，保留其他有效通知及服务端顺序。被跳过的通知不会展示或上报。单条内容响应格式错误时仍拒绝请求，让客户端保留当前内容。reportNotificationEvent 向 `POST /api/v0/users/notifications/events` 发送 notification_id 和 type displayed、cta_clicked 或 dismissed。有效的 acked 响应表示服务端消费决策，不会关闭本地卡片。每项操作都捕获当前授权和取消生命周期，不前置查询当前用户；凭据变化会取消旧生命周期并丢弃迟到的响应，token 始终只留在 Host。其他 HTTP、业务和响应校验失败均拒绝；HTTP 401 或响应码 40003 仅使当前授权失效，并返回未登录结果。
 
-余额请求使用 balanceTimeoutMs（默认 30,000ms）；超时返回失败结果，不清除账号，也不制造零余额。在插件行配置 platformOrigin、allowLoopbackHttp、requestTimeoutMs、balanceTimeoutMs 和 attemptTimeoutMs。HTTP 仅用于显式启用的本机开发。服务先在现有 Host webServer 注册 /oauth/callback，再调用 auth_init；校验 state、使用 S256 PKCE 授权码兑换一次，并在跳转 auth_exchange.biz_data.authorized_url 前提交授权记录。浏览器地址默认要求匹配配置的平台来源，并始终要求固定的 /dsh/authorize 或 /dsh/authorized 路径。完成页地址将 `login_source` 设为发起登录的客户端类型（`web` 或 `desktop`），并保留平台返回的其他查询参数。设备标识是独立的随机 UUID 记录，由使用同一凭证存储的进程共享；device_model 报告操作系统和架构。
+余额请求使用 balanceTimeoutMs（默认 30,000ms）；超时返回失败结果，不清除账号，也不制造零余额。在插件行配置 platformOrigin、dashboardOrigin、allowLoopbackHttp、requestTimeoutMs、balanceTimeoutMs 和 attemptTimeoutMs。HTTP 仅用于显式启用的本机开发。服务先在现有 Host webServer 注册 /oauth/callback，再调用 auth_init；校验 state、使用 S256 PKCE 授权码兑换一次，并在跳转 auth_exchange.biz_data.authorized_url 前提交授权记录。浏览器地址必须匹配 platformOrigin 或 dashboardOrigin，并始终要求固定的 /dsh/authorize 或 /dsh/authorized 路径。完成页地址将 `login_source` 设为发起登录的客户端类型（`web` 或 `desktop`），并保留平台返回的其他查询参数。设备标识是独立的随机 UUID 记录，由使用同一凭证存储的进程共享；device_model 报告操作系统和架构。
 
-platformOrigin 默认为 `https://platform.deepseek.com`，用于登录、资料、余额、退出登录、外部导航和原生内嵌页面。harnessOrigin 默认为 `https://harness.deepseek.com`，仅用于通知 list、content 和 events 接口。私有部署需显式设置 harnessOrigin。二者均接受 HTTPS；启用 allowLoopbackHttp 后也接受回环 HTTP。模型和文件 token 目标使用 inferenceOrigin。
+platformOrigin 默认为 `https://platform.deepseek.com`，用于登录、资料、余额、退出登录、外部导航和原生内嵌页面。dashboardOrigin 在部署把浏览器登录页与 API 来源分离时提供其来源；留空则复用 platformOrigin，接受同样的 HTTPS 或已启用的回环 HTTP 形式。harnessOrigin 默认为 `https://harness.deepseek.com`，仅用于通知 list、content 和 events 接口。私有部署需显式设置 harnessOrigin。二者均接受 HTTPS；启用 allowLoopbackHttp 后也接受回环 HTTP。模型和文件 token 目标使用 inferenceOrigin。
 
 `requestHeaders` 为 Platform 和通知 API 请求添加仅 Host 使用的请求头。`accountRequestHeaders` 为资料、余额、通知和原生内嵌页面覆盖这些请求头；Cookie 按名称合并。请求头值属于敏感配置，不包含在账号 UI 状态中。Authorization、X-DSH-Auth-Token、Host、Content-Type 及连接和消息分帧请求头由服务保留。客户端身份请求头覆盖部署配置中的同名请求头。重定向会失败，不会转发请求头。开发环境 Cookie 应保存在私有配置或环境变量中；不会自动收集浏览器 Cookie。
 
@@ -69,7 +69,7 @@ platformOrigin 默认为 `https://platform.deepseek.com`，用于登录、资料
 
 Host 诊断仅在请求、响应校验或登录失败时，通过 `console.error` 写入标准错误及 Host 调试器 Console，前缀为 `[deepseek-account]`。成功请求、调用方主动取消和正常账号状态变化不输出日志；请求超时仍记录为失败。失败诊断包含接口路径、HTTP 状态、数值响应码、失败阶段、校验失败的字段路径、实际类型和校验码，以及浏览器 URL 拒绝规则，不包含请求头、请求和响应正文、授权 URL 或原始异常。
 
-`rewriteBrowserOrigin` 默认为 `false`，要求浏览器地址同源。私有开发 patch 可设为 `true`，将授权页和完成页地址映射到 `platformOrigin`，保留固定路径和查询字符串。原地址必须使用 HTTPS 或已匹配配置来源；仍拒绝用户名密码、片段和非预期路径。发布的 profile 保持严格同源校验。
+`rewriteBrowserOrigin` 默认为 `false`，要求浏览器地址匹配已配置的来源。私有开发 patch 可设为 `true`，将授权页和完成页地址映射到 `platformOrigin`，保留固定路径和查询字符串。原地址必须使用 HTTPS 或已匹配配置来源；仍拒绝用户名密码、片段和非预期路径。发布的 profile 保持严格同源校验。
 
 inferenceOrigin 默认为 `https://api.deepseek.com`。私有部署 patch 可将其替换为一个精确的 HTTP(S) 来源（含端口），让推理及文件请求通过 x-dsh-auth-token 认证。配置不得包含路径、URL 凭证、查询或片段。其他来源要求授权由配置的 platformOrigin 签发；仍拒绝 Mock token。本机授权不能认证官方生产 API。部署地址保存在私有 patch 中，不随默认配置发布。
 
