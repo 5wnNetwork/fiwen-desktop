@@ -42,7 +42,7 @@ export const vi = {
   'readonly.title': 'Subagent này hiện chỉ đọc',
   'readonly.oneShot.body': 'Tác vụ một lần không nhận tiếp nối; xem toàn bộ bản ghi thực thi tại đây.',
   'section.title': 'Tác tử con',
-  'section.empty': 'Không có tác nhân con',
+  'section.empty': 'Không có agent con',
   'progress.completed': '{count} đã xong',
   'progress.active': '{count} đang chạy',
   'progress.inactive': '{count} không chạy',
