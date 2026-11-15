@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-util-ripgrep",
   "description": "Packaged ripgrep resolution and subprocess streaming helpers",
-  "version": "0.2.2-rc.10",
+  "version": "0.2.2-rc.11",
   "publishConfig": {
     "access": "public"
   },
