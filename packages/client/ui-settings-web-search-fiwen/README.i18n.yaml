@@ -1,0 +1,43 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/client/ui-settings-web-search-fiwen/README.md
+/:
+  en: 7e4378627ce28b30
+  zh: c513c47aa5d1e5c3
+/deepseek-ai-dsh-client-ui-settings-web-search-fiwen:
+  en: 7487eb676d503cca
+  zh: 6d1b3d6fb4110f70
+/deepseek-ai-dsh-client-ui-settings-web-search-fiwen/summary:
+  en: f8e7e0aee9dd92e8
+  zh: b08c76d378f3ce68
+/deepseek-ai-dsh-client-ui-settings-web-search-fiwen/table-of-contents:
+  en: b563e4ec4727d0de
+  zh: 44ebe7ceeda3dff6
+/deepseek-ai-dsh-client-ui-settings-web-search-fiwen/use-this-package:
+  en: 8b333cf4fde19c2f
+  zh: 61aa21c1cba4e373
+/deepseek-ai-dsh-client-ui-settings-web-search-fiwen/use-this-package/what-replaces-what:
+  en: c7fbd22a33189a9f
+  zh: 1c531052934cbfe8
+/deepseek-ai-dsh-client-ui-settings-web-search-fiwen/use-this-package/provider-settings:
+  en: 8828f9327d140fbb
+  zh: 3694212b95f4e900
+/deepseek-ai-dsh-client-ui-settings-web-search-fiwen/understand-the-implementation:
+  en: 33461dbe65c0cc39
+  zh: 80f7fdf7b6dd6676
+/deepseek-ai-dsh-client-ui-settings-web-search-fiwen/further-exploration:
+  en: 9417a1aba95e40dd
+  zh: c43ca69bad4ecf12
+/deepseek-ai-dsh-client-ui-settings-web-search-fiwen/model-experience:
+  en: 618008c7641070e7
+  zh: 23d4d27719c95991
+/deepseek-ai-dsh-client-ui-settings-web-search-fiwen/model-experience/kv-cache-effect:
+  en: ca75c51c89c2c9b0
+  zh: 123b450ae1406e9d
+/deepseek-ai-dsh-client-ui-settings-web-search-fiwen/known-limitations-and-deferred-work:
+  en: 8c95c6d39cf685f3
+  zh: 896c6e8441e6c5d0
+/deepseek-ai-dsh-client-ui-settings-web-search-fiwen/known-limitations-and-deferred-work/dev-note:
+  en: e67f633dc6fe7773
+  zh: bd8a8936229e035e

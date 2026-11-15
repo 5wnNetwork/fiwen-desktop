@@ -276,6 +276,7 @@ const SENTENCE_MODEL_EXPERIENCE: Readonly<Record<string, SentenceContract>> = {
   'packages/boot/market': { kind: 'none', reason: 'Installs catalog artifacts the skill loader and mcp-client project; registers no prompt, tool, or session event of its own.' },
   'packages/client/ui-market': { kind: 'none', reason: 'Browser-side presentation of Host catalog data; touches no prompt, message, schema, stream, or tool result.' },
   'packages/client/ui-brand-fiwen': { kind: 'none', reason: 'Browser-side presentation occupants; registers nothing model-facing.' },
+  'packages/client/ui-settings-web-search-fiwen': { kind: 'none', reason: 'A read-only settings card; it writes no settings and reaches no model request.' },
 }
 
 interface Failure {

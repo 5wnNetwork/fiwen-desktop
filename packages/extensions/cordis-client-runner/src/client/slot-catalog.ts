@@ -3455,6 +3455,7 @@ export const CLIENT_SLOT_API: readonly ClientSlotEntry[] = [
       'client-ui-settings-agent-loop AgentLoopCard id \'agent-loop\'',
       'client-ui-settings-shell ShellCard id \'shell\'',
       'client-ui-settings-subagent SubagentCard id \'subagent\'',
+      'client-ui-settings-web-search-fiwen WebSearchSettingsCard id \'web-search\'',
       'client-ui-settings-web-search WebSearchCard id \'web-search\'',
     ],
     replaceRisk: 'none',

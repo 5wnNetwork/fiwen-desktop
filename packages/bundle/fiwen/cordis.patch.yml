@@ -56,6 +56,12 @@
     searchProvider: deepseek-search-api
     fetchProvider: deepseek-fetch-api
 
+# The official provider page writes a key, endpoint, and billing mode that this
+# deployment fixes in the `web` row above and authenticates with the account
+# token. The Fiwen card states that instead; both register the same page id.
+- id: ui-settings-web-search
+  disabled: true
+
 - id: web-search-deepseek
   disabled: true
 
@@ -147,3 +153,8 @@
     # the catalog the market service serves.
     - id: ui-market
       name: '@deepseek-ai/dsh-client-ui-market'
+
+    # The web search settings card: states that search and fetching run on the
+    # Fiwen service behind the account, replacing the official provider page.
+    - id: ui-settings-web-search-fiwen
+      name: '@deepseek-ai/dsh-client-ui-settings-web-search-fiwen'
