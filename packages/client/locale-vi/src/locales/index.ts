@@ -23,7 +23,6 @@ import { vi as goal } from './goal.ts'
 import { vi as inputTrigger } from './inputTrigger.ts'
 import { vi as inspectorPanel } from './inspectorPanel.ts'
 import { vi as jobs } from './jobs.ts'
-import { vi as market } from './market.ts'
 import { vi as messageFeedback } from './messageFeedback.ts'
 import { vi as modelSelection } from './modelSelection.ts'
 import { vi as openInApp } from './openInApp.ts'
@@ -92,7 +91,6 @@ export const VI_DICTIONARIES = {
   'slash.menu': inputTrigger,
   'inspectorPanel': inspectorPanel,
   'job': jobs,
-  'market': market,
   'feedback': messageFeedback,
   'model': modelSelection,
   'open-in-app': openInApp,

@@ -12,7 +12,7 @@ const user = z.object({
 // grammar also accepts an omitted integer or fraction part and a decimal exponent (0E-16, 1e+3).
 const decimal = /^-?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i
 const wallet = z.object({
-  currency: z.enum(['CNY', 'USD']), balance: z.string().regex(decimal),
+  currency: z.enum(['CNY', 'USD', 'VND']), balance: z.string().regex(decimal),
 })
 const summary = z.object({ normal_wallets: z.array(wallet), bonus_wallets: z.array(wallet) })
 /** Project Platform user data without retaining credentials or unneeded fields.

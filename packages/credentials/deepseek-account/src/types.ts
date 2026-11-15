@@ -60,7 +60,7 @@ export interface AccountProfile {
 }
 /** Platform recharge or bonus wallet balance; decimal strings retain server precision. */
 export interface AccountWallet {
-  readonly currency: 'CNY' | 'USD'
+  readonly currency: 'CNY' | 'USD' | 'VND'
   readonly balance: string
 }
 /** Independent query outcomes allow profile and balance failures to render separately. */

@@ -20,7 +20,6 @@ import { en as goalEn } from '@deepseek-ai/dsh-client-ui-goal/src/client/locales
 import { en as inputTriggerEn } from '@deepseek-ai/dsh-client-ui-input-trigger/src/client/locales.ts'
 import { en as jobsEn } from '@deepseek-ai/dsh-client-ui-jobs/src/client/locales.ts'
 import { en as shortcutsLayoutEn } from '@deepseek-ai/dsh-client-ui-layout/src/client/shortcut-locales.ts'
-import { en as marketEn } from '@deepseek-ai/dsh-client-ui-market/src/client/locales.ts'
 import { en as messageFeedbackEn } from '@deepseek-ai/dsh-client-ui-message-feedback/src/client/locales.ts'
 import { en as modelEn } from '@deepseek-ai/dsh-client-ui-model-selection/src/client/locales.ts'
 import { en as openInAppEn } from '@deepseek-ai/dsh-client-ui-open-in-app/src/client/locales.ts'
@@ -117,7 +116,6 @@ const PAIRS: Record<string, { en: Dict; vi: Dict }> = {
   'slash.menu': { en: inputTriggerEn, vi: VI_DICTIONARIES['slash.menu'] },
   'inspectorPanel': { en: inspectorPanelEn, vi: VI_DICTIONARIES['inspectorPanel'] },
   'job': { en: jobsEn, vi: VI_DICTIONARIES['job'] },
-  'market': { en: marketEn, vi: VI_DICTIONARIES['market'] },
   'feedback': { en: messageFeedbackEn, vi: VI_DICTIONARIES['feedback'] },
   'model': { en: modelEn, vi: VI_DICTIONARIES['model'] },
   'open-in-app': { en: openInAppEn, vi: VI_DICTIONARIES['open-in-app'] },
