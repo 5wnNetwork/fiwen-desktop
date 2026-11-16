@@ -98,32 +98,3 @@ it.each(['missing', 'directory'])('refuses an unavailable bundle patch: %s', (ki
   if (kind === 'directory') mkdirSync(patch)
   expect(() => officialBundleInstallTarget(name, anchor, version)).toThrow('bundle patch')
 })
-
-it('links the copy a packaged installation ships instead of asking the registry', () => {
-  const { anchor } = fixture()
-  writeFileSync(anchor, JSON.stringify({ name: '@deepseek-ai/dsh', version, dependencies: { '@deepseek-ai/dsh-app-boot': version } }))
-  const shipped = join(dirname(anchor), 'node_modules', ...name.split('/'))
-  mkdirSync(join(shipped, 'lib'), { recursive: true })
-  writeFileSync(join(shipped, 'package.json'), JSON.stringify({ name, version, main: 'lib/index.js' }))
-  writeFileSync(join(shipped, 'lib', 'index.js'), 'export function apply() {}\n')
-  expect(officialBundleInstallTarget(name, anchor, version)).toEqual({ spec: `link:${realpathSync(shipped)}`, version })
-})
-
-it('keeps the registry path when the shipped copy is another version', () => {
-  const { anchor } = fixture()
-  writeFileSync(anchor, JSON.stringify({ name: '@deepseek-ai/dsh', version, dependencies: { '@deepseek-ai/dsh-app-boot': version } }))
-  const shipped = join(dirname(anchor), 'node_modules', ...name.split('/'))
-  mkdirSync(join(shipped, 'lib'), { recursive: true })
-  writeFileSync(join(shipped, 'package.json'), JSON.stringify({ name, version: '0.2.2-rc.3', main: 'lib/index.js' }))
-  writeFileSync(join(shipped, 'lib', 'index.js'), 'export function apply() {}\n')
-  expect(officialBundleInstallTarget(name, anchor, version)).toEqual({ spec: `${name}@${version}`, version })
-})
-
-it('keeps the registry path when the shipped copy has no built runtime', () => {
-  const { anchor } = fixture()
-  writeFileSync(anchor, JSON.stringify({ name: '@deepseek-ai/dsh', version, dependencies: { '@deepseek-ai/dsh-app-boot': version } }))
-  const shipped = join(dirname(anchor), 'node_modules', ...name.split('/'))
-  mkdirSync(shipped, { recursive: true })
-  writeFileSync(join(shipped, 'package.json'), JSON.stringify({ name, version, main: 'lib/index.js' }))
-  expect(officialBundleInstallTarget(name, anchor, version)).toEqual({ spec: `${name}@${version}`, version })
-})

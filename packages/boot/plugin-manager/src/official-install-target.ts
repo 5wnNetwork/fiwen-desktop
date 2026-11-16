@@ -12,29 +12,10 @@ function manifestAt(file: string): WorkspaceManifest {
 }
 
 /**
- * The bundle's own copy inside a packaged installation, when it ships there at the running version.
- * @param name - Official catalog package name.
- * @param anchor - Resolved DSH package.json of the running installation.
- * @param version - Running DSH version the shipped copy must match.
- * @returns A link spec for the shipped copy, or undefined when the installation does not carry it.
- */
-function shippedTarget(name: string, anchor: string, version: string): { spec: string; version: string } | undefined {
-  const directory = join(dirname(anchor), 'node_modules', name)
-  const manifest = join(directory, 'package.json')
-  if (!existsSync(manifest)) return undefined
-  if (manifestAt(manifest).version !== version) return undefined
-  if (!existsSync(join(directory, 'lib', 'index.js'))) return undefined
-  return { spec: `link:${realpathSync(directory)}`, version }
-}
-
-/**
  * Offer a source checkout link or an exact published package version. Source installations are
  * identified by the real CLI manifest and its unpacked workspace dependencies, including Desktop's
  * development symlink. An incomplete checkout is an error, never a registry fallback.
  *
- * A packaged installation that already carries the bundle links its own copy. Desktop ships the
- * on-demand bundles beside the CLI, and a private deployment publishes no registry release at its
- * running version, so the registry spec would fail with no matching version.
  * @param name - Official catalog package name.
  * @param installAnchor - Running application's DSH package.json, possibly reached through a symlink.
  * @param version - Running DSH version used by its release family.
@@ -46,7 +27,7 @@ export function officialBundleInstallTarget(name: string, installAnchor: string,
   const installation = manifestAt(anchor)
   const source = installation.name === '@deepseek-ai/dsh'
     && Object.values(installation.dependencies ?? {}).some(value => value.startsWith('workspace:'))
-  if (!source) return shippedTarget(name, anchor, version) ?? { spec: `${name}@${version}`, version }
+  if (!source) return { spec: `${name}@${version}`, version }
   const root = resolve(dirname(anchor), '../..')
   if (anchor !== join(root, 'apps', 'cli', 'package.json')
     || !existsSync(join(root, 'package.json'))

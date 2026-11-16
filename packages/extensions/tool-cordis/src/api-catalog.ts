@@ -6020,7 +6020,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'AccountDetails',
-    declaration: 'export interface AccountDetails {\n    readonly profile: {\n        readonly status: \'ready\';\n        readonly value: AccountProfile;\n    } | {\n        readonly status: \'failed\';\n    };\n    readonly balance: {\n        readonly status: \'ready\';\n        readonly value: readonly AccountWallet[];\n        readonly bonusWallets: readonly AccountWallet[];\n    } | {\n        readonly status: \'failed\';\n    };\n}',
+    declaration: 'export interface AccountDetails {\n    readonly profile: {\n        readonly status: \'ready\';\n        readonly value: AccountProfile;\n    } | {\n        readonly status: \'failed\';\n    };\n    readonly balance: {\n        readonly status: \'ready\';\n        readonly value: readonly AccountWallet[];\n        readonly bonusWallets: readonly AccountWallet[];\n        readonly credit?: string | null;\n        readonly quota?: AccountQuota | null;\n    } | {\n        readonly status: \'failed\';\n    };\n}',
   },
   {
     name: 'AccountLinks',
@@ -6051,6 +6051,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface AccountProfile {\n    readonly id: AccountUserId | null;\n    readonly name: string | null;\n    readonly contact: string | null;\n    readonly avatarUrl?: string | null;\n}',
   },
   {
+    name: 'AccountQuota',
+    declaration: 'export interface AccountQuota {\n    readonly planName: string;\n    readonly dailyQuota: string;\n    readonly used: string;\n    readonly remaining: string;\n    readonly resetsAt: string;\n}',
+  },
+  {
     name: 'AccountUpdate',
     declaration: 'export interface AccountUpdate {\n    readonly type: \'snapshot\' | \'credentials-changed\';\n    readonly state: AccountView;\n}',
   },
@@ -6064,7 +6068,7 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   },
   {
     name: 'AccountWallet',
-    declaration: 'export interface AccountWallet {\n    readonly currency: \'CNY\' | \'USD\';\n    readonly balance: string;\n}',
+    declaration: 'export interface AccountWallet {\n    readonly currency: \'CNY\' | \'USD\' | \'VND\';\n    readonly balance: string;\n}',
   },
   {
     name: 'ActionCardDecision',

@@ -154,6 +154,32 @@
     - id: ui-market
       name: '@deepseek-ai/dsh-client-ui-market'
 
+    # Native delegation into a genuine Codex session. Upstream ships this as an
+    # opt-in bundle installed from npm at the running version; this deployment
+    # publishes nothing after 0.2.2-rc.3, so the installer finds no matching
+    # release and the provider ships in the composition instead. It starts no
+    # process until a delegation, and the native Codex login stays authoritative.
+    - id: subagent-codex
+      name: '@deepseek-ai/dsh-subagent-codex'
+
+    - id: tool-subagent-codex
+      name: '@deepseek-ai/dsh-tool-subagent'
+      config:
+        provider: codex
+        toolName: subagent_codex
+        maxDepth: provider-managed
+
+    # The same arrangement for Claude Code, whose bundle has the same registry gap.
+    - id: subagent-claude-code
+      name: '@deepseek-ai/dsh-subagent-claude-code'
+
+    - id: tool-subagent-claude-code
+      name: '@deepseek-ai/dsh-tool-subagent'
+      config:
+        provider: claude-code
+        toolName: subagent_claude_code
+        maxDepth: provider-managed
+
     # The web search settings card: states that search and fetching run on the
     # Fiwen service behind the account, replacing the official provider page.
     - id: ui-settings-web-search-fiwen
