@@ -63,10 +63,32 @@ export interface AccountWallet {
   readonly currency: 'CNY' | 'USD' | 'VND'
   readonly balance: string
 }
+/**
+ * The daily allowance a deployment meters against, as the summary reports it.
+ * Absent on a deployment whose summary carries no `plan`, such as the official
+ * Platform API.
+ */
+export interface AccountQuota {
+  readonly planName: string
+  /** Allowance for one quota day, in the account's own unit. */
+  readonly dailyQuota: string
+  readonly used: string
+  readonly remaining: string
+  /** ISO instant the allowance resets. */
+  readonly resetsAt: string
+}
 /** Independent query outcomes allow profile and balance failures to render separately. */
 export interface AccountDetails {
   readonly profile: { readonly status: 'ready'; readonly value: AccountProfile } | { readonly status: 'failed' }
-  readonly balance: { readonly status: 'ready'; readonly value: readonly AccountWallet[]; readonly bonusWallets: readonly AccountWallet[] } | { readonly status: 'failed' }
+  readonly balance: {
+    readonly status: 'ready'
+    readonly value: readonly AccountWallet[]
+    readonly bonusWallets: readonly AccountWallet[]
+    /** Purchased credit the deployment meters against; absent when the summary carries none. */
+    readonly credit?: string | null
+    /** Daily allowance; absent when the summary carries no plan. */
+    readonly quota?: AccountQuota | null
+  } | { readonly status: 'failed' }
 }
 
 /** Opaque string notification identity; stable across devices, sign-ins, and languages. */

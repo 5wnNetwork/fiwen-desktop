@@ -15,7 +15,7 @@ export function formatBalance(amount: string, symbol: BalanceSymbol): string {
   const value = new Big(amount)
   if (symbol === '₫') {
     const rounded = value.round(0, Big.roundHalfUp)
-    return `${rounded.lt(0) ? '-' : ''}${addCommas(rounded.abs().toFixed(0))}${symbol}`
+    return `${rounded.lt(0) ? '-' : ''}${groupDigits(rounded.abs().toFixed(0))}${symbol}`
   }
   if (value.eq(0)) return `${symbol}0.00`
   if (value.lt(0)) return `-${symbol}${value.gt(-0.01) ? '0.01' : addCommas(value.abs().toFixed(2))}`
@@ -23,7 +23,13 @@ export function formatBalance(amount: string, symbol: BalanceSymbol): string {
   return `${symbol}${addCommas(value.round(2, Big.roundDown).toFixed(2))}`
 }
 
-function addCommas(value: string): string {
+/** Group the integer part of a fixed-point string, keeping a fraction when one is present. */
+function groupDigits(value: string): string {
   const [integer, fraction] = value.split('.')
-  return `${Number(integer).toLocaleString()}.${fraction}`
+  const grouped = Number(integer).toLocaleString()
+  return fraction === undefined ? grouped : `${grouped}.${fraction}`
+}
+
+function addCommas(value: string): string {
+  return groupDigits(value)
 }

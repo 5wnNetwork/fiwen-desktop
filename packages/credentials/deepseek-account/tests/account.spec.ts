@@ -472,7 +472,12 @@ it('queries Platform Web endpoints with the stored grant and projects only maske
   await storeAccount(f)
   expect(await readDetails(f.account)).toEqual({
     profile: { status: 'ready', value: { id: 'test-user', name: 'Test Account', avatarUrl: null, contact: '138****5678' } },
-    balance: { status: 'ready', bonusWallets: [{ currency: 'CNY', balance: '10.00' }], value: [{ currency: 'CNY', balance: '123.45' }, { currency: 'USD', balance: '6.78' }] },
+    balance: {
+      status: 'ready', bonusWallets: [{ currency: 'CNY', balance: '10.00' }],
+      value: [{ currency: 'CNY', balance: '123.45' }, { currency: 'USD', balance: '6.78' }],
+      // The official summary carries no credit or quota; both stay null.
+      credit: null, quota: null,
+    },
   })
   expect(f.detailRequests).toEqual(expect.arrayContaining([
     { path: '/auth-api/v0/users/current', authorization: 'test-platform-grant' },

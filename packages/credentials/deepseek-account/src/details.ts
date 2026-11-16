@@ -14,7 +14,20 @@ const decimal = /^-?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i
 const wallet = z.object({
   currency: z.enum(['CNY', 'USD', 'VND']), balance: z.string().regex(decimal),
 })
-const summary = z.object({ normal_wallets: z.array(wallet), bonus_wallets: z.array(wallet) })
+const summary = z.object({
+  normal_wallets: z.array(wallet),
+  bonus_wallets: z.array(wallet),
+  // Present on a deployment that meters its own quota and credit, absent on the
+  // official Platform summary; both stay optional so this decoder serves either.
+  credit: z.string().regex(decimal).nullish(),
+  plan: z.object({
+    name: z.string(),
+    daily_quota: z.string().regex(decimal),
+    quota_used: z.string().regex(decimal),
+    quota_remaining: z.string().regex(decimal),
+    resets_at: z.string(),
+  }).nullish(),
+})
 /** Project Platform user data without retaining credentials or unneeded fields.
  * @param value - current or exchange user response.
  * @returns UI account profile.
@@ -54,7 +67,17 @@ const queries: { [K in keyof AccountDetails]: {
   }) },
   balance: { path: '/api/v0/users/get_user_summary', parse: (value) => {
     const parsed = accountPayload(summary, value, 'balance')
-    return { status: 'ready', value: parsed.normal_wallets, bonusWallets: parsed.bonus_wallets }
+    return {
+      status: 'ready', value: parsed.normal_wallets, bonusWallets: parsed.bonus_wallets,
+      credit: parsed.credit ?? null,
+      quota: parsed.plan == null ? null : {
+        planName: parsed.plan.name,
+        dailyQuota: parsed.plan.daily_quota,
+        used: parsed.plan.quota_used,
+        remaining: parsed.plan.quota_remaining,
+        resetsAt: parsed.plan.resets_at,
+      },
+    }
   } },
 }
 

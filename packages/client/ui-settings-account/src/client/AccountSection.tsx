@@ -95,6 +95,20 @@ export function AccountSection({ t, useAccount, useTheme, start, cancel, openPla
   const bonusWallets = details?.balance?.status === 'ready'
     ? details.balance.bonusWallets.filter(wallet => new Big(wallet.balance).gt(0)) : []
   const showBonusRow = details?.balance?.status !== 'ready' || bonusWallets.length > 0
+  /** Purchased credit the deployment meters against; null when the summary has none. */
+  const credit = details?.balance?.status === 'ready' ? details.balance.credit ?? null : null
+  /** Daily allowance and its reset; null on a deployment whose summary carries no plan. */
+  const quota = details?.balance?.status === 'ready' ? details.balance.quota ?? null : null
+  /** Credit is denominated by the wallet the summary sends beside it; VND marks dong. */
+  const creditSymbol: BalanceSymbol = wallets?.some(wallet => wallet.currency === 'VND') ? '₫' : '$'
+  /** Share of the daily allowance still available, clamped to 0-100 for the bar. */
+  const quotaPercent = (() => {
+    if (quota === null) return 0
+    const total = new Big(quota.dailyQuota)
+    if (total.lte(0)) return 0
+    const share = new Big(quota.remaining).div(total).times(100).round(0, Big.roundHalfUp)
+    return Math.max(0, Math.min(100, Number(share.toFixed(0))))
+  })()
   /** The symbol for one wallet's currency; VND is the credit unit a private deployment uses. */
   const symbolOf = (currency: string): BalanceSymbol => currency === 'CNY' ? '¥' : currency === 'VND' ? '₫' : '$'
   const attempt = state?.attempt
@@ -179,17 +193,35 @@ export function AccountSection({ t, useAccount, useTheme, start, cancel, openPla
           onClick={() => { void run(() => cancel(attempt.id)) }}>{t('cancel')}</Button>
       </div>}
       <div className={css.balanceCard}>
+        {quota !== null && <>
+          <div className={css.row}>
+            <span>{t('quota')}</span>
+            <span className={css.amount}>{quotaPercent}%</span>
+          </div>
+          <div className={css.quotaTrack} role="progressbar" aria-valuemin={0} aria-valuemax={100}
+            aria-valuenow={quotaPercent} aria-label={t('quota')}>
+            <div className={css.quotaFill} style={{ width: `${quotaPercent}%` }} />
+          </div>
+          <div className={css.row}>
+            <span className={css.secondary}>{quota.planName}</span>
+            <span className={css.secondary}>
+              {formatBalance(quota.remaining, creditSymbol)} / {formatBalance(quota.dailyQuota, creditSymbol)}
+            </span>
+          </div>
+        </>}
         <div className={css.row}>
           <span>{t('balance')}</span>
-          {signedIn && wallets !== undefined && wallets.length > 0
-            ? <span className={css.amount}>{wallets.map(wallet => <span key={wallet.currency}>
-              {formatBalance(wallet.balance, symbolOf(wallet.currency))}
-            </span>)}</span>
-            : !signedIn || details?.balance === undefined
-              ? <span className={css.unavailable}>{t(!signedIn ? 'balanceSignedOut' : 'loading')}</span>
-              : platformLink(t('balanceUnavailable'), css.unavailableLink)}
+          {signedIn && credit !== null
+            ? <span className={css.amount}>{formatBalance(credit, creditSymbol)}</span>
+            : signedIn && wallets !== undefined && wallets.length > 0
+              ? <span className={css.amount}>{wallets.map(wallet => <span key={wallet.currency}>
+                {formatBalance(wallet.balance, symbolOf(wallet.currency))}
+              </span>)}</span>
+              : !signedIn || details?.balance === undefined
+                ? <span className={css.unavailable}>{t(!signedIn ? 'balanceSignedOut' : 'loading')}</span>
+                : platformLink(t('balanceUnavailable'), css.unavailableLink)}
         </div>
-        {signedIn && showBonusRow && <>
+        {signedIn && quota === null && showBonusRow && <>
           <div className={css.divider} />
           <div className={css.row}>
             <span>{t('bonusBalance')}</span>
