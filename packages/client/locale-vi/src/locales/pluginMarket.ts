@@ -2,6 +2,8 @@ import type { en } from '@deepseek-ai/dsh-client-ui-plugin-market/src/client/loc
 
 /** Vietnamese dictionary for `pluginMarket`, key-checked against upstream `en`. */
 export const vi = {
+  'update': 'Cập nhật',
+  'updateTitle': 'Cập nhật {name} lên {version}',
   'title': 'Khám phá',
   'refresh': 'Làm mới',
   'loading': 'Đang đọc chỉ mục',

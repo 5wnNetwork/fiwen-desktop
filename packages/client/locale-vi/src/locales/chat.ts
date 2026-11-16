@@ -2,6 +2,11 @@ import type { en } from '@deepseek-ai/dsh-client-ui-chat/src/client/locale.ts'
 
 /** Vietnamese dictionary for `chat`, key-checked against upstream `en`. */
 export const vi = {
+  'chat.loadingOlder': 'Đang tải phần trước',
+  'chat.processingOlder': 'Đang xử lý',
+  'chat.retryOlder': 'Thử tải lại',
+  'chat.historyStart': 'Bắt đầu cuộc trò chuyện',
+  'message.inheritedHistory': 'Lịch sử kế thừa ở trên',
   'message.stepProcess.thinking': 'Đang phân tích yêu cầu',
   'message.stepProcess.read': 'Đang đọc tệp',
   'message.stepProcess.readImage': 'Đang đọc hình ảnh',

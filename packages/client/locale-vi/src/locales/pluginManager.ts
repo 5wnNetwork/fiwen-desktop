@@ -2,6 +2,8 @@ import type { en } from '@deepseek-ai/dsh-client-ui-plugin-manager/src/client/lo
 
 /** Vietnamese dictionary for `pluginManager`, key-checked against upstream `en`. */
 export const vi = {
+  'statusNotRunning': 'Chưa chạy',
+  'reasonUnexpectedPackage': 'Nguồn plugin đã cài một gói hoặc phiên bản khác với yêu cầu nên bản cài đã được hoàn tác. Hãy báo cho nhà phát hành plugin hoặc người duy trì chỉ mục.',
   'panel': 'Plugin',
   'title': 'Plugin',
   'intro': 'Cài đặt, bật và cấu hình plugin',
@@ -265,7 +267,7 @@ export const vi = {
   'updateRunning': 'Đang cập nhật',
   'updateStepChecking': 'Kiểm tra {version}',
   'updateStepRemoving': 'Dừng và gỡ {version}',
-  'updateStepInstalling': 'Cài {version} từ {registry}',
+  'updateStepInstalling': 'Cài {version} từ {source}',
   'updateStepRestoring': 'Cài lại {version}',
   'updateDone': 'Đã cập nhật lên {version}',
   'updateDoneDetail': 'Phiên bản mới đang chạy.',

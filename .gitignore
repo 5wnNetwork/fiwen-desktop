@@ -53,3 +53,6 @@ native/system/test/bin/
 
 # Generated company-signed CUA release record.
 /packages/experimental/cua-macos/cua-helper.json
+# Declaration maps a build phase drops beside this package's sources.
+packages/boot/market/src/*.d.ts.map
+packages/boot/market/src/types.js

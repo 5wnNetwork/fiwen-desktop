@@ -2,6 +2,16 @@ import type { en } from '@deepseek-ai/dsh-client-ui-conversation/src/client/loca
 
 /** Vietnamese dictionary for `conversation`, key-checked against upstream `en`. */
 export const vi = {
+  'tool.title.officeRender': 'Kết xuất tài liệu',
+  'tool.title.officeConvert': 'Chuyển đổi tài liệu',
+  'tool.title.officeRecalculate': 'Tính lại bảng tính',
+  'tool.webFetch.failure.dns': 'Không phân giải được tên máy. Hãy kiểm tra mạng, proxy hoặc DNS.',
+  'tool.webFetch.failure.refused': 'Kết nối bị từ chối. Hãy kiểm tra địa chỉ, cổng hoặc proxy.',
+  'tool.webFetch.failure.connectionTimeout': 'Kết nối quá thời gian. Hãy kiểm tra mạng hoặc proxy rồi thử lại.',
+  'tool.webFetch.failure.certificate': 'Xác minh chứng chỉ thất bại. Hãy kiểm tra đồng hồ hệ thống, proxy hoặc chứng chỉ.',
+  'tool.webFetch.failure.interrupted': 'Kết nối bị gián đoạn. Hãy thử lại sau.',
+  'tool.webFetch.failure.unreachable': 'Không tới được mạng hoặc máy chủ. Hãy kiểm tra kết nối mạng hoặc proxy.',
+  'tool.webFetch.failure.network': 'Yêu cầu mạng thất bại. Xem chi tiết trong kết quả.',
   'shortcut.newline': 'Xuống dòng',
   'shortcut.complementary': 'Dùng thao tác Queue / Steer bổ sung',
   'shortcut.slash': 'Mở menu lệnh',

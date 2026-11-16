@@ -2,6 +2,7 @@ import type { en } from '@deepseek-ai/dsh-client-ui-subagent/src/client/locales.
 
 /** Vietnamese dictionary for `subagent`, key-checked against upstream `en`. */
 export const vi = {
+  'load.idle': 'Chưa tải agent con',
   'duration.seconds': '{seconds}s',
   'duration.minutes': '{minutes}m {seconds}s',
   'duration.hours': '{hours}g {minutes}ph {seconds}s',

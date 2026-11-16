@@ -2,6 +2,16 @@ import type { en } from '@deepseek-ai/dsh-client-ui-workspace/src/client/locales
 
 /** Vietnamese dictionary for `uiWorkspace`, key-checked against upstream `en`. */
 export const vi = {
+  'shortcut.closeDialog': 'Hãy đóng hộp thoại đang mở trước',
+  'shortcut.closePanel': 'Đóng bảng đang mở để quay lại phiên',
+  'shortcut.archivedReading': 'Phiên đã lưu trữ không có nhắc chưa đọc',
+  'shortcut.toggleRead': 'Bật/tắt đã đọc',
+  'shortcut.readingUnavailable': 'Không có trạng thái đọc. Hãy tải lại trang để kết nối lại.',
+  'status.unread': 'Chưa đọc',
+  'status.failed': 'Lượt chạy thất bại',
+  'menu.markRead': 'Đánh dấu đã đọc',
+  'menu.markUnread': 'Đánh dấu chưa đọc',
+  'toast.readingFailed': 'Không xác nhận được trạng thái đọc. Hãy thử lại.',
   'defaultWorkspace.failed': 'Không thể tạo workspace mặc định. Dùng Chọn workspace để chọn một thư mục.',
   'draft.workspaceRequired': 'Hãy chọn một workspace trước.',
   'draft.initializationFailed': 'Không thể điền bản nháp. Vui lòng thử lại sau ít phút.',

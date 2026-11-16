@@ -2,6 +2,8 @@ import type { en } from '@deepseek-ai/dsh-client-ui-agent-team/src/client/locale
 
 /** Vietnamese dictionary for `agent-team`, key-checked against upstream `en`. */
 export const vi = {
+  'mode.on': 'Bật',
+  'mode.off': 'Tắt',
   'trigger': 'Nhóm agent',
   'loading': 'Đang tải Nhóm…',
   'unavailable': 'Nhóm không khả dụng',

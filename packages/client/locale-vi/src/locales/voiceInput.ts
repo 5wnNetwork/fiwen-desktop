@@ -2,6 +2,11 @@ import type { en } from '@deepseek-ai/dsh-experimental-client-ui-voice-input/src
 
 /** Vietnamese dictionary for `voice-input`, key-checked against upstream `en`. */
 export const vi = {
+  'es': 'Tiếng Tây Ban Nha',
+  'fr': 'Tiếng Pháp',
+  'de': 'Tiếng Đức',
+  'ru': 'Tiếng Nga',
+  'pt': 'Tiếng Bồ Đào Nha',
   'dictate': 'Đọc bằng giọng nói',
   'setupPrompt.title': 'Thiết lập nhập giọng nói trước khi ghi âm',
   'setupPrompt.body': 'Nhập giọng nói đã bật. Lần dùng đầu tiên cần tải và chuẩn bị mô hình nhận dạng cục bộ. Mở chi tiết plugin để xem ước tính dung lượng đĩa, bộ nhớ và thời gian trước khi bắt đầu thiết lập.',

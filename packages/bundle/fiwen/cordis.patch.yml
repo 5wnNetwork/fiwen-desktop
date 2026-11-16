@@ -69,6 +69,12 @@
   config:
     apiKeyEnv: DEEPSEEK_API_KEY
 
+# This deployment's harness origin serves no notification API, so the client
+# poller only produced 404s against /api/v0/users/notifications/list. The
+# account card and quota notice do not depend on it.
+- id: ui-account-notifications
+  disabled: true
+
 # The feedback feature is not part of the product: no Like/Dislike strip or
 # feedback dialog, no /feedback command, and no feedback Session events or
 # remotes. The session-log-export header's feedback item hides itself when
