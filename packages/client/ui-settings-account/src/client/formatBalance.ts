@@ -23,6 +23,18 @@ export function formatBalance(amount: string, symbol: BalanceSymbol): string {
   return `${symbol}${addCommas(value.round(2, Big.roundDown).toFixed(2))}`
 }
 
+/**
+ * Format a metered point balance: grouped digits with no currency unit. Credit
+ * and the daily allowance are points a deployment counts, not money, so they
+ * carry no currency symbol.
+ * @param amount - validated decimal amount string.
+ * @returns grouped whole points.
+ */
+export function formatPoints(amount: string): string {
+  const rounded = new Big(amount).round(0, Big.roundHalfUp)
+  return `${rounded.lt(0) ? '-' : ''}${groupDigits(rounded.abs().toFixed(0))}`
+}
+
 /** Group the integer part of a fixed-point string, keeping a fraction when one is present. */
 function groupDigits(value: string): string {
   const [integer, fraction] = value.split('.')

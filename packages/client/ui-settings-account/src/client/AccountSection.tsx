@@ -6,7 +6,7 @@ import type { AccountDetails, AccountView, SignInAttemptId } from '@deepseek-ai/
 import type { PropsRuntime, PropsLocale, InjectFace, HostObservable } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ThemeSnapshot } from '@deepseek-ai/dsh-client-ui-theme/client'
 import type { PlatformPage, PlatformPages } from './platform-pages.ts'
-import { formatBalance, type BalanceSymbol } from './formatBalance.ts'
+import { formatBalance, formatPoints, type BalanceSymbol } from './formatBalance.ts'
 import { AccountAvatar } from './AccountAvatar.tsx'
 import type { AccountAvatarSnapshot } from './account-avatar.ts'
 import { authorizeUrlWithTheme } from './authorize-url.ts'
@@ -99,8 +99,6 @@ export function AccountSection({ t, useAccount, useTheme, start, cancel, openPla
   const credit = details?.balance?.status === 'ready' ? details.balance.credit ?? null : null
   /** Daily allowance and its reset; null on a deployment whose summary carries no plan. */
   const quota = details?.balance?.status === 'ready' ? details.balance.quota ?? null : null
-  /** Credit is denominated by the wallet the summary sends beside it; VND marks dong. */
-  const creditSymbol: BalanceSymbol = wallets?.some(wallet => wallet.currency === 'VND') ? '₫' : '$'
   /** Share of the daily allowance still available, clamped to 0-100 for the bar. */
   const quotaPercent = (() => {
     if (quota === null) return 0
@@ -205,14 +203,14 @@ export function AccountSection({ t, useAccount, useTheme, start, cancel, openPla
           <div className={css.row}>
             <span className={css.secondary}>{quota.planName}</span>
             <span className={css.secondary}>
-              {formatBalance(quota.remaining, creditSymbol)} / {formatBalance(quota.dailyQuota, creditSymbol)}
+              {formatPoints(quota.remaining)} / {formatPoints(quota.dailyQuota)}
             </span>
           </div>
         </>}
         <div className={css.row}>
           <span>{t('balance')}</span>
           {signedIn && credit !== null
-            ? <span className={css.amount}>{formatBalance(credit, creditSymbol)}</span>
+            ? <span className={css.amount}>{formatPoints(credit)}</span>
             : signedIn && wallets !== undefined && wallets.length > 0
               ? <span className={css.amount}>{wallets.map(wallet => <span key={wallet.currency}>
                 {formatBalance(wallet.balance, symbolOf(wallet.currency))}
