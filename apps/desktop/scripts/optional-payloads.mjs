@@ -66,6 +66,37 @@ export function optionalPayloads(paths, platform, arch) {
       source: join(paths.dsh, 'node_modules', '@deepseek-ai', kit),
       target: `app.asar.unpacked/dsh/node_modules/@deepseek-ai/${kit}`,
     },
+    ...nativeSubagentPayloads(paths, platform, arch),
+  ]
+}
+
+/**
+ * The Codex and Claude Code subagent providers delegate to native CLIs whose
+ * platform packages are hundreds of megabytes. They stay out of the installer
+ * and are offered on first launch; the provider resolves its binary when a
+ * delegation starts, not while the plugin loads, so their absence costs nothing
+ * until someone delegates.
+ * @param {{ runtime: string, dsh: string }} paths - Assembled runtime and dsh roots.
+ * @param {string} platform - Target platform.
+ * @param {string} arch - Target architecture.
+ * @returns {OptionalPayload[]} Subagent CLI payloads for this target.
+ */
+function nativeSubagentPayloads(paths, platform, arch) {
+  if (platform !== 'win32' || arch !== 'x64') return []
+  const target = `${platformToken(platform)}-${arch}`
+  return [
+    {
+      id: 'codex',
+      title: 'Codex subagent',
+      source: join(paths.dsh, 'node_modules', '@openai', `codex-${target}`),
+      target: `app.asar.unpacked/dsh/node_modules/@openai/codex-${target}`,
+    },
+    {
+      id: 'claude-code',
+      title: 'Claude Code subagent',
+      source: join(paths.dsh, 'node_modules', '@anthropic-ai', `claude-agent-sdk-${target}`),
+      target: `app.asar.unpacked/dsh/node_modules/@anthropic-ai/claude-agent-sdk-${target}`,
+    },
   ]
 }
 
