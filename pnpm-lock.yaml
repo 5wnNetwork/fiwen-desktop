@@ -379,9 +379,6 @@ importers:
       '@deepseek-ai/dsh-experimental-liveshare':
         specifier: workspace:*
         version: link:../../packages/experimental/liveshare
-      '@deepseek-ai/dsh-experimental-plugin-market-bundle':
-        specifier: workspace:*
-        version: link:../../packages/experimental/plugin-market-bundle
       '@deepseek-ai/dsh-experimental-ralph-bundle':
         specifier: workspace:*
         version: link:../../packages/experimental/ralph-bundle
@@ -1107,9 +1104,6 @@ importers:
       '@deepseek-ai/dsh-experimental-forge-bundle':
         specifier: workspace:*
         version: link:../../packages/experimental/forge-bundle
-      '@deepseek-ai/dsh-experimental-plugin-market-bundle':
-        specifier: workspace:*
-        version: link:../../packages/experimental/plugin-market-bundle
       '@deepseek-ai/dsh-experimental-speech-to-text':
         specifier: workspace:*
         version: link:../../packages/experimental/speech-to-text
@@ -3451,9 +3445,6 @@ importers:
       '@deepseek-ai/dsh-plugin-manager':
         specifier: workspace:*
         version: link:../../boot/plugin-manager
-      '@deepseek-ai/dsh-plugin-market':
-        specifier: workspace:*
-        version: link:../../boot/plugin-market
       '@deepseek-ai/dsh-schedule':
         specifier: workspace:*
         version: link:../../schedule/schedule
