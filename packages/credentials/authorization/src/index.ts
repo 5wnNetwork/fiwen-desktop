@@ -29,7 +29,7 @@
 import { Context, Service } from '@deepseek-ai/cordis'
 import type { CredentialKey, CredentialProvider, CredentialRecord } from '@deepseek-ai/dsh-credentials'
 import { credentialKey, credentialKeyId, credentialKeyScope, isCredentialKeySegment } from '@deepseek-ai/dsh-credentials'
-import { HarnessError } from '@deepseek-ai/dsh-llm'
+import { HarnessError } from '@deepseek-ai/dsh-error'
 
 import type {
   AuthorizationAccountView, AuthorizationEntry, AuthorizationMethod, AuthorizationNotice, AuthorizationOutcome,

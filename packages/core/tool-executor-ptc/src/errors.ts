@@ -1,5 +1,5 @@
 /** Program execution failures reported by PTC. @module */
-import { HarnessError } from '@deepseek-ai/dsh-llm'
+import { HarnessError } from '@deepseek-ai/dsh-error'
 
 /**
  * Host-only abort reason for an exhausted tool-call allowance; the excess call is never dispatched.

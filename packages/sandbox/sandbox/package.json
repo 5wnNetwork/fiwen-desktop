@@ -42,6 +42,7 @@
     "@deepseek-ai/dsh-error": "workspace:*"
   },
   "dependencies": {
+    "@deepseek-ai/dsh-error": "workspace:*",
     "@deepseek-ai/dsh-util-values": "workspace:*"
   }
 }

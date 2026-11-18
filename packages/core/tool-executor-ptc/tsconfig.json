@@ -12,7 +12,13 @@
       "path": "../../../vendor/cordis"
     },
     {
-      "path": "../../util/brand"
+      "path": "../../../vendor/cosmokit"
+    },
+    {
+      "path": "../../../vendor/schemastery"
+    },
+    {
+      "path": "../../interaction/user-approval"
     },
     {
       "path": "../../llm/llm"
@@ -27,6 +33,21 @@
       "path": "../../sandbox/sandbox-policy"
     },
     {
+      "path": "../../session/working-directory"
+    },
+    {
+      "path": "../../util/brand"
+    },
+    {
+      "path": "../../util/error"
+    },
+    {
+      "path": "../../util/values"
+    },
+    {
+      "path": "../agent"
+    },
+    {
       "path": "../scope"
     },
     {
@@ -34,24 +55,6 @@
     },
     {
       "path": "../tools"
-    },
-    {
-      "path": "../../interaction/user-approval"
-    },
-    {
-      "path": "../../util/values"
-    },
-    {
-      "path": "../../session/working-directory"
-    },
-    {
-      "path": "../../../vendor/schemastery"
-    },
-    {
-      "path": "../../../vendor/cosmokit"
-    },
-    {
-      "path": "../agent"
     }
   ]
 }

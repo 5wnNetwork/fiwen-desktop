@@ -1,6 +1,6 @@
 /** Canonical patch results, typed refusals, and compact model output. */
 import { FsError } from '@deepseek-ai/dsh-fs'
-import { HarnessError } from '@deepseek-ai/dsh-llm'
+import { HarnessError } from '@deepseek-ai/dsh-error'
 import { computeHunkDiffs } from './diff.ts'
 import type { FileDiff, InferValue } from '@deepseek-ai/dsh-tools'
 import type { PatchExecutionReport, PatchFailureCode, PatchRefusal } from './patch/types.ts'

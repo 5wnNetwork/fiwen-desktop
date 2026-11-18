@@ -31,11 +31,17 @@ async function mount(options: { token?: string; profile?: boolean } = {}) {
   onTestFinished(() => ctx.fiber.dispose())
   if (options.token !== undefined || options.profile !== false) {
     const token = options.token
-    class Account extends Service {
-      constructor(inner: Context) { super(inner, 'deepseekAccount') }
-      resolveToken(url: string) { return Promise.resolve(url === ORIGIN ? token : undefined) }
+    // Market asks the auth seam for request headers, so the stub answers there.
+    class Auth extends Service {
+      constructor(inner: Context) { super(inner, 'deepseekAuth') }
+      authorize(request: { destination: { url?: string; path?: string } }) {
+        const destination = request.destination.url ?? request.destination.path ?? ''
+        return Promise.resolve(destination.includes(ORIGIN) || ORIGIN.endsWith(destination.trim()) || destination.startsWith('/')
+          ? { kind: 'account', endpoint: ORIGIN, headers: { 'x-dsh-auth-token': token ?? '' } }
+          : undefined)
+      }
     }
-    await ctx.plugin(Account)
+    await ctx.plugin(Auth)
   }
   if (options.profile !== false) {
     const profile = { patchPath: join(root, 'cordis.patch.yml') } as ProfileContext

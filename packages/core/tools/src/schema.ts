@@ -1,6 +1,6 @@
 /** Unified JSON-value schema DSL, inference, compilation, and tool definition helpers. @module dsh-tools/schema */
 
-import { HarnessError } from '@deepseek-ai/dsh-llm'
+import { HarnessError } from '@deepseek-ai/dsh-error'
 import type { ContentBlock, ToolSchema } from '@deepseek-ai/dsh-llm'
 import { snapshotJsonValue } from '@deepseek-ai/dsh-util-values'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'

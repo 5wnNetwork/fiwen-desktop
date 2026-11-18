@@ -11,7 +11,8 @@
     { "path": "../../../vendor/cordis" },
     { "path": "../../../vendor/schemastery" },
     { "path": "../app-boot" },
-    { "path": "../../credentials/deepseek-account" },
+    { "path": "../../account/deepseek-account" },
+    { "path": "../../account/deepseek-auth" },
     { "path": "../../typert/protocol" },
     { "path": "../../util/atomic-write" },
     { "path": "../../util/home-paths" }

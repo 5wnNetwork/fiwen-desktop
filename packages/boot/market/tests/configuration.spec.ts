@@ -54,7 +54,7 @@ it('mounts through a bundle patch, installs an MCP row the Loader picks up, and 
     writeFileSync(join(dir, 'cordis.yml'), '[]\n')
     const profile: ProfileContext = {
       name: 'test', startedBundles: ['test-bundle'], dir, patchPath: join(dir, 'cordis.patch.yml'),
-      installAnchor: join(dir, 'package.json'), cwd: home, home, overlays: [], telemetryDisabledEnv: undefined,
+      installAnchor: join(dir, 'package.json'), cwd: home, home, overlayPaths: [], telemetryDisabledEnv: undefined,
     }
     vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(json({
       item: { id: 'notes', kind: 'mcp', version: '1.0.0', name: 'Notes', payload: { transport: 'http', url: 'https://m.example/mcp' } },

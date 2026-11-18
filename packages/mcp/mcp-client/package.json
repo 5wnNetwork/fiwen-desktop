@@ -47,12 +47,18 @@
     "@deepseek-ai/cordis": "workspace:~",
     "@deepseek-ai/dsh-mcp-resources": "workspace:*",
     "@deepseek-ai/dsh-system-prompt": "workspace:*",
-    "@deepseek-ai/dsh-credentials": "workspace:*"
+    "@deepseek-ai/dsh-credentials": "workspace:*",
+    "@deepseek-ai/dsh-authorization": "workspace:*",
+    "@deepseek-ai/dsh-host-webserver": "workspace:*",
+    "@deepseek-ai/dsh-agent": "workspace:*",
+    "@deepseek-ai/dsh-output-retention": "workspace:*"
   },
   "dependencies": {
+    "@deepseek-ai/dsh-error": "workspace:*",
+    "@deepseek-ai/dsh-util-values": "workspace:*",
     "@deepseek-ai/schemastery": "workspace:~",
     "@modelcontextprotocol/client": "2.4.0",
-    "@deepseek-ai/dsh-util-values": "workspace:*"
+    "@modelcontextprotocol/core": "2.4.0"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-brand": "workspace:*",
@@ -75,7 +81,13 @@
     "zod": "4.6.7",
     "@deepseek-ai/dsh-mcp-resources": "workspace:*",
     "@deepseek-ai/dsh-system-prompt": "workspace:*",
-    "@deepseek-ai/dsh-credentials": "workspace:*"
+    "@deepseek-ai/dsh-credentials": "workspace:*",
+    "@deepseek-ai/dsh-authorization": "workspace:*",
+    "@deepseek-ai/dsh-host-webserver": "workspace:*",
+    "@deepseek-ai/dsh-credentials-local": "workspace:*",
+    "@deepseek-ai/dsh-client-connection": "workspace:*",
+    "@deepseek-ai/dsh-agent": "workspace:*",
+    "@deepseek-ai/dsh-output-retention": "workspace:*"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/dsh-mcp-resources": {
@@ -84,7 +96,10 @@
     "@deepseek-ai/dsh-system-prompt": {
       "optional": true
     },
-    "@deepseek-ai/dsh-credentials": {
+    "@deepseek-ai/dsh-authorization": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-host-webserver": {
       "optional": true
     }
   }

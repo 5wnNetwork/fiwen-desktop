@@ -16,7 +16,7 @@
 import { realpathSync, statSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { relative } from 'node:path'
-import { HarnessError } from '@deepseek-ai/dsh-llm'
+import { HarnessError } from '@deepseek-ai/dsh-error'
 import type { SandboxExecutionPolicy } from './index.ts'
 
 /** A workspace root or explicit directory grant cannot be enforced without changing the caller's selected path. */

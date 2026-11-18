@@ -62,6 +62,7 @@
     }
   },
   "dependencies": {
+    "@deepseek-ai/dsh-error": "workspace:*",
     "@deepseek-ai/dsh-llm": "workspace:*",
     "@deepseek-ai/dsh-util-crypto": "workspace:*",
     "@deepseek-ai/schemastery": "workspace:~",

@@ -19,6 +19,7 @@ import pluginManagerRemote from '@deepseek-ai/dsh-plugin-manager/remote'
 import mcpManagerRemote from '@deepseek-ai/dsh-mcp-manager/remote'
 import toolResultsRemote from '@deepseek-ai/dsh-client-ui-trajectory/remote'
 import pluginRegistryProbeRemote from '@deepseek-ai/dsh-client-ui-plugin-manager/remote'
+import connectorAccountsRemote from '@deepseek-ai/dsh-client-ui-connector-account/remote'
 import pluginMarketRemote from '@deepseek-ai/dsh-plugin-market/remote'
 import marketRemote from '@deepseek-ai/dsh-market/remote'
 import pluginInventoryRemote from '@deepseek-ai/dsh-host-plugin-inventory/remote'
@@ -51,13 +52,9 @@ export type { McpManagedServerStatus, McpManagedServerView } from '@deepseek-ai/
 export type {} from '@deepseek-ai/dsh-plugin-manager/remote'
 export type {} from '@deepseek-ai/dsh-mcp-manager/remote'
 export type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/remote'
+export type {} from '@deepseek-ai/dsh-client-ui-connector-account/remote'
 export type {} from '@deepseek-ai/dsh-client-ui-trajectory/remote'
 export type {} from '@deepseek-ai/dsh-plugin-market/remote'
-export type {} from '@deepseek-ai/dsh-market/remote'
-export type {
-  MarketCatalogResult, MarketCategoryView, MarketInstalledView, MarketInstallPreview, MarketItemDetail, MarketItemKind,
-  MarketItemView, MarketSearchQuery, MarketText,
-} from '@deepseek-ai/dsh-market/types'
 export type {
   MarketCompatibility, MarketIndexSummary, MarketInstallation, MarketInstallationStatus, MarketListingEntry, MarketListingVersion,
   MarketQuery, MarketSearchResult, MarketSort, PluginDetail, PluginDetailDocumentId, PluginDetailOrigin,
@@ -97,7 +94,6 @@ export type { ApiRemoteForwardedEvent } from '../types.ts'
 // The owner packages' client-safe `./types` exports supply the `Events`
 // signatures `$on` hands to a listener, so a consumer reads the very
 // declaration the Host emits rather than a flattened restatement of it.
-export type {} from '@deepseek-ai/dsh-authorization/types'
 export type {} from '@deepseek-ai/dsh-commands/types'
 export type {} from '@deepseek-ai/dsh-web/types'
 export type {} from '@deepseek-ai/dsh-cordis-host-runner/types'
@@ -162,6 +158,12 @@ export type {
   RequestRunOutcome,
 } from '@deepseek-ai/dsh-cordis-host-runner/types'
 // Credential state vocabulary for the credentials namespace (values never ride it).
+// Market views for the marketplace namespace; the remote module carries the calls.
+export type {} from '@deepseek-ai/dsh-market/remote'
+export type {
+  MarketCatalogResult, MarketCategoryView, MarketInstalledView, MarketInstallPreview, MarketItemDetail, MarketItemKind,
+  MarketItemView, MarketSearchQuery, MarketText,
+} from '@deepseek-ai/dsh-market/types'
 export type { CredentialInfo, CredentialKey } from '@deepseek-ai/dsh-credentials/types'
 // Authorization-conversation vocabulary for the authorization namespace; grant
 // material never crosses it — prompt answers are the only values that travel.
@@ -171,10 +173,11 @@ export type {
   AuthorizationPromptView, AuthorizationPromptWithdrawnEvent, AuthorizationQuota,
   AuthorizationQuotaWindow, AuthorizationSettlement, AuthorizationStatus,
 } from '@deepseek-ai/dsh-authorization/types'
-// Flow/record views for the same namespace (the seam keeps its own types).
+// Flow and record views for the same namespace; the seam keeps its own types.
 export type {
   AuthorizationDescribeView, AuthorizationEntryView,
 } from '@deepseek-ai/dsh-api-settings-controller/types'
+export type {} from '@deepseek-ai/dsh-authorization/types'
 // Redacted namespace vocabulary for the settings namespace (secrets never ride
 // it). It travels with its seam, whose `./types` the Client face already reads.
 export type {
@@ -221,6 +224,7 @@ export async function apply(ctx: Context): Promise<() => Promise<void>> {
       productAnalyticsRemote, agentPresetsRemote, commandsRemote, agentTeamsRemote, settingsControllerRemote, accountRemote,
       goalsRemote, llmRemote, dynamicRemote, scheduleRemote,
       pluginInventoryRemote, pluginManagerRemote, mcpManagerRemote, pluginMarketRemote, marketRemote, pluginRegistryProbeRemote,
+      connectorAccountsRemote,
       toolResultsRemote,
       messageFeedbackRemote, sessionFeedbackRemote,
       fileUploadsRemote, sessionReferencesRemote,

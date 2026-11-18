@@ -9,28 +9,28 @@
   ],
   "references": [
     {
-      "path": "../../../vendor/cosmokit"
+      "path": "../../../vendor/cordis"
     },
     {
-      "path": "../../../vendor/cordis"
+      "path": "../../../vendor/cosmokit"
     },
     {
       "path": "../../../vendor/schemastery"
     },
     {
-      "path": "../../util/output-retention"
-    },
-    {
-      "path": "../../llm/llm"
-    },
-    {
       "path": "../../core/session"
+    },
+    {
+      "path": "../../core/system-prompt"
     },
     {
       "path": "../../core/tools"
     },
     {
-      "path": "../../core/system-prompt"
+      "path": "../../llm/llm"
+    },
+    {
+      "path": "../../session/working-directory"
     },
     {
       "path": "../../shell/shell"
@@ -39,13 +39,16 @@
       "path": "../../spill/spill"
     },
     {
-      "path": "../../util/timeout"
+      "path": "../../util/error"
     },
     {
-      "path": "../../session/working-directory"
+      "path": "../../util/output-retention"
     },
     {
       "path": "../../util/ripgrep"
+    },
+    {
+      "path": "../../util/timeout"
     }
   ]
 }

@@ -1,5 +1,5 @@
 /** Tool definitions and invocation data shared by registries and executors. @module */
-import { HarnessError } from '@deepseek-ai/dsh-llm'
+import { HarnessError } from '@deepseek-ai/dsh-error'
 import { TOOL_CONTEXT_UNAVAILABLE } from './error-codes.ts'
 import type { ToolCallId, ContentBlock, ToolSchema } from '@deepseek-ai/dsh-llm'
 import type { Agent, ModelSelection } from '@deepseek-ai/dsh-agent'

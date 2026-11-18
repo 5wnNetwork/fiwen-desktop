@@ -76,6 +76,7 @@ describe('release families', () => {
       '@deepseek-ai/dsh-cua',
       '@deepseek-ai/dsh-experimental-forge-bundle',
       '@deepseek-ai/dsh-experimental-forge-github',
+      '@deepseek-ai/dsh-forge-gitlab',
       '@deepseek-ai/dsh-experimental-forge-session',
       '@deepseek-ai/dsh-experimental-forge',
       '@deepseek-ai/dsh-hook-protocol',

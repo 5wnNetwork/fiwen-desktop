@@ -2,15 +2,13 @@ import type { en } from '@deepseek-ai/dsh-client-ui-jobs/src/client/locales.ts'
 
 /** Vietnamese dictionary for `job`, key-checked against upstream `en`. */
 export const vi = {
-  'count.idle.one': '{count} tác vụ nền',
-  'count.idle.other': '{count} tác vụ nền',
   'list.aria': 'Tác vụ nền',
-  'section.live': 'Đang chạy',
   'section.settledCount': 'Đã xong {count}',
   'section.clear': 'Xóa',
   'row.expandAria': 'Hiện đầu ra trực tiếp của {label}',
   'row.collapseAria': 'Ẩn đầu ra trực tiếp của {label}',
-  'kill.stop': 'Dừng tác vụ {label}',
+  'kill.stop': 'Dừng tác vụ',
+  'kill.stopAria': 'Dừng tác vụ {label}',
   'kill.confirm': 'Nhấn lần nữa để xác nhận',
   'kill.confirmAction': 'Xác nhận dừng',
   'kill.failed': 'Dừng thất bại',
@@ -22,8 +20,6 @@ export const vi = {
   'duration.seconds': '{seconds}s',
   'duration.minutes': '{minutes}m {seconds}s',
   'duration.hours': '{hours}g {minutes}ph',
-  'duration.title.live': 'Đã chạy {duration}',
-  'duration.title.done': 'Mất {duration}',
   'output.gap': '… đầu ra trước đó đã bị bỏ …',
   'output.error': 'luồng đầu ra trực tiếp bị gián đoạn: {error}',
   'terminal.signal': 'tín hiệu {signal}',

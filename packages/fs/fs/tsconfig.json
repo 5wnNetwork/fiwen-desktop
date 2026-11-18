@@ -4,25 +4,30 @@
     "rootDir": "src",
     "outDir": "lib/types"
   },
-  "include": ["src"],
+  "include": [
+    "src"
+  ],
   "references": [
-    {
-      "path": "../fs-patch"
-    },
-    {
-      "path": "../../../vendor/cosmokit"
-    },
     {
       "path": "../../../vendor/cordis"
     },
     {
-      "path": "../../util/brand"
+      "path": "../../../vendor/cosmokit"
     },
     {
       "path": "../../llm/llm"
     },
     {
       "path": "../../sandbox/sandbox"
+    },
+    {
+      "path": "../../util/brand"
+    },
+    {
+      "path": "../../util/error"
+    },
+    {
+      "path": "../fs-patch"
     }
   ]
 }

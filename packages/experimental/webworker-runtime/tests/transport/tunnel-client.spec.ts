@@ -87,7 +87,7 @@ function stubWorker(): {
   const direct = stubWorker()
   new WorkerTunnel(direct.worker).init('https://preview.test/base.tar.gz')
   check('the direct init path defaults to no overlays', direct.sent[0], {
-    t: 'init', image: 'https://preview.test/base.tar.gz', overlays: [],
+    t: 'init', image: 'https://preview.test/base.tar.gz', overlayPaths: [],
   })
 }
 

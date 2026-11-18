@@ -5,21 +5,54 @@
     "outDir": "lib/types"
   },
   "references": [
-    { "path": "../../util/brand" },
-    { "path": "../../../vendor/cordis" },
-    { "path": "../../llm/llm" },
-    { "path": "../../core/tools" },
-    { "path": "../../test-support/tool-testkit" },
-    { "path": "../../core/agent" },
-    { "path": "../../core/session" },
-    { "path": "../../session/session-projection" },
-    { "path": "../../boot/plugin-manager" },
-    { "path": "../../api/remote-access/tsconfig.host.json" },
-    { "path": "../../subagent/subagent" },
-    { "path": "../../boot/app-boot" },
-    { "path": "../../skill/skill" },
-    { "path": "../../sandbox/sandbox-policy" },
-    { "path": "../action-cards" }
+    {
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../api/remote-access/tsconfig.host.json"
+    },
+    {
+      "path": "../../boot/app-boot"
+    },
+    {
+      "path": "../../boot/plugin-manager"
+    },
+    {
+      "path": "../../core/agent"
+    },
+    {
+      "path": "../../core/session"
+    },
+    {
+      "path": "../../core/tools"
+    },
+    {
+      "path": "../../llm/llm"
+    },
+    {
+      "path": "../../sandbox/sandbox-policy"
+    },
+    {
+      "path": "../../session/session-projection"
+    },
+    {
+      "path": "../../skill/skill"
+    },
+    {
+      "path": "../../subagent/subagent"
+    },
+    {
+      "path": "../../test-support/tool-testkit"
+    },
+    {
+      "path": "../../util/brand"
+    },
+    {
+      "path": "../../util/error"
+    },
+    {
+      "path": "../action-cards"
+    }
   ],
   "files": [
     "src/index.ts",

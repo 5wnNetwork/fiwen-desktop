@@ -57,10 +57,14 @@
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:~",
     "@deepseek-ai/dsh-deepseek-account": "workspace:*",
+    "@deepseek-ai/dsh-deepseek-auth": "workspace:*",
     "@deepseek-ai/dsh-typert-protocol": "workspace:*"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/dsh-deepseek-account": {
+      "optional": true
+    },
+    "@deepseek-ai/dsh-deepseek-auth": {
       "optional": true
     }
   },
@@ -68,6 +72,7 @@
     "@deepseek-ai/cordis": "workspace:~",
     "@deepseek-ai/dsh-app-boot": "workspace:*",
     "@deepseek-ai/dsh-deepseek-account": "workspace:*",
+    "@deepseek-ai/dsh-deepseek-auth": "workspace:*",
     "@deepseek-ai/dsh-typert-protocol": "workspace:*"
   }
 }

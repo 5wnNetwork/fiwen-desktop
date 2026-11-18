@@ -45,15 +45,16 @@
     "@deepseek-ai/dsh-error": "workspace:*"
   },
   "dependencies": {
-    "@deepseek-ai/dsh-brand": "workspace:*",
     "@browserbasehq/stagehand": "4.4.0",
+    "@deepseek-ai/dsh-brand": "workspace:*",
+    "@deepseek-ai/dsh-error": "workspace:*",
     "@deepseek-ai/dsh-experimental-browser-use-runtime": "workspace:*",
     "@deepseek-ai/dsh-mcp-client": "workspace:*",
+    "@deepseek-ai/dsh-subprocess": "workspace:*",
     "@deepseek-ai/dsh-util-values": "workspace:*",
     "@deepseek-ai/schemastery": "workspace:~",
-    "zod": "4.6.7",
-    "@deepseek-ai/dsh-subprocess": "workspace:*",
-    "@puppeteer/browsers": "3.2.2"
+    "@puppeteer/browsers": "3.2.2",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:~",

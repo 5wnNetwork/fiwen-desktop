@@ -7,7 +7,8 @@ import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import { mountAgentLoopTestDependencies } from '@deepseek-ai/dsh-agent-loop-testkit'
 
 import { brandString } from '@deepseek-ai/dsh-brand'
-import { HarnessError, type ReasoningEffortId } from '@deepseek-ai/dsh-llm'
+import { type ReasoningEffortId } from '@deepseek-ai/dsh-llm'
+import { HarnessError } from '@deepseek-ai/dsh-error'
 import { carrierKeyOf } from '@deepseek-ai/dsh-scope'
 import SubagentRuntime, {
   foldSubagentDescriptor,

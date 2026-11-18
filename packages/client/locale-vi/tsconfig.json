@@ -94,12 +94,6 @@
       "path": "../ui-settings-models"
     },
     {
-      "path": "../ui-settings-plugin-inventory"
-    },
-    {
-      "path": "../ui-settings-plugins"
-    },
-    {
       "path": "../ui-settings-session-log"
     },
     {
@@ -151,7 +145,7 @@
       "path": "../ui-workflow-run"
     },
     {
-      "path": "../ui-workspace"
+      "path": "../ui-workspace/tsconfig.client.json"
     },
     {
       "path": "../ui-agent-team"

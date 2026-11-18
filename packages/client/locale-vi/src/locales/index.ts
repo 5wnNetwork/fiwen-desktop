@@ -41,8 +41,6 @@ import { vi as settingsAgentLoop } from './settingsAgentLoop.ts'
 import { vi as settingsGeneral } from './settingsGeneral.ts'
 import { vi as settingsLocale } from './settingsLocale.ts'
 import { vi as settingsModels } from './settingsModels.ts'
-import { vi as settingsPluginInventory } from './settingsPluginInventory.ts'
-import { vi as settingsPlugins } from './settingsPlugins.ts'
 import { vi as settingsSessionLog } from './settingsSessionLog.ts'
 import { vi as settingsShell } from './settingsShell.ts'
 import { vi as settingsSubagent } from './settingsSubagent.ts'
@@ -108,8 +106,6 @@ export const VI_DICTIONARIES = {
   'settings.agentLoop': settingsAgentLoop,
   'settings': settingsGeneral,
   'settings.models': settingsModels,
-  'settings.pluginInventory': settingsPluginInventory,
-  'settings.plugins': settingsPlugins,
   'settings.sessionLog': settingsSessionLog,
   'settings.shell': settingsShell,
   'settings.subagent': settingsSubagent,

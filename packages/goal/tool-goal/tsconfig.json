@@ -9,7 +9,7 @@
   ],
   "references": [
     {
-      "path": "../../util/brand"
+      "path": "../../../vendor/cordis"
     },
     {
       "path": "../../../vendor/cosmokit"
@@ -18,22 +18,25 @@
       "path": "../../../vendor/schemastery"
     },
     {
-      "path": "../../../vendor/cordis"
-    },
-    {
-      "path": "../../llm/llm"
+      "path": "../../core/agent"
     },
     {
       "path": "../../core/session"
     },
     {
-      "path": "../../core/agent"
+      "path": "../../core/system-prompt"
     },
     {
       "path": "../../core/tools"
     },
     {
-      "path": "../../core/system-prompt"
+      "path": "../../llm/llm"
+    },
+    {
+      "path": "../../util/brand"
+    },
+    {
+      "path": "../../util/error"
     },
     {
       "path": "../goal"

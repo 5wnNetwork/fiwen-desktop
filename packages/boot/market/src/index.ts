@@ -17,6 +17,7 @@ import z from '@deepseek-ai/schemastery'
 import { join } from 'node:path'
 import { randomBytes } from 'node:crypto'
 import type {} from '@deepseek-ai/dsh-deepseek-account'
+import type {} from '@deepseek-ai/dsh-deepseek-auth'
 import type {} from '@deepseek-ai/dsh-app-boot'
 import type { MarketCatalogResult, MarketInstalledView, MarketInstallPreview, MarketItemDetail, MarketSearchQuery } from './types.ts'
 import { installMcp, installSkill, listInstalled, uninstallMcp, uninstallSkill, type MarketStoreLayout } from './install.ts'
@@ -32,7 +33,6 @@ declare module '@deepseek-ai/cordis' {
 }
 
 const SLUG = /^[a-z0-9][a-z0-9_-]{0,63}$/u
-const TOKEN_HEADER = 'x-dsh-auth-token'
 /** Bound the in-memory preview map; each entry holds a full install payload. */
 const MAX_PREVIEWS = 32
 
@@ -86,13 +86,17 @@ export default class Market extends TypertRemoteService {
   }
 
   private async fetchJson(path: string, init?: Omit<RequestInit, 'headers'> & { headers?: Record<string, string> }): Promise<unknown> {
-    const account = this.ctx.get('deepseekAccount')
-    const token = await account?.resolveToken(this.config.origin)
+    // The account service keeps token resolution to itself; the auth seam releases the
+    // request headers of the first credential kind that resolves for this destination.
+    const authorization = await this.ctx.get('deepseekAuth')?.authorize({
+      consumer: 'market', accepts: ['account'], billing: 'account',
+      destination: { url: `${this.config.origin}${path}` },
+    }).catch(() => undefined)
     const response = await fetch(`${this.config.origin}${path}`, {
       ...init,
       redirect: 'error',
       signal: AbortSignal.timeout(this.config.fetchTimeoutMs),
-      headers: { ...(token === undefined ? {} : { [TOKEN_HEADER]: token }), ...init?.headers },
+      headers: { ...authorization?.headers, ...init?.headers },
     }).catch((error: unknown) => {
       throw new RemoteError('market/fetch-failed', `Marketplace request failed: ${String(error)}`, { reason: String(error) })
     })
