@@ -30,8 +30,10 @@ const DEPENDENCY_FIELDS = ['dependencies', 'optionalDependencies', 'peerDependen
  * for ordinary product growth, so a graph that grows here fails with its own
  * measured counts instead of failing on whichever runner happens to be slow.
  * Raising it requires re-measuring the resolution and recording the new counts.
+ * Measured after the 0.2.2-rc.4 upstream merge: 340 package(s) x 3372 internal
+ * edge(s) = 1,146,480 unit(s), so the ceiling follows the same 25% rule.
  */
-export const MAX_RESOLUTION_WORK_UNITS = 1_134_400
+export const MAX_RESOLUTION_WORK_UNITS = 1_433_100
 
 /**
  * Measured npm seconds per resolution work unit on the reference host: 180.66 s
