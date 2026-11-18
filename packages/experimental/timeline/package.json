@@ -1,7 +1,7 @@
 {
   "name": "@deepseek-ai/dsh-timeline",
   "description": "Replace Todo in long-running sessions with task trees, a live progress bar, and timed reports",
-  "version": "0.2.2-rc.17",
+  "version": "0.2.2-rc.18",
   "icon": "./icon.svg",
   "type": "module",
   "license": "MIT",
@@ -62,7 +62,6 @@
     }
   },
   "dependencies": {
-    "@deepseek-ai/dsh-error": "workspace:*",
     "@deepseek-ai/dsh-llm": "workspace:*",
     "@deepseek-ai/dsh-util-crypto": "workspace:*",
     "@deepseek-ai/schemastery": "workspace:~",
