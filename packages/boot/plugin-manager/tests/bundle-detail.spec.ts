@@ -11,6 +11,20 @@ import { afterEach, expect, it, onTestFinished, vi } from 'vitest'
 import PluginManager, { type Config } from '../src/index.ts'
 import * as operations from '../src/operations.ts'
 
+// This deployment offers no on-demand provider, so an offered Official bundle is exercised against
+// one fixture entry standing in for what a nonempty deployment would publish.
+vi.mock('@deepseek-ai/dsh-official-bundles', async importOriginal => ({
+  ...await importOriginal<typeof import('@deepseek-ai/dsh-official-bundles')>(),
+  OFFICIAL_ON_DEMAND_CATALOG: [{
+    packageName: '@fixture/official-bundle',
+    meta: {
+      title: { en: 'Official fixture', zh: '官方 fixture' },
+      description: { en: 'Fixture Official bundle.', zh: 'Fixture Official bundle.' },
+      icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciLz4=',
+    },
+  }],
+}))
+
 afterEach(() => { vi.unstubAllGlobals() })
 
 /** The `connection` Fetch route registry, recording the routes the manager registers. */

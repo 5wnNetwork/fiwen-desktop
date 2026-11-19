@@ -268,9 +268,9 @@ describe('release families', () => {
     expect(plan.droppedPeerEdges).toEqual([])
   })
 
-  it('rejects an advertised provider missing from the public release family', () => {
-    expect(() => releaseFamily('dsh').publishOrder([member('apps/cli', '@deepseek-ai/dsh')]))
-      .toThrow('Official catalog prerequisite')
+  it('requires no publication prerequisite when the catalog advertises nothing', () => {
+    const dsh = member('apps/cli', '@deepseek-ai/dsh')
+    expect(releaseFamily('dsh').publishOrder([dsh]).order.map(entry => entry.name)).toEqual([dsh.name])
   })
 
   it('keeps catalog prerequisites ahead of a dsh peer declaration', () => {

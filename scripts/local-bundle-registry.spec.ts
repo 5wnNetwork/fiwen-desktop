@@ -8,14 +8,12 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execa } from 'execa'
 import { describe, expect, it, onTestFinished } from 'vitest'
-import { ON_DEMAND_BUNDLES } from '../packages/util/official-bundles/src/bundles.ts'
 import { generateOfficialBundleCatalog } from './gen-official-bundle-catalog.ts'
 import {
   createRegistryManifest,
   hostPlatform,
   pnpmInvocationFor,
   readPackedArtifacts,
-  readReleaseMembers,
   readWorkspacePackages,
   selectBundleDependencies,
   packBundleArtifacts,
@@ -117,24 +115,17 @@ async function servingRun(options: {
 }
 
 describe('catalog and local closure', () => {
-  it('selects the real catalog closure from this checkout', () => {
+  it('reports an empty catalog for this checkout and refuses to serve that closure', () => {
+    // This deployment ships the native subagent providers instead of offering them on demand,
+    // so a registry run would have nothing to serve.
     const entries = generateOfficialBundleCatalog(root).map(entry => entry.packageName)
-    expect(entries).toEqual([...ON_DEMAND_BUNDLES])
+    expect(entries).toEqual([])
     const packages = readWorkspacePackages(root)
-    const release = readReleaseMembers(root)
-    const selection = selectBundleDependencies({ entries, packages, platform: hostPlatform() })
-
-    expect(selection.members.map(member => member.name)).toEqual(expect.arrayContaining([...entries]))
-    for (const member of selection.members) {
-      expect(member.manifest.private, member.name).not.toBe(true)
-      expect(release.has(member.name), member.name).toBe(true)
-    }
-    expect(selection.workspaceNames).toEqual(expect.arrayContaining(selection.members.map(member => member.name)))
     // A vendor package keeps its own version line, so a run must not assume one shared version.
     expect(packages.get('@deepseek-ai/cordis')?.manifest.version)
       .not.toBe(packages.get('@deepseek-ai/dsh-brand')?.manifest.version)
-    // Nothing in this closure is built for another platform, on any host.
-    expect(selection.foreignTargets).toEqual([])
+    expect(() => selectBundleDependencies({ entries, packages, platform: hostPlatform() }))
+      .toThrow(/no on-demand entries/u)
   })
 
   it('follows install, optional, and required peer edges but not optional peers', () => {

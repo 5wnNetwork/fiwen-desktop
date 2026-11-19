@@ -73,8 +73,9 @@ export const OPTIONAL_BUNDLES: readonly string[] = [
   '@deepseek-ai/dsh-experimental-forge-bundle',
 ]
 
-/** Public DSH release members available through the ordinary on-demand bundle installer. */
-export const ON_DEMAND_BUNDLES: readonly string[] = [
-  '@deepseek-ai/dsh-subagent-claude-code',
-  '@deepseek-ai/dsh-subagent-codex',
-]
+/**
+ * Public DSH release members available through the ordinary on-demand bundle installer.
+ * This deployment has no on-demand registry and ships the native subagent providers in
+ * the Fiwen bundle, so it nominates none; the catalog is empty rather than rejected.
+ */
+export const ON_DEMAND_BUNDLES: readonly string[] = []

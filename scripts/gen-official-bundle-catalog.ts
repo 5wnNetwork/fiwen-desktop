@@ -21,7 +21,7 @@ const OUTPUT = 'packages/util/official-bundles/src/catalog.generated.ts'
  * @returns Offline entries in admission order, with metadata from the owning packages.
  */
 export function generateOfficialBundleCatalog(root: string, names: readonly string[] = ON_DEMAND_BUNDLES): OfficialBundleCatalogEntry[] {
-  if (names.length === 0 || new Set(names).size !== names.length) throw new Error('Official on-demand catalog must contain distinct package names')
+  if (new Set(names).size !== names.length) throw new Error('Official on-demand catalog must contain distinct package names')
   const manifests = new Map<string, { path: string; private: boolean; bundle: boolean; platforms?: DshBundleManifest['platforms']; runtime: string[] }>()
   for (const path of globSync(['packages/*/*/package.json', 'apps/*/package.json', 'vendor/*/package.json'], { cwd: root }).map(path => path.replaceAll('\\', '/')).sort()) {
     const manifest = JSON.parse(readFileSync(resolve(root, path), 'utf8')) as {
@@ -119,9 +119,10 @@ function localized(value: LocalizedText): string {
  * Write changed metadata or freshness-check it against the owning package resources.
  * @param root - Repository root containing source and metadata resources.
  * @param check - Reject drift without changing the generated file.
+ * @param names - Catalog admission list; defaults to the installation-owned list.
  */
-export function syncOfficialBundleCatalog(root: string, check: boolean): void {
-  const source = renderOfficialBundleCatalog(generateOfficialBundleCatalog(root))
+export function syncOfficialBundleCatalog(root: string, check: boolean, names: readonly string[] = ON_DEMAND_BUNDLES): void {
+  const source = renderOfficialBundleCatalog(generateOfficialBundleCatalog(root, names))
   const path = resolve(root, OUTPUT)
   let current: string | undefined
   try { current = readFileSync(path, 'utf8') }

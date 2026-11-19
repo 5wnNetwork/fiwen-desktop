@@ -883,8 +883,6 @@ describe('web e2e: plugin manager', () => {
       ['@deepseek-ai/dsh-timeline', 1],
       ['@deepseek-ai/dsh-experimental-cot-translation-bundle', 1],
       ['@deepseek-ai/dsh-experimental-session-titles-bundle', 1],
-      ['@deepseek-ai/dsh-subagent-codex', 0],
-      ['@deepseek-ai/dsh-subagent-claude-code', 0],
     ])
     expect(await panel.locator('[data-plugin-group="bundles"]').count()).toBe(0)
     await panel.getByRole('button', { name: '返回插件', exact: true }).click()

@@ -9,11 +9,23 @@ import { getFileMatchers } from 'app-builder-lib/out/fileMatcher.js'
 import { readAsar } from 'app-builder-lib/out/asar/asar.js'
 import { afterEach, expect, it, vi } from 'vitest'
 import { prepareWindowsAsarUnpack, verifyWindowsAsarUnpack } from '../scripts/windows-asar-unpack.mjs'
+import { optionalPayloads, packedPayloadDirectory } from '../scripts/optional-payloads.mjs'
 import { createElectronBuilderConfig } from '../scripts/electron-builder-config.mjs'
 import { verifyRuntimeArchive } from '../scripts/verify-runtime-archive.ts'
 import { DESKTOP_HOST_PROTOCOL_VERSION } from '../src/host-protocol.ts'
 import { inventoryDesktopRuntime, type DesktopRuntimeDescriptor } from '../src/runtime-tree.ts'
 
+// The real hook writes each payload archive beside the release artifacts; a checkout-only run
+// keeps them inside its own fixture instead of the repository build tree.
+const artifactOutput = vi.hoisted(() => ({ directory: '' }))
+vi.mock('../scripts/desktop-build-paths.mjs', async (importOriginal) => {
+  const original = await importOriginal<typeof import('../scripts/desktop-build-paths.mjs')>()
+  return {
+    ...original,
+    desktopArtifactOutput: (...args: Parameters<typeof original.desktopArtifactOutput>) =>
+      ({ ...original.desktopArtifactOutput(...args), directory: artifactOutput.directory }),
+  }
+})
 vi.mock('../scripts/windows-sign.mjs', async importOriginal => ({
   ...await importOriginal<typeof import('../scripts/windows-sign.mjs')>(),
   createWindowsTokenSigner: () => async () => {},
@@ -60,7 +72,9 @@ async function fixture(external: boolean) {
   const appDir = join(root, 'app')
   const source = external ? join(root, 'private', 'dsh') : join(appDir, '.desktop-build', 'dsh')
   const resources = join(root, 'output', 'resources')
+  artifactOutput.directory = join(root, 'output', 'artifacts')
   await mkdir(resources, { recursive: true })
+  await mkdir(artifactOutput.directory, { recursive: true })
   await mkdir(appDir, { recursive: true })
   const pe = Buffer.alloc(128)
   pe.writeUInt16LE(0x5a4d, 0)
@@ -99,6 +113,18 @@ async function fixture(external: boolean) {
   const context: BeforePackContext = { packager: new WinPackager(info), arch: Arch.x64,
     appOutDir: dirname(resources), outDir: dirname(resources), electronPlatformName: 'win32', targets: [] }
   return { root, appDir, source, resources, config, context, names }
+}
+
+// The real afterPack hook archives every declared optional payload out of the packed application,
+// so the fixture holds each packed directory the hook's own list names. A payload added there is
+// created here too, and the roots below only satisfy that list's signature: the hook archives the
+// packed targets, never the source roots.
+async function createOptionalPayloadDirectories(input: Awaited<ReturnType<typeof fixture>>): Promise<void> {
+  for (const payload of optionalPayloads({ runtime: join(input.resources, 'runtime'), dsh: input.source }, 'win32', 'x64')) {
+    const directory = packedPayloadDirectory(payload, input.resources)
+    await mkdir(directory, { recursive: true })
+    await writeFile(join(directory, 'payload.bin'), 'payload')
+  }
 }
 
 async function packageFixture(input: Awaited<ReturnType<typeof fixture>>) {
@@ -231,12 +257,15 @@ it.each([true, false])('validates the real builder hook for unsigned=%s', async 
   input.config.asarUnpack = [...config.asarUnpack]
   await config.beforePack(input.context)
   await packageFixture(input)
+  await createOptionalPayloadDirectories(input)
   await config.afterPack(input.context)
   if (!unsigned) await config.afterSign(input.context)
   const file = join(input.resources, 'app.asar.unpacked', 'dsh', 'node_modules', 'foo', 'custom.binary')
   await writeFile(file, 'changed after packaging')
   if (unsigned) await expect(config.afterPack(input.context)).rejects.toThrow('PE bytes changed')
   else {
+    // The first afterPack moved the payloads into their archives and removed them.
+    await createOptionalPayloadDirectories(input)
     await config.afterPack(input.context)
     await expect(config.afterSign(input.context)).rejects.toThrow('PE bytes changed')
   }

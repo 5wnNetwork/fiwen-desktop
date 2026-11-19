@@ -28,6 +28,20 @@ import * as gitTransport from '../src/git-transport.ts'
 import { parse, parseDocument } from 'yaml'
 import { isolateGitCommandLineConfig } from './git-environment.ts'
 
+// This deployment offers no on-demand provider, so the Official install path is exercised against
+// one fixture entry standing in for what a nonempty deployment would publish.
+vi.mock('@deepseek-ai/dsh-official-bundles', async importOriginal => ({
+  ...await importOriginal<typeof import('@deepseek-ai/dsh-official-bundles')>(),
+  OFFICIAL_ON_DEMAND_CATALOG: [{
+    packageName: '@fixture/official-bundle',
+    meta: {
+      title: { en: 'Official fixture', zh: '官方 fixture' },
+      description: { en: 'Fixture Official bundle.', zh: 'Fixture Official bundle.' },
+      icon: 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciLz4=',
+    },
+  }],
+}))
+
 // These cases install through real Git and pnpm, so the host's command-line configuration group must not reach their children.
 let restoreGitCommandLineConfig: () => void
 beforeAll(() => { restoreGitCommandLineConfig = isolateGitCommandLineConfig() })
