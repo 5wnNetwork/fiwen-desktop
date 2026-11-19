@@ -97,6 +97,13 @@ jobs:
           pnpm --dir native/system run build:ts
           pnpm --dir native/system run build:native
 
+      # Source-mode vitest resolves workspace and vendored packages through the
+      # tsconfig paths facade, but imports Vite loads from a package node_modules
+      # link bypass it and fall through to package exports pointing at a lib/
+      # build a clean checkout does not have. Build the artifacts first.
+      - name: Build artifacts for the source-mode suite
+        run: pnpm run build:artifacts
+
       - name: Sandbox e2e (real kernel confinement, world-verified)
         # NO_COLOR: vitest force-enables ANSI color under GITHUB_ACTIONS even
         # without a TTY, which would thread escape codes through the summary
