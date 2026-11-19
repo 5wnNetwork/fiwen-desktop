@@ -771,9 +771,15 @@ function coverageGates(platform: NodeJS.Platform = process.platform): Gate[] {
 function ciUnitGates(): Gate[] {
   return [
     pnpmScript('native-system', 'build:native-system'),
+    // Source-mode suites resolve workspace and vendored packages through the
+    // tsconfig paths facade, but their imports also reach files Vite loads from
+    // the package's node_modules link, where path mapping does not apply and the
+    // package exports point at a lib/ build a clean checkout lacks. Build the
+    // artifacts first, as the snapshot and expected-output lanes already do.
+    ciBuildGate(),
     pnpmExec('unit', ['vitest', 'run'], {
       label: 'test',
-      needs: ['native-system'],
+      needs: ['native-system', 'build'],
       streamOutput: true,
     }),
   ]

@@ -727,16 +727,16 @@ describe('gate graph validation', () => {
     for (const budget of ['15000', undefined]) {
       const gates = withEnv('DSH_COVERAGE_TEST_TIMEOUT_MS', budget, () =>
         withPnpmEntrypoint(() => gatesForMode('ci-unit')))
-      expect(gates.map(gate => gate.id)).toEqual(['native-system', 'unit'])
+      expect(gates.map(gate => gate.id)).toEqual(['native-system', 'build', 'unit'])
       expect(gates[0]).toMatchObject({ displayCommand: nativeBuild })
-      expect(gates[1]?.displayCommand).toBe(`pnpm exec ${unitRun}`)
-      expect(gates[1]).toMatchObject({
+      expect(gates[2]?.displayCommand).toBe(`pnpm exec ${unitRun}`)
+      expect(gates[2]).toMatchObject({
         label: 'test',
-        needs: ['native-system'],
+        needs: ['native-system', 'build'],
         streamOutput: true,
         args: ['/private/pnpm.cjs', 'exec', 'vitest', 'run'],
       })
-      expect(gates[1]?.env ?? {}).not.toHaveProperty('DSH_COVERAGE_TEST_TIMEOUT_MS')
+      expect(gates[2]?.env ?? {}).not.toHaveProperty('DSH_COVERAGE_TEST_TIMEOUT_MS')
     }
   })
 
