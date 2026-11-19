@@ -205,7 +205,7 @@ it.each([new Error('launcher unavailable'), 'launcher unavailable'])('reports op
   open.mockRejectedValue(failure)
   publishStartup(ctx, { printUrl: true, openBrowser: true }, baseUrl)
   await vi.waitFor(() => { expect(error).toHaveBeenCalledOnce() })
-  expect(error).toHaveBeenCalledWith('web-app: could not open the default browser because launcher unavailable; use the dsh web URL printed at startup')
+  expect(error).toHaveBeenCalledWith('web-app: could not open the default browser because launcher unavailable; use the fwnd web URL printed at startup')
   expect(error.mock.calls.flat().join(' ')).not.toContain(new URL(auth.authenticatedUrl('http://localhost')).searchParams.get('token'))
 })
 

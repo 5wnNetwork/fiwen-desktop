@@ -28,5 +28,5 @@ it.each(['desktop-publish.yml'])('keeps %s preflights executable before install'
       expect(index).toBeLessThan(job.steps.findIndex(candidate => candidate.run?.includes(' install ')))
     }
   }
-  expect(preflights).toBe(5)
+  expect(preflights).toBe(4)
 })

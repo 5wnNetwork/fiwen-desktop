@@ -11249,8 +11249,8 @@ importers:
         specifier: workspace:*
         version: link:../../ptc-runtime/ptc-runtime-node
       '@modelcontextprotocol/client':
-        specifier: 2.2.0
-        version: 2.2.0
+        specifier: 2.4.0
+        version: 2.4.0
     optionalDependencies:
       '@deepseek-ai/dsh-cua-macos':
         specifier: workspace:*
@@ -15573,8 +15573,8 @@ importers:
         specifier: workspace:*
         version: link:../../util/values
       '@modelcontextprotocol/client':
-        specifier: 2.2.0
-        version: 2.2.0
+        specifier: 2.4.0
+        version: 2.4.0
 
   packages/mcp/mcp-resources:
     dependencies:
@@ -22792,10 +22792,6 @@ packages:
 
   '@mixmark-io/domino@2.2.0':
     resolution: {integrity: sha512-Y28PR25bHXUg88kCV7nivXrP2Nj2RueZ3/l/jdx6J9f8J4nsEGcgX0Qe6lt7Pa+J79+kPiJU3LguR6O/6zrLOw==}
-
-  '@modelcontextprotocol/client@2.2.0':
-    resolution: {integrity: sha512-LxCou/CSYQ6dwEnjhLZY0KnEuc8V4UJ3IEQCl/uR2yHobSQIEdJKUlKLRYRF5i5FqRGHy1eK7une3aAWDHLtig==}
-    engines: {node: '>=20'}
 
   '@modelcontextprotocol/client@2.4.0':
     resolution: {integrity: sha512-LgrD2OphHuG12vfKFKz6SOnq7bKHQmhGJIAYdD+MZBn2npHEyry6uD8zvktodtl5CQM85MO0anUyD9JwmUmxww==}
@@ -30708,16 +30704,6 @@ snapshots:
       '@chevrotain/types': 11.1.2
 
   '@mixmark-io/domino@2.2.0': {}
-
-  '@modelcontextprotocol/client@2.2.0':
-    dependencies:
-      '@modelcontextprotocol/core': 2.2.0
-      cross-spawn: 7.0.6
-      eventsource: 3.0.7
-      eventsource-parser: 3.1.0
-      jose: 6.2.3
-      pkce-challenge: 5.0.1
-      zod: 4.6.7
 
   '@modelcontextprotocol/client@2.4.0':
     dependencies:

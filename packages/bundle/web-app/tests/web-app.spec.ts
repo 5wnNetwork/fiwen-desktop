@@ -147,7 +147,7 @@ describe('web-app runtime glue', () => {
     apply(ctx, new Config({ printUrl: false, openBrowser: false, surfaceContext: false }))
     expect(ctx.webApp.getAdvertisedUrl()).toBe(`http://${advertised}:4567`)
     expect(warn).toHaveBeenCalledExactlyOnceWith(
-      `dsh web: listening on ${bind} over plain HTTP; restrict this port to a trusted proxy or network`,
+      `fwnd web: listening on ${bind} over plain HTTP; restrict this port to a trusted proxy or network`,
     )
   })
 

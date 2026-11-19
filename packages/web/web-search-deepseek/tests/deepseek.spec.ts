@@ -386,7 +386,7 @@ describe('DeepSeekSearchProvider account authentication', () => {
     expect(rejectAccountToken).toHaveBeenCalledExactlyOnceWith('sent-token')
   })
 
-  const ACCOUNT_SIGNED_OUT = 'The DeepSeek account signed out before this web search finished. Guide the user to sign in to DeepSeek'
+  const ACCOUNT_SIGNED_OUT = 'The Fiwen account signed out before this web search finished. Guide the user to sign in to Fiwen'
     + ' again; the search endpoint does not need changing.'
   /** A provider authenticating with an account credential whose sign-out signal is `revoked`. */
   const signedIn = (revoked: AbortSignal): DeepSeekSearchProvider =>

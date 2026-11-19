@@ -187,6 +187,6 @@ it('ends an account model request outside an Agent turn at sign-out, as a sign-i
   await response.closed
   expect(chunks.at(-1)).toMatchObject({ type: 'finish', reason: { kind: 'error', failure: {
     code: 'ACCOUNT_SIGN_IN_REQUIRED',
-    message: 'The DeepSeek account signed out before this request finished. Sign in to DeepSeek to use the account provider.',
+    message: 'The Fiwen account signed out before this request finished. Sign in to Fiwen to use the account provider.',
   } } })
 })

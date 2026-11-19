@@ -226,6 +226,7 @@
 .quotaTrack {
   height: 6px;
   border-radius: 999px;
+  corner-shape: round;
   overflow: hidden;
   background: var(--dsw-alias-settings-card-stroke);
 }
@@ -233,5 +234,6 @@
 .quotaFill {
   height: 100%;
   border-radius: 999px;
+  corner-shape: round;
   background: var(--dsw-alias-brand-primary);
 }

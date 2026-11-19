@@ -77,8 +77,10 @@
   border-radius: var(--dsw-radius-xl);
 }
 
-.card:hover {
-  background: var(--dsw-alias-interactive-bg-hover);
+@media (hover: hover) {
+  .card:hover {
+    background: var(--dsw-alias-interactive-bg-hover);
+  }
 }
 
 /* The main button covers the card body and opens the item; the action stays beside it. */
@@ -235,8 +237,10 @@
   text-decoration: none;
 }
 
-.facts a:hover {
-  text-decoration: underline;
+@media (hover: hover) {
+  .facts a:hover {
+    text-decoration: underline;
+  }
 }
 
 .skeletonFill {

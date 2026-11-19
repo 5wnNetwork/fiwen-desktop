@@ -21,9 +21,13 @@ export const vitestExecArgv = process.allowedNodeEnvironmentFlags.has('--webstor
  * re-export of it from `@deepseek-ai/dsh-llm` were different constructors, so every
  * `instanceof` assertion failed. Aliasing the facade completely makes each bare
  * name resolve to one source file, which is the source plane these suites run in.
- * @returns resolve.alias entries for every facade path, most specific first.
+ *
+ * Each entry matches its bare name exactly. A prefix match would also capture the
+ * subpath imports a package declares in its own `exports` map (`./src/*`), which
+ * must keep resolving through that map rather than being appended to a directory.
+ * @returns resolve.alias entries for every facade path.
  */
-export function workspaceAliases(): { find: string | RegExp, replacement: string }[] {
+export function workspaceAliases(): { find: RegExp, replacement: string }[] {
   const facade = fileURLToPath(new URL('./tsconfig.base.json', import.meta.url))
   // The facade is JSONC: TypeScript's own reader accepts the comments it carries.
   const { config, error } = ts.parseConfigFileTextToJson(facade, readFileSync(facade, 'utf8'))
@@ -33,10 +37,12 @@ export function workspaceAliases(): { find: string | RegExp, replacement: string
   const { paths } = (config as { compilerOptions: { paths: Record<string, string[]> } }).compilerOptions
   const root = dirname(facade)
   return Object.entries(paths)
-    .map(([name, targets]) => ({ find: name, replacement: join(root, targets[0]!) }))
-    // Rollup's alias matches a prefix followed by `/`, so the deepest name has to
-    // win: `dsh-error/types` must be tested before `dsh-error`.
-    .sort((left, right) => right.find.length - left.find.length)
+    // Wildcard entries keep resolving through the tsconfig-paths plugin.
+    .filter(([name, targets]) => !name.includes('*') && !targets[0]!.includes('*'))
+    .map(([name, targets]) => ({
+      find: new RegExp(`^${name.replaceAll(/[.*+?^${}()|[\]\\]/gu, String.raw`\$&`)}$`, 'u'),
+      replacement: join(root, targets[0]!),
+    }))
 }
 
 /**
