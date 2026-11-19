@@ -151,7 +151,10 @@ jobs:
   unit-darwin:
     name: unit tests (darwin parity, macos-latest)
     runs-on: macos-latest
-    timeout-minutes: 60
+    # This lane builds the artifacts before it tests, and the suite alone fills a
+    # 60-minute budget on a 3-vCPU runner: run 44430008298 was cut off mid-suite at
+    # 60m24s. The limit covers build plus suite with room for a slow host.
+    timeout-minutes: 150
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
