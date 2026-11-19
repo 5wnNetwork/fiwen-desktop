@@ -4,7 +4,7 @@ import { fileURLToPath } from 'node:url'
 import tsconfigPaths from 'vite-tsconfig-paths'
 import { resolvePwshPath } from './packages/shell/pwsh-local/src/resolve.ts'
 import { defineConfig } from 'vitest/config'
-import { standardDecoratorPlugin, vitestExecArgv } from './vitest.shared.ts'
+import { standardDecoratorPlugin, vitestExecArgv, workspaceAliases } from './vitest.shared.ts'
 import { COVERAGE_EXEMPT_ENV, coverageExemptHeavySuites } from './scripts/coverage-exempt.ts'
 import { COVERAGE_PARTITION_MODE_ENV, COVERAGE_TEST_TIMEOUT_ENV, coverageTestTimeoutOptions } from './scripts/coverage-partitions.ts'
 import { LOCAL_TEST_PARALLELISM_CAP, defaultParallelism } from './scripts/parallelism.ts'
@@ -206,7 +206,7 @@ const testingAliases = { ...claudeCodeTestingAliases, ...generatedRemoteAliases 
 
 export default defineConfig({
   plugins: [pathsPlugin(), standardDecoratorPlugin()],
-  resolve: { alias: testingAliases },
+  resolve: { alias: [...workspaceAliases(), ...Object.entries(testingAliases).map(([find, replacement]) => ({ find, replacement }))] },
   test: {
     ...localWorkerBudget,
     setupFiles: [
@@ -220,7 +220,7 @@ export default defineConfig({
     projects: [
       {
         plugins: [pathsPlugin(), standardDecoratorPlugin()],
-        resolve: { alias: testingAliases },
+        resolve: { alias: [...workspaceAliases(), ...Object.entries(testingAliases).map(([find, replacement]) => ({ find, replacement }))] },
         test: {
           name: 'thread-safe',
           execArgv: vitestExecArgv,
@@ -242,7 +242,7 @@ export default defineConfig({
       },
       {
         plugins: [pathsPlugin(), standardDecoratorPlugin()],
-        resolve: { alias: testingAliases },
+        resolve: { alias: [...workspaceAliases(), ...Object.entries(testingAliases).map(([find, replacement]) => ({ find, replacement }))] },
         test: {
           name: 'process-bound',
           // Runner import tests require VM modules; the missing-flag test stays in thread-safe.
