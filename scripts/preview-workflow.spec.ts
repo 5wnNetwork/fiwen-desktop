@@ -25,7 +25,9 @@ describe('PR preview workflow', () => {
     expect(preview['runs-on']).toContain('DSH_CI_FAILOVER_LINUX')
     expect(workflow.on).toEqual({ pull_request: { types: ['opened', 'synchronize', 'reopened'] } })
     expect(workflow.permissions).toEqual({ contents: 'read', 'pull-requests': 'write' })
-    expect(preview.steps.find(step => step.uses === 'actions/checkout@v7.0.1')?.with).toEqual({ 'persist-credentials': false, 'fetch-depth': 2 })
+    // The checkout is a commit-SHA pin, not the v7.0.1 tag, so the assertion names the pin.
+    expect(preview.steps.find(step => step.uses === 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1')?.with)
+      .toEqual({ 'persist-credentials': false, 'fetch-depth': 2 })
   })
 
   it('fails the check only for build failures and warns about publication', () => {

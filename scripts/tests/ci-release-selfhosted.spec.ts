@@ -8,9 +8,17 @@ import { load } from 'js-yaml'
 import { describe, expect, it, onTestFinished } from 'vitest'
 
 const root = resolve(import.meta.dirname, '../..')
-const repository = 'deepseek-harness/deepseek-harness'
+const repository = '5wnNetwork/fiwen-desktop'
 const selfhosted = ['self-hosted', 'linux', 'x64', 'vm-backup']
 const hosted = 'ubuntu-24.04'
+// Third-party actions are pinned to commit SHAs; the workflow comment names the release.
+const pinned = {
+  checkout: 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1',
+  pnpm: 'pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320',
+  setupNode: 'actions/setup-node@820762786026740c76f36085b0efc47a31fe5020',
+  uploadArtifact: 'actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a',
+  downloadArtifact: 'actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c',
+} as const
 
 interface Step {
   env?: Record<string, string>
@@ -119,7 +127,7 @@ for (const [file, jobIds] of [['release.yml', ['dependencies', 'pack']], ['relea
           expect(evaluate(job['runs-on'], context)).toBe(hosted)
         })
         it('cleans stale checkout output and isolates setup before any pnpm invocation', () => {
-          expect(job.steps[0]).toMatchObject({ uses: 'actions/checkout@v7.0.1', with: { clean: true, 'persist-credentials': false } })
+          expect(job.steps[0]).toMatchObject({ uses: pinned.checkout, with: { clean: true, 'persist-credentials': false } })
           const cacheIndex = job.steps.findIndex(step => step.run?.includes('NODE_COMPILE_CACHE='))
           const pnpmIndex = job.steps.findIndex(step => step.uses?.startsWith('pnpm/') || /\bpnpm\b/.test(step.run ?? ''))
           expect(cacheIndex).toBeGreaterThan(0)
@@ -127,7 +135,7 @@ for (const [file, jobIds] of [['release.yml', ['dependencies', 'pack']], ['relea
           expect(job.steps[cacheIndex]?.run).toContain('echo "NODE_COMPILE_CACHE=${{ runner.temp }}/node-compile-cache" >> "$GITHUB_ENV"')
           expect(job.steps[cacheIndex]?.run).toContain('echo "npm_config_devdir=${{ runner.temp }}/node-gyp" >> "$GITHUB_ENV"')
           expect(job.steps[cacheIndex]?.run).toContain('echo "TMPDIR=${{ runner.temp }}" >> "$GITHUB_ENV"')
-          expect(job.steps.find(step => step.uses === 'pnpm/action-setup@v5.0.0')?.with?.dest)
+          expect(job.steps.find(step => step.uses === pinned.pnpm)?.with?.dest)
             .toBe('${{ runner.temp }}/setup-pnpm-${{ github.run_id }}-${{ github.run_attempt }}-${{ github.job }}')
           expect(job.steps.find(step => step.name === 'Install (immutable)')?.run).toBe('pnpm install --frozen-lockfile')
         })
@@ -149,7 +157,7 @@ for (const [file, jobIds] of [['release.yml', ['dependencies', 'pack']], ['relea
             expect(evaluate(step.if!, { 'runner.environment': 'self-hosted' })).toBe(false)
             expect(evaluate(step.if!, { 'runner.environment': 'github-hosted' })).toBe(true)
           }
-          const nodeSetup = job.steps.find(step => step.uses === 'actions/setup-node@v7.0.0')
+          const nodeSetup = job.steps.find(step => step.uses === pinned.setupNode)
           expect(nodeSetup?.with?.cache).toBeUndefined()
           expect(nodeSetup?.with?.['package-manager-cache']).toBe(false)
         })
@@ -171,7 +179,7 @@ for (const [file, jobIds] of [['release.yml', ['dependencies', 'pack']], ['relea
             expect(commands).toContain('pnpm run release:pack --family ' + family + ' --out ' + output + ' --concurrency 8')
             expect(commands).toContain('pnpm run release:verify-packed-install --family ' + family + ' --from ' + output
               + (family === 'dsh' ? ' --from dist/npm-vendor --from dist/npm-landlock' : ''))
-            expect(job.steps.at(-1)).toMatchObject({ uses: 'actions/upload-artifact@v7.0.1', with: { path: output + '/*', 'retention-days': 7 } })
+            expect(job.steps.at(-1)).toMatchObject({ uses: pinned.uploadArtifact, with: { path: output + '/*', 'retention-days': 7 } })
           }
           expect(JSON.stringify(job)).not.toMatch(/secrets\.|release:publish|npm-publish/)
         })
@@ -227,9 +235,9 @@ it('skips installation and signing on a helper match and exports the original pr
   expect(inputs.run).toBe('node scripts/cua-helper/build-inputs.ts')
   expect(inputs.if).toBeUndefined()
   expect(job.steps.indexOf(inputs)).toBeLessThan(job.steps.indexOf(select))
-  const expensive = job.steps.filter(step => step.uses === 'pnpm/action-setup@v5.0.0'
+  const expensive = job.steps.filter(step => step.uses === pinned.pnpm
     || step.name === 'Install locked dependencies' || step.name === 'Build and verify notarized applications'
-    || step.uses === 'actions/upload-artifact@v7.0.1')
+    || step.uses === pinned.uploadArtifact)
   expect(expensive).toHaveLength(4)
   expect(job.steps.find(step => step.name === 'Install locked dependencies')?.run)
     .toBe('pnpm install --frozen-lockfile --ignore-scripts --ignore-pnpmfile')
@@ -261,7 +269,7 @@ it('downloads the selected producer artifact and verifies its build key before p
   const pack = publish.jobs['pack']!
   expect(pack.permissions).toEqual({ contents: 'read', actions: 'read' })
   const download = pack.steps.find(step => step.name === 'Download selected macOS CUA helper')!
-  expect(download).toMatchObject({ uses: 'actions/download-artifact@v8.0.1', with: {
+  expect(download).toMatchObject({ uses: pinned.downloadArtifact, with: {
     'artifact-ids': '${{ needs.cua-helper-macos.outputs.artifact-id }}', 'run-id': '${{ needs.cua-helper-macos.outputs.run-id }}',
     'github-token': '${{ github.token }}', path: 'dist/cua-helper',
   } })
@@ -283,7 +291,7 @@ it('checks out the Actions run commit and exposes only the preset on the manual 
   expect(called.inputs).toEqual({ reuse: { type: 'boolean', default: false },
     cua_macos_run_id: { type: 'string', default: '' }, preset: { type: 'string', default: 'production' } })
   const job = helper.jobs['package']!
-  const checkout = job.steps.find(step => step.uses === 'actions/checkout@v7.0.1')!
+  const checkout = job.steps.find(step => step.uses === pinned.checkout)!
   expect(checkout.with).toEqual({ 'persist-credentials': false, clean: true })
   expect(job.env).not.toHaveProperty('PACKAGE_SOURCE_REF')
   expect(JSON.stringify(helper)).not.toContain('source_ref')
@@ -324,9 +332,9 @@ it.each([
   const steps = workflow('cua-helper-package-macos.yml').jobs['package']!.steps
   const selection = steps.find(step => step.name === 'Find reusable CUA helper')!
   expect(Boolean(evaluate(selection.if!, reuse ? { 'inputs.reuse': true } : {}))).toBe(reuse)
-  for (const step of steps.filter(step => step.uses === 'pnpm/action-setup@v5.0.0'
+  for (const step of steps.filter(step => step.uses === pinned.pnpm
     || step.name === 'Install locked dependencies' || step.name === 'Build and verify notarized applications'
-    || step.uses === 'actions/upload-artifact@v7.0.1')) {
+    || step.uses === pinned.uploadArtifact)) {
     expect(evaluate(step.if!, { 'steps.retained.outputs.artifact-id': artifactId })).toBe(build)
   }
 })

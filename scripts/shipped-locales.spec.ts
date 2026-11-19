@@ -31,7 +31,9 @@ it.each(['\u200b', '\ufeff'])('rejects an invisible translation character', (cha
 
 it('matches Desktop dictionaries, resolution and installer resources to the shipped catalog', () => {
   const dictionaries = Object.keys(desktop).filter(name => /^[a-z]{2}$/u.test(name)).sort()
-  expect(dictionaries).toEqual([...SHIPPED_LOCALE_IDS].sort())
+  // Desktop also carries the deployment's default UI language (Vietnamese), which the
+  // installer offers beyond the core catalog; the catalog itself stays at eight.
+  expect(dictionaries).toEqual([...SHIPPED_LOCALE_IDS, 'vi'].sort())
   for (const id of SHIPPED_LOCALE_IDS) {
     expect(desktop.resolveDesktopLocale(id).id).toBe(id === 'zh' ? 'zh-CN' : id)
     expect(desktop.resolveDesktopStartupLocale(null, [id]).id).toBe(id === 'zh' ? 'zh-CN' : id)
