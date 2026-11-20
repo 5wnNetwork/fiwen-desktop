@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "ui-settings-web-search-fiwen",
+    "description": "Cartão de configuração de pesquisa na web da Fiwen: a pesquisa e o carregamento de páginas são executados no seu serviço Fiwen com a sessão iniciada, sem chave nem endereço para configurar."
+  }
+}

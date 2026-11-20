@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "ui-settings-web-search-fiwen",
+    "description": "Fiwen ウェブ検索設定カード：検索とページ取得はサインイン済みの Fiwen サービス上で実行され、キーやエンドポイントの設定は不要です。"
+  }
+}

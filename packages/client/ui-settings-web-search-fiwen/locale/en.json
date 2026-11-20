@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "ui-settings-web-search-fiwen",
+    "description": "Fiwen web search settings card: search and page fetching run on your signed-in Fiwen service, with no key or endpoint to configure."
+  }
+}
