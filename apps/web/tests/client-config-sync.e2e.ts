@@ -40,7 +40,7 @@ it('renders volatile Config without secrets or ordinary fields and updates it in
   onTestFinished(() => rm(installed, { recursive: true, force: true }))
   await cp(FIXTURE, installed, { recursive: true })
   await mkdir(join(installed, 'node_modules', '@deepseek-ai'), { recursive: true })
-  await symlink(SCHEMASTERY, join(installed, 'node_modules', '@deepseek-ai', 'schemastery'), 'junction')
+  await symlink(SCHEMASTERY, join(installed, 'node_modules', '@deepseek-ai/schemastery'), 'junction')
   const scaffold = await launchWebScaffold({ profile: { packages: [{ dir: installed, enabled: true }] } })
   onTestFinished(() => scaffold.close())
   const browser = await chromium.launch()

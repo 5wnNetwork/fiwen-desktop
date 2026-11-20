@@ -56,3 +56,9 @@ native/system/test/bin/
 # Declaration maps a build phase drops beside this package's sources.
 packages/boot/market/src/*.d.ts.map
 packages/boot/market/src/types.js
+# Compiled output a stray compiler run drops beside a package's sources.
+packages/*/*/src/*.js
+packages/*/*/src/**/*.js
+# The same compiler residue beside vendored sources.
+vendor/*/src/*.js
+vendor/*/src/*.js.map

@@ -94,7 +94,7 @@ export const EXISTING_PLUGIN_ENTRY_EXPORTS = {
     'IMAGE_OFFLOAD_REQUIRED_CODE', 'INVALID_CREDENTIAL_CODE', 'LLM_FAILURE_CODES', 'LLM_TOKEN_SAVER_MODES',
     'LlmAdapter', 'LlmAttemptId', 'MessageId', 'PLAN_REQUIRED_CODE', 'ProviderRequestId', 'QUOTA_EXCEEDED_CODE',
     'RETRY_CODE_CHOICES', 'ReasoningEffortId', 'RetryPolicySchema', 'ToolCallId',
-    'assembleAssistantStream', 'assertUsableApiKey', 'assistantStreamChunks', 'assistantStreamFirstTokenTime',
+    'assembleAssistantStream', 'assistantStreamChunks', 'assistantStreamFirstTokenTime',
     'assistantStreamHasVisibleContent', 'assistantStreamHasVisibleText', 'attributionHeaders', 'boundContextSummary',
     'callConfigEquals', 'chunkHasVisibleText', 'contentHasFile', 'contentHasImage', 'createAssistantMessage',
     'createDeveloperMessage', 'createMessage', 'createSystemMessage', 'createToolResultMessage', 'createUserMessage',
